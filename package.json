@@ -1,0 +1,83 @@
+{
+  "name": "bancada",
+  "displayName": "Bancada — Biopython por tarefa",
+  "description": "Catálogo do Biopython organizado por tarefa, não por módulo, com trechos prontos para inserir no script.",
+  "version": "0.0.1",
+  "publisher": "juaredbr",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Education",
+    "Snippets"
+  ],
+  "keywords": [
+    "biopython",
+    "bioinformatics",
+    "sanger",
+    "dna"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bancada",
+          "title": "Bancada",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "bancada": [
+        {
+          "id": "bancada.catalogo",
+          "name": "Biopython por tarefa"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "bancada.inserirTrecho",
+        "title": "Bancada: inserir trecho no editor"
+      },
+      {
+        "command": "bancada.copiarTrecho",
+        "title": "Bancada: copiar trecho"
+      },
+      {
+        "command": "bancada.recarregarCatalogo",
+        "title": "Bancada: recarregar catálogo",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "bancada.recarregarCatalogo",
+          "when": "view == bancada.catalogo",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "bancada.copiarTrecho",
+          "when": "view == bancada.catalogo && viewItem == bancada.entrada"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  }
+}
