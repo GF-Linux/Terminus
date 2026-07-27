@@ -1,0 +1,499 @@
+<meta charset="utf-8">
+<title>Bancada — IDE própria, preto fosco</title>
+<style>
+<!--FONTES-->
+
+:root{
+  /* ---- preto fosco: escala sem matiz, sem brilho ---- */
+  --void:#070707;        /* fundo da página, fora da janela */
+  --chrome:#0B0B0B;      /* barra de título, atividades, lateral, status */
+  --bg:#101010;          /* editor */
+  --panel:#0D0D0D;       /* painel inferior */
+  --elev:#151515;        /* cartão de detalhe (a única superfície "acima") */
+  --sunk:#0A0A0A;        /* campo de busca, bloco de código */
+  --line:#1C1C1C;        /* divisória padrão */
+  --line2:#282828;       /* divisória de contorno */
+  --hover:#171717;
+  --sel:#212121;         /* seleção: preenchimento, não cor */
+  --selbd:#3A3A3A;
+  --fg:#EDEDED; --fg2:#9B9B9B; --fg3:#636363;
+  /* Um único acento, o verde da bancada. Reservado para: item ativo,
+     ação primária e estado do ambiente. Em mais nada. */
+  --acc:#3FC46B;
+  /* sintaxe */
+  --kw:#569CD6; --ctl:#C586C0; --str:#CE9178; --num:#B5CEA8;
+  --fn:#DCDCAA; --cmt:#6A9955; --var:#9CDCFE; --typ:#4EC9B0;
+  /* as 4 bases — só em dado biológico, nunca na casca */
+  --A:#3FC46B; --C:#4D96FF; --G:#E9B949; --T:#F0574F;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--void); color:var(--fg); font-family:var(--sans); font-size:15px; -webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+.wrap{max-width:1400px; margin:0 auto; padding:34px 24px 64px}
+
+/* ---------- topo da página (fora da IDE) ---------- */
+.masthead h1{margin:0; font-size:25px; font-weight:600; letter-spacing:-.015em; display:flex; align-items:center; gap:12px}
+.masthead h1 .tag{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--fg3);
+  border:1px solid var(--line2); border-radius:99px; padding:3px 9px; font-weight:400}
+.masthead p{margin:9px 0 0; max-width:64ch; color:var(--fg2); font-size:13.5px; line-height:1.6}
+.controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:18px 0 14px}
+.seg{display:flex; gap:4px; padding:4px; background:var(--chrome); border:1px solid var(--line); border-radius:8px}
+.seg button{font:inherit; font-size:12.5px; font-weight:500; color:var(--fg2); background:none; border:0; border-radius:5px; padding:6px 13px; cursor:pointer}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--line2); color:#fff}
+.hint{font-size:12px; color:var(--fg3); font-family:var(--mono)}
+
+/* ---------- a janela da IDE ---------- */
+.scroller{overflow-x:auto; padding-bottom:8px}
+.ide{min-width:1180px; border:1px solid var(--line2); border-radius:9px; overflow:hidden; background:var(--bg);
+  /* sombra fechada e sem halo: superfície fosca, não vidro */
+  box-shadow:0 18px 44px -20px rgba(0,0,0,.9); display:grid; grid-template-rows:38px 1fr 25px; height:702px}
+
+/* barra de título própria — não é a do VSCodium */
+.tbar{background:var(--chrome); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 8px 0 12px; gap:16px; font-size:12px; color:var(--fg2)}
+.tbar .mark{display:flex; align-items:center; gap:8px; font-weight:600; font-size:12.5px; color:var(--fg); letter-spacing:-.005em}
+.tbar .mark svg{width:15px; height:15px; fill:none; stroke:var(--acc); stroke-width:1.5; stroke-linecap:round}
+.menu{display:flex; gap:2px}
+.menu span{padding:4px 9px; border-radius:4px; font-size:12.5px; color:var(--fg2)}
+.menu span:hover{background:var(--hover); color:var(--fg)}
+.tbar .doc{margin:0 auto; color:var(--fg3); font-size:12px}
+.wctl{display:flex; gap:2px}
+.wctl i{width:30px; height:24px; display:grid; place-items:center; border-radius:4px; color:var(--fg2); font-style:normal; font-size:11px}
+.wctl i:hover{background:var(--hover)}
+.wctl i.x:hover{background:#B4232A; color:#fff}
+
+/* corpo */
+.main{display:grid; grid-template-columns:48px auto 1fr; min-height:0; overflow:hidden}
+.main > *{min-height:0; min-width:0}
+
+/* barra de atividades — ícones da própria IDE */
+.act{background:var(--chrome); border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; padding:6px 0}
+.act .ic{width:48px; height:44px; display:grid; place-items:center; color:var(--fg3); position:relative; cursor:default}
+.act .ic svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.35; stroke-linecap:round; stroke-linejoin:round}
+.act .ic:hover{color:var(--fg2)}
+.act .ic.on{color:var(--fg)}
+/* indicador do item ativo: o acento aparece aqui, e fino */
+.act .ic.on::before{content:""; position:absolute; left:0; top:8px; bottom:8px; width:2px; background:var(--acc)}
+.act .sp{margin-top:auto}
+
+/* barra lateral */
+.side{width:296px; background:var(--chrome); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; overflow:hidden}
+.sidehd{padding:12px 16px 9px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg2); display:flex; align-items:center; gap:8px}
+.sidehd .dots{margin-left:auto; color:var(--fg3); letter-spacing:0}
+.search{margin:0 12px 8px; background:var(--sunk); border:1px solid var(--line2); border-radius:4px; padding:6px 9px; font-size:12px; color:var(--fg3)}
+.tree{overflow-y:auto; overflow-x:hidden; flex:1; min-height:0; padding-bottom:10px; font-size:12.8px}
+.sectn{padding:7px 16px 4px; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--fg2);
+  display:flex; align-items:center; gap:6px; margin-top:3px}
+.sectn .chev{font-size:9px; color:var(--fg3)}
+.sectn .n{margin-left:auto; font-family:var(--mono); font-size:9.5px; color:var(--fg3); text-transform:none; letter-spacing:0}
+.it{display:flex; align-items:center; gap:7px; padding:3px 12px 3px 30px; color:var(--fg2); white-space:nowrap; cursor:default;
+  font-family:var(--mono); font-size:11.4px; overflow:hidden}
+.it:hover{background:var(--hover); color:var(--fg)}
+.it > .nmx{overflow:hidden; text-overflow:ellipsis}
+.it.on{background:var(--sel); box-shadow:inset 0 0 0 1px var(--selbd); color:#fff}
+.it .dep{margin-left:auto; color:var(--G); font-size:10px; flex:none}
+
+/* cartão de detalhe */
+.detail{border-top:1px solid var(--line); padding:12px 14px 13px; background:var(--elev); flex:none; max-height:49%; overflow-y:auto}
+.detail .nm{font-family:var(--mono); font-size:12px; color:var(--var); margin-bottom:2px; word-break:break-all}
+.detail .sig{font-family:var(--mono); font-size:10.5px; color:var(--fg3); margin-bottom:7px; line-height:1.5;
+  max-height:3.1em; overflow:hidden}
+.detail p{margin:0 0 9px; font-size:12.2px; line-height:1.55; color:var(--fg2)}
+.detail .snip{background:var(--sunk); border:1px solid var(--line2); border-radius:4px; padding:9px 10px; font-family:var(--mono);
+  font-size:11.2px; line-height:1.7; white-space:pre; overflow-x:auto; margin-bottom:10px}
+.detail .warn{border-left:2px solid var(--G); padding:3px 0 3px 9px; margin:0 0 10px; font-size:11.5px; color:var(--G); line-height:1.5}
+.detail .acts{display:flex; gap:7px}
+.b{font:inherit; font-size:11.5px; border-radius:4px; border:1px solid var(--line2); background:#1E1E1E; color:var(--fg); padding:5px 11px; cursor:default}
+.b.pri{background:var(--acc); border-color:var(--acc); color:#08130C; font-weight:600}
+.detail .src{margin-top:10px; font-family:var(--mono); font-size:9.5px; color:var(--fg3); line-height:1.6}
+.detail .src b{color:var(--acc); font-weight:500}
+
+/* editor */
+.stage{display:grid; grid-template-rows:1fr 208px; min-width:0; min-height:0; overflow:hidden}
+.stage > *{min-height:0}
+.groups{display:grid; grid-template-columns:1fr 1fr; min-height:0; overflow:hidden}
+.grp{display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; border-right:1px solid var(--line)}
+.grp:last-child{border-right:0}
+.tabs{display:flex; background:var(--chrome); border-bottom:1px solid var(--line); min-height:36px}
+.tb{display:flex; align-items:center; gap:8px; padding:0 13px; font-size:12.5px; color:var(--fg3); border-right:1px solid var(--line); white-space:nowrap}
+.tb.on{background:var(--bg); color:var(--fg); box-shadow:inset 0 1px 0 var(--acc)}
+.tb .x{margin-left:6px; color:var(--fg3); font-size:13px}
+.crumb{padding:5px 15px; font-size:11.5px; color:var(--fg3); border-bottom:1px solid var(--line); background:var(--bg); font-family:var(--mono)}
+.code{flex:1; min-height:0; overflow:auto; padding:9px 0 14px; font-family:var(--mono); font-size:12.6px; line-height:1.78; background:var(--bg)}
+.ln{display:flex}
+.ln .n{width:48px; flex:none; text-align:right; padding-right:16px; color:#4E4E4E; user-select:none}
+.ln .t{white-space:pre}
+.ln.cur{background:#151515}
+.kw{color:var(--kw)}.ctl{color:var(--ctl)}.str{color:var(--str)}.num{color:var(--num)}
+.fn{color:var(--fn)}.cmt{color:var(--cmt)}.va{color:var(--var)}.ty{color:var(--typ)}
+
+/* painel de leitura .ab1 — aqui a cor volta, porque é dado */
+.wv{flex:1; min-height:0; overflow:auto; background:#0C0C0C; padding:15px}
+.wv.empty{display:grid; place-items:center; padding:20px}
+.wv.empty div{color:var(--fg3); font-size:12.5px; text-align:center; line-height:1.8; max-width:28ch}
+.wv.empty code{font-family:var(--mono); color:var(--fg2)}
+.wvh{display:flex; align-items:baseline; gap:10px; margin-bottom:3px}
+.wvh h3{margin:0; font-size:15px; font-weight:600; color:var(--fg)}
+.wvh span{font-family:var(--mono); font-size:10.5px; color:var(--fg3)}
+.pills{display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 13px}
+.pill{font-family:var(--mono); font-size:10px; color:var(--fg2); background:var(--sunk); border:1px solid var(--line2); border-radius:99px; padding:3px 10px}
+.pill b{color:var(--fg); font-weight:500}
+.cardx{background:var(--sunk); border:1px solid var(--line2); border-radius:5px; overflow:hidden; margin-bottom:12px}
+.cardx .h{padding:7px 11px; border-bottom:1px solid var(--line); font-family:var(--mono); font-size:9.5px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--fg3); display:flex}
+.cardx .h span{margin-left:auto}
+.cardx .b2{padding:11px}
+.chroma{display:block; width:100%; height:98px}
+.calls{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; padding-top:6px}
+.legend{display:flex; gap:14px; font-family:var(--mono); font-size:10px; color:var(--fg2)}
+.legend i{width:7px; height:7px; border-radius:1px; display:inline-block; margin-right:4px}
+
+/* painel inferior */
+.bottom{border-top:1px solid var(--line); display:flex; flex-direction:column; background:var(--panel); min-height:0}
+.ptabs{display:flex; align-items:center; padding:0 12px; height:35px; border-bottom:1px solid var(--line)}
+.pt{font-size:10.8px; letter-spacing:.07em; text-transform:uppercase; color:var(--fg3); padding:0 11px; line-height:35px; white-space:nowrap}
+.pt.on{color:var(--fg); box-shadow:inset 0 -1px 0 var(--fg)}
+.ptabs .r{margin-left:auto; display:flex; gap:13px; color:var(--fg3); font-size:12px}
+.term{flex:1; overflow:auto; padding:10px 15px; font-family:var(--mono); font-size:12.2px; line-height:1.68; color:var(--fg2); white-space:pre-wrap}
+.term .pr{color:var(--acc)}
+.term .dim{color:var(--fg3)}
+.term .hi{color:var(--G)}
+
+/* barra de estado */
+.sbar{background:var(--chrome); border-top:1px solid var(--line); display:flex; align-items:center; gap:17px; padding:0 12px; font-size:11.5px; color:var(--fg2)}
+.sbar .r{margin-left:auto; display:flex; gap:17px}
+.sbar .ok{color:var(--acc)}
+
+/* ---------- notas ---------- */
+.notes{margin-top:44px; border-top:1px solid var(--line); padding-top:28px}
+.notes h2{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--fg3); margin:0 0 20px; font-weight:500}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:24px 34px}
+.note h3{margin:0 0 7px; font-size:14.5px; font-weight:600; display:flex; align-items:baseline; gap:9px}
+.note h3 b{font-family:var(--mono); font-size:10px; color:var(--acc); font-weight:600; letter-spacing:.06em}
+.note p{margin:0; font-size:13px; color:var(--fg2); line-height:1.62}
+.note p+p{margin-top:8px}
+.note em{color:var(--fg); font-style:normal; font-weight:500}
+.swatches{display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 0}
+.sw{font-family:var(--mono); font-size:9.5px; color:var(--fg3); text-align:center}
+.sw i{display:block; width:52px; height:34px; border:1px solid var(--line2); border-radius:4px; margin-bottom:4px}
+.caveat{margin-top:30px; padding:15px 17px; border:1px solid var(--line2); border-left:3px solid var(--G); border-radius:6px;
+  background:var(--chrome); font-size:13px; color:var(--fg2); line-height:1.62}
+.caveat b{color:var(--fg); font-weight:600}
+.caveat code{font-family:var(--mono); font-size:12px; color:var(--str)}
+.caveat+.caveat{border-left-color:var(--acc)}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1>Bancada <span class="tag">IDE própria · preto fosco</span></h1>
+    <p>Mesmo layout aprovado em 23/07 — atividades à esquerda, catálogo do Biopython na lateral,
+       editor no meio com a leitura ao lado, terminal embaixo — agora como <em>aplicação própria</em>,
+       fora do VSCodium, na escala preto fosco. Nada aqui executa: é estudo visual.
+       O catálogo, porém, não é inventado: vem do arquivo verificado contra o Biopython instalado.</p>
+  </header>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Cenário">
+      <button type="button" data-go="catalogo" aria-pressed="true">Catálogo</button>
+      <button type="button" data-go="preview" aria-pressed="false">Pré-visualizar .ab1</button>
+    </div>
+    <span class="hint" id="meta"></span>
+  </div>
+
+  <div class="scroller">
+  <div class="ide">
+
+    <!-- barra de título própria: nome, menu e controles de janela -->
+    <div class="tbar">
+      <div class="mark">
+        <svg viewBox="0 0 24 24"><path d="M8 3v5L4.6 13.4A3.6 3.6 0 008 19h8a3.6 3.6 0 003.4-5.6L16 8V3"/><path d="M7 3h10"/><path d="M5.6 14.2h12.8"/></svg>
+        Bancada
+      </div>
+      <nav class="menu"><span>Arquivo</span><span>Editar</span><span>Ver</span><span>Executar</span><span>Bancada</span><span>Ajuda</span></nav>
+      <div class="doc">aparar_qualidade.py — corrida_18S_2026-07</div>
+      <div class="wctl"><i>&#8210;</i><i>&#9723;</i><i class="x">&#10005;</i></div>
+    </div>
+
+    <div class="main">
+
+      <nav class="act" aria-label="Barra de atividades">
+        <div class="ic" title="Arquivos"><svg viewBox="0 0 24 24"><path d="M4 5h6l2 2h8v12H4z"/></svg></div>
+        <div class="ic on" title="Catálogo do Biopython"><svg viewBox="0 0 24 24"><path d="M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/><path d="M9.2 7h5.6M8.2 11h7.6M9.2 16h5.6"/></svg></div>
+        <div class="ic" title="Leituras .ab1"><svg viewBox="0 0 24 24"><path d="M3 16c2-6 4 4 6-2s4 5 6-1 4 3 6-3"/></svg></div>
+        <div class="ic" title="Pesquisar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.4-4.4"/></svg></div>
+        <div class="ic" title="Executar"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></div>
+        <div class="ic sp" title="Ambiente"><svg viewBox="0 0 24 24"><path d="M12 3l7.5 4.3v8.6L12 20.2 4.5 15.9V7.3z"/><path d="M12 12l7.5-4.3M12 12v8.2M12 12L4.5 7.7"/></svg></div>
+        <div class="ic" title="Configurações"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8"/></svg></div>
+      </nav>
+
+      <aside class="side">
+        <div class="sidehd">Biopython por tarefa <span class="dots">···</span></div>
+        <div class="search">Buscar por tarefa ou função…</div>
+        <div class="tree" id="tree"></div>
+        <div class="detail" id="detail"></div>
+      </aside>
+
+      <div class="stage">
+        <div class="groups" id="groups"></div>
+        <div class="bottom">
+          <div class="ptabs">
+            <span class="pt on">Terminal</span>
+            <span class="pt">Problemas</span>
+            <span class="pt">Saída</span>
+            <span class="pt">Bancada</span>
+            <span class="r"><span>+</span><span>&#8964;</span><span>&#9645;</span><span>&#10005;</span></span>
+          </div>
+          <div class="term" id="term"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sbar">
+      <span>&#8687; main*</span>
+      <span>&#8855; 0 &nbsp; &#9888; 0</span>
+      <span class="ok" id="env">&#9679;</span>
+      <span class="r">
+        <span id="lncol">Ln 13, Col 34</span><span>Espaços: 4</span><span>UTF-8</span><span>LF</span><span id="pyver">Python</span>
+      </span>
+    </div>
+
+  </div>
+  </div>
+
+  <section class="notes">
+    <h2>O que muda ao sair do VSCodium</h2>
+    <div class="grid">
+      <div class="note">
+        <h3><b>1</b>A casca passa a ser nossa</h3>
+        <p>Barra de título, menu e controles de janela são da aplicação — não há mais menu da Microsoft nem
+           identidade emprestada. O layout aprovado foi preservado inteiro: atividades, lateral, editor duplo, terminal, estado.</p>
+        <p>Some o que não faz sentido em IDE própria: o ícone <em>Extensões</em> saiu (não há marketplace),
+           e o catálogo do Biopython deixou de ser "um acréscimo" para virar o segundo item da barra.</p>
+      </div>
+      <div class="note">
+        <h3><b>2</b>Preto fosco é escala sem matiz</h3>
+        <p>O Dark Modern do VS Code tem viés azul (<em>#1F1F1F</em> sobre <em>#181818</em>, acento <em>#0078D4</em>).
+           Aqui a casca é cinza puro, de <em>#070707</em> a <em>#EDEDED</em>, e a sombra da janela é fechada, sem halo —
+           é superfície fosca, não vidro.</p>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="note">
+        <h3><b>3</b>Um acento só, e com parcimônia</h3>
+        <p>O verde da bancada aparece em três lugares e em mais nenhum: item ativo da barra de atividades,
+           ação primária e estado do ambiente. Seleção na lista é <em>preenchimento cinza com contorno</em>, não cor.</p>
+        <p>O motivo é o cromatograma: as quatro bases precisam ser as cores mais fortes da tela. Se a casca competir, o dado perde.</p>
+      </div>
+      <div class="note">
+        <h3><b>4</b>O catálogo aqui é o verificado</h3>
+        <p>O mockup de 23/07 terminava avisando que os nomes de função eram rascunho e precisavam ser
+           conferidos. <em>Agora são o arquivo real</em>: gerado por introspecção do Biopython instalado, e
+           quem está depreciado aparece marcado na lista e no cartão.</p>
+      </div>
+      <div class="note">
+        <h3><b>5</b>A barra de estado continua sendo a promessa</h3>
+        <p>Ver as versões no rodapé responde de relance a pergunta que mais custa tempo: o ambiente está de pé?
+           As três versões mostradas foram <em>detectadas nesta máquina</em>, não escritas à mão.</p>
+      </div>
+      <div class="note">
+        <h3><b>—</b>O que continua fora de propósito</h3>
+        <p>Montagem de contig, árvore NJ e identificação por BLAST não entram: <em>isso o EasyContig já faz.</em>
+           A IDE ensina e acelera escrever a análise; o EasyContig entrega o resultado pronto.</p>
+        <p>Se um dia convergirem, o caminho é a IDE chamar o EasyContig — não recriá-lo.</p>
+      </div>
+    </div>
+
+    <div class="caveat">
+      <b>O custo que esta decisão assume.</b> A decisão 0001 do projeto concluiu que IDE própria é inviável e
+      que manter plugin custa ordens de grandeza menos que manter casca. Sair do VSCodium significa passar a
+      manter, por conta própria, o que vinha de graça: abas, painéis redimensionáveis, busca em arquivos, git,
+      terminal integrado, atalhos, temas e o ciclo de atualização. O caminho realista é <b>compor componentes
+      prontos</b> — CodeMirror 6 para o editor e xterm.js para o terminal, dentro de Tauri ou Electron — e não
+      escrever editor de texto. A escolha entre Tauri e Electron ficou explicitamente para depois.
+    </div>
+
+    <div class="caveat">
+      <b>O que é real e o que é cenário nesta tela.</b> Reais: os nomes, assinaturas e avisos de depreciação do
+      catálogo (55 entradas verificadas contra o Biopython instalado) e as versões da barra de estado, detectadas
+      na máquina. Cenário: o código no editor, o conteúdo do terminal e o cromatograma, que é uma curva gerada
+      por seno a partir de uma sequência 18S de exemplo. Os 36 <code>.ab1</code> reais do LHV não entram em
+      material que circula, e nenhum nome de arquivo aqui corresponde a amostra de verdade.
+    </div>
+  </section>
+</div>
+
+<script>
+const COL={A:"#3FC46B",C:"#4D96FF",G:"#E9B949",T:"#F0574F"};
+const BASES="GGTTGATCCTGCCAGTAGTCATATGCTTGTCTCAAAGATTAAGCCATGCATGTCTAAGTATAAGCTTTTATACGGCGAAACTGCGAATGGCTCATTAAAACAGTTATAGTTTATTTGATGGTCACCTACTACTCGGATAACCGTAGTAATTCTAGAGCTAATACATGCACC";
+
+/* catálogo e versões injetados pelo gerador — não editar à mão */
+const CATALOGO = /*CATALOGO*/null/*FIM*/;
+const VERSOES  = /*VERSOES*/null/*FIM*/;
+
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* realce de Python, aplicado depois de escapar o HTML */
+const KW=["from","import","as","with","open","None","True","False"];
+const CTL=["for","in","if","else","return","while","not","and","or"];
+function py(src){
+  let h = esc(src);
+  h = h.replace(/(#[^\n]*)/g, '<span class="cmt">$1</span>');
+  h = h.replace(/(&quot;[^&]*?&quot;|'[^']*?')/g, '<span class="str">$1</span>');
+  h = h.replace(/\b(\d+\.?\d*)\b/g, '<span class="num">$1</span>');
+  h = h.replace(new RegExp("\\b("+KW.join("|")+")\\b","g"), '<span class="kw">$1</span>');
+  h = h.replace(new RegExp("\\b("+CTL.join("|")+")\\b","g"), '<span class="ctl">$1</span>');
+  h = h.replace(/\b([a-zA-Z_]\w*)\(/g, '<span class="fn">$1</span>(');
+  return h;
+}
+
+/* ---------- lateral: catálogo verificado ---------- */
+let atual=null;
+/* Rótulo da lista: só o nome final ("read") perde de qual módulo ele vem, e o
+   mockup aprovado mostrava a chamada inteira. Numa lateral de 296px o caminho
+   completo não cabe, então mostra-se o módulo + nome — "SeqIO.read" —, sem o
+   prefixo "Bio." que é igual em todas as entradas. */
+function rotulo(path){
+  const p = path.replace(/^Bio\./, "").split(".");
+  const ult = p.slice(-2);
+  if(ult.length === 2 && ult[0] === ult[1]) return ult[1];  /* SeqRecord.SeqRecord */
+  return ult.join(".");
+}
+function drawTree(){
+  const t=document.getElementById("tree");
+  t.innerHTML = CATALOGO.tasks.map(tarefa=>
+    `<div class="sectn"><span class="chev">&#9662;</span>${esc(tarefa.title)}<span class="n">${tarefa.entries.length}</span></div>`+
+    tarefa.entries.map(e=>{
+      return `<div class="it" data-path="${esc(e.path)}" title="${esc(e.path)}"><span class="nmx">${esc(rotulo(e.path))}</span>`+
+             (e.deprecated?'<span class="dep" title="depreciado">&#9888;</span>':'')+`</div>`;
+    }).join("")
+  ).join("");
+  t.querySelectorAll(".it").forEach(el=>el.addEventListener("click",()=>sel(el.dataset.path)));
+}
+function todas(){ return CATALOGO.tasks.flatMap(t=>t.entries); }
+function sel(path){
+  atual=path;
+  const t=document.getElementById("tree");
+  t.querySelectorAll(".it").forEach(x=>x.classList.toggle("on", x.dataset.path===path));
+  const e=todas().find(x=>x.path===path);
+  if(!e) return;
+  document.getElementById("detail").innerHTML=`
+    <div class="nm">${esc(e.path)}</div>
+    ${e.signature?`<div class="sig">${esc(e.signature)}</div>`:""}
+    <p>${esc(e.doc||"")}</p>
+    ${e.deprecated?`<div class="warn">&#9888; ${esc(e.deprecated.slice(0,160))}</div>`:""}
+    <div class="snip">${py(e.snippet)}</div>
+    ${e.note?`<p style="color:var(--fg3);font-size:11.6px">${esc(e.note)}</p>`:""}
+    <div class="acts"><button class="b pri">Inserir no script</button><button class="b">Abrir a documentação</button></div>
+    <div class="src">Biopython ${esc(CATALOGO.biopython_version)} &middot; <b>verificado por introspecção</b></div>`;
+}
+
+/* ---------- cromatograma (curva de cenário) ---------- */
+function chroma(seq,w,h){
+  const step=w/seq.length, sig=step*0.34, out=[];
+  for(const b of "ACGT"){
+    const pts=[];
+    for(let x=0;x<=w;x+=1.6){
+      let y=0;
+      [...seq].forEach((base,i)=>{ if(base!==b) return;
+        const c=(i+.5)*step, amp=h*(.5+.42*Math.abs(Math.sin(i*2.4+b.charCodeAt(0))));
+        y+=amp*Math.exp(-((x-c)**2)/(2*sig*sig));});
+      pts.push(`${x.toFixed(1)},${(h-y).toFixed(1)}`);
+    }
+    out.push(`<path d="M${pts.join("L")}" fill="none" stroke="${COL[b]}" stroke-width="1.3" vector-effect="non-scaling-stroke"/>`);
+  }
+  return `<svg class="chroma" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Cromatograma">${out.join("")}</svg>`;
+}
+
+const LINHAS=[
+ [1,'from Bio import SeqIO'],
+ [2,'from Bio.SeqUtils import gc_fraction'],
+ [3,''],
+ [4,'# 1. abrir a leitura direta da amostra'],
+ [5,'registro = SeqIO.read("A01_F.ab1", "abi")'],
+ [6,'qualidade = registro.letter_annotations["phred_quality"]'],
+ [7,''],
+ [8,'# 2. cortar as pontas com Phred abaixo de 20'],
+ [9,'bom = [i for i, q in enumerate(qualidade) if q >= 20]'],
+ [10,'aparado = registro[bom[0] : bom[-1] + 1]'],
+ [11,''],
+ [12,'# 3. inserido pelo catálogo da Bancada'],
+ [13,'gc = gc_fraction(aparado.seq)'],
+ [14,''],
+ [15,'SeqIO.write(aparado, "A01_F.aparado.fasta", "fasta")'],
+ [16,'print(f"{len(registro)} pb -> {len(aparado)} pb - GC {gc:.1%}")'],
+];
+const CODE=`
+<div class="crumb">corrida_18S_2026-07 &rsaquo; aparar_qualidade.py</div>
+<div class="code">${LINHAS.map(([n,t])=>
+  `<div class="ln${n===13?' cur':''}"><span class="n">${n}</span><span class="t">${t?py(t):''}</span></div>`).join("")}</div>`;
+
+const PREVIEW=`
+<div class="wv">
+  <div class="wvh"><h3>A01_F.ab1</h3><span>leitura direta &middot; primer 18S-F</span></div>
+  <div class="pills">
+    <span class="pill">Bases <b>1 042</b></span><span class="pill">Phred m&eacute;dio <b>41</b></span>
+    <span class="pill">Trecho &uacute;til <b>38&ndash;986</b></span><span class="pill">GC <b>46,2 %</b></span>
+  </div>
+  <div class="cardx">
+    <div class="h">Cromatograma <span>bases 412&ndash;452</span></div>
+    <div class="b2">${chroma(BASES.slice(60,100),520,104)}
+      <div class="calls">${[...BASES.slice(60,100)].map(b=>`<span style="color:${COL[b]}">${b}</span>`).join("")}</div>
+    </div>
+  </div>
+  <div class="legend">${"ACGT".split("").map(b=>`<span><i style="background:${COL[b]}"></i>${b}</span>`).join("")}</div>
+</div>`;
+
+const EMPTY=`<div class="wv empty"><div>Clique num <code>.ab1</code> na lista de leituras para pr&eacute;-visualizar aqui.</div></div>`;
+
+const TERM_A=`<span class="pr">&#10148; corrida_18S_2026-07</span> python aparar_qualidade.py
+1042 pb -> 948 pb &middot; GC 46,2 %
+<span class="dim">Gravado: A01_F.aparado.fasta</span>
+<span class="pr">&#10148; corrida_18S_2026-07</span> <span class="dim">&#9613;</span>`;
+const TERM_B=`<span class="pr">&#10148; corrida_18S_2026-07</span> python aparar_qualidade.py
+1042 pb -> 948 pb &middot; GC 46,2 %
+<span class="dim">Gravado: A01_F.aparado.fasta</span>
+<span class="hi">Bancada:</span> pr&eacute;-visualiza&ccedil;&atilde;o aberta para A01_F.ab1
+<span class="pr">&#10148; corrida_18S_2026-07</span> <span class="dim">&#9613;</span>`;
+
+const VIEWS={
+  catalogo:{right:EMPTY,   rtab:'Pr&eacute;-visualiza&ccedil;&atilde;o', term:TERM_A},
+  preview: {right:PREVIEW, rtab:'A01_F.ab1',                             term:TERM_B},
+};
+function go(name){
+  const v=VIEWS[name];
+  document.getElementById("groups").innerHTML=`
+    <div class="grp">
+      <div class="tabs"><span class="tb on">aparar_qualidade.py<span class="x">&#10005;</span></span><span class="tb">montar_contig.py</span></div>
+      ${CODE}
+    </div>
+    <div class="grp">
+      <div class="tabs"><span class="tb on">${v.rtab}<span class="x">&#10005;</span></span></div>
+      ${v.right}
+    </div>`;
+  document.getElementById("term").innerHTML=v.term;
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.go===name)));
+}
+
+/* amostras da escala, para conferir a cor no olho */
+const RAMPA=[["--void","#070707"],["--chrome","#0B0B0B"],["--panel","#0D0D0D"],["--bg","#101010"],
+             ["--elev","#151515"],["--line2","#282828"],["--fg2","#9B9B9B"],["--fg","#EDEDED"]];
+document.getElementById("swatches").innerHTML=RAMPA.map(([n,c])=>
+  `<span class="sw"><i style="background:${c}"></i>${c}</span>`).join("");
+
+document.getElementById("env").innerHTML =
+  "&#9679; Biopython "+VERSOES.biopython+" &middot; BLAST+ "+VERSOES.blast+" &middot; Tracy "+VERSOES.tracy;
+document.getElementById("pyver").textContent = "Python "+VERSOES.python;
+document.getElementById("meta").textContent =
+  CATALOGO.task_count+" tarefas &middot; "+CATALOGO.entry_count+" entradas verificadas";
+document.getElementById("meta").innerHTML =
+  CATALOGO.task_count+" tarefas &middot; "+CATALOGO.entry_count+" entradas verificadas contra o Biopython "+CATALOGO.biopython_version;
+
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
+drawTree();
+sel("Bio.SeqUtils.gc_fraction");
+go(location.hash.slice(1) in VIEWS ? location.hash.slice(1) : "catalogo");
+</script>

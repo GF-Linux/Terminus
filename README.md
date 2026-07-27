@@ -79,3 +79,33 @@ npm run compile     # tsc em modo strict, saída em out/
   compilação.
 - A pré-visualização de `.ab1` como cromatograma (processo Python auxiliar +
   webview) não foi começada.
+
+## Protótipo visual da IDE própria (preto fosco)
+
+Em 2026-07-26 o projeto virou **aplicação própria**, fora do VSCodium (ver ADR 0003
+no segundo cérebro). O protótipo visual fica em `design/`:
+
+```bash
+python3 tools/build_prototype.py     # gera design/prototipo-preto-fosco.html
+```
+
+O gerador junta o template (`design/prototipo.template.html`), o catálogo
+verificado (`data/biopython-catalog.json`) e as fontes IBM Plex em base64
+reaproveitadas do mockup aprovado de 23/07 — nada é copiado à mão. As versões da
+barra de estado são **detectadas na máquina** na hora de gerar.
+
+Abra o HTML direto no navegador; é arquivo único e funciona offline.
+
+Histórico de design em `design/`:
+- `mockup-1-descartado-app-propria.html` — 1ª direção (23/07), descartada
+- `mockup-2-aprovado-vscodium.html` — direção aprovada (23/07), casca do VSCodium
+- `prototipo-preto-fosco.html` — IDE própria em preto fosco (26/07), gerado
+
+> Os dois mockups de 23/07 nunca tinham sido versionados e foram achados na
+> lixeira em 26/07 (apagados às 21:12 daquele dia). Estão no repo desde então.
+
+### O esqueleto de extensão continua no repo
+
+O `package.json` de extensão e `src/extension.ts` são de antes da mudança de rumo.
+O que sobrevive sem alteração para a IDE própria é o que importa: o catálogo
+gerado e as duas ferramentas de verificação, que não dependem da casca.
