@@ -1,15 +1,19 @@
 # Bancada
 
-Extensão para VSCodium/VS Code que facilita o uso do **Biopython**: um catálogo
+**IDE própria** para o laboratório que facilita o uso do **Biopython**: um catálogo
 navegável da biblioteca organizado **por tarefa** (não por módulo), com trechos
-prontos para inserir no script.
+prontos para inserir no script, e pré-visualização de `.ab1` como cromatograma.
 
 O problema que resolve: a documentação do Biopython é indexada por módulo, o que
 só ajuda quem já sabe o nome do que procura. Aqui se procura pela tarefa —
 "medir GC", "ler cromatograma", "montar árvore".
 
-Estado: **esqueleto funcional**. A árvore lateral carrega e insere trechos.
-Ainda não existe a pré-visualização de `.ab1` como cromatograma (próximo passo).
+**Estado (2026-07-26):** o catálogo verificado e a referência de leitura estão
+prontos e são o que há de mais sólido no repo. A aplicação em si **não começou** —
+em 26/07 o projeto deixou de ser extensão do VSCodium e virou aplicação própria
+(ADR 0003 no segundo cérebro), e a base (Tauri / Electron / Qt+Python) ainda não
+foi escolhida. Existe protótipo visual em `design/`. O esqueleto de extensão em
+`src/` é de antes da virada e está preservado, não descartado.
 
 ## O catálogo nunca é escrito à mão
 
