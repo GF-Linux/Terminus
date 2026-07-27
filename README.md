@@ -46,6 +46,17 @@ $PY tools/build_catalog.py --check    # só valida, não grava
 $PY tools/check_snippets.py           # executa os trechos de verdade
 ```
 
+### Referência de leitura
+
+```bash
+python3 tools/build_reference.py     # gera docs/biopython-por-tarefa.md
+```
+
+`docs/biopython-por-tarefa.md` é o catálogo em forma de documento: cola rápida com
+uma função por tarefa, tabela do que saiu do Biopython, e as 55 funções com
+assinatura, docstring e trecho. Também é gerado — não editar à mão. O gerador
+falha se a cola rápida citar um caminho que não está no catálogo.
+
 `check_snippets.py` é a verificação forte: resolver o símbolo prova que a função
 existe, mas não que o trecho oferecido está correto. Ele executa cada trecho e
 classifica o desfecho (`ok`, `precisa-contexto`, `precisa-arquivo`,

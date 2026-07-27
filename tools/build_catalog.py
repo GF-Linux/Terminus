@@ -254,7 +254,7 @@ TASKS: list[dict] = [
             {
                 "path": "Bio.Phylo.write",
                 "snippet": 'from Bio import Phylo\n\nPhylo.write(arvore, "saida.nwk", "newick")',
-                "note": None,
+                "note": "Grava a árvore. Aceita uma árvore só ou uma lista delas.",
             },
             {
                 "path": "Bio.Phylo.TreeConstruction.DistanceCalculator",
@@ -296,7 +296,7 @@ TASKS: list[dict] = [
             {
                 "path": "Bio.Entrez.esummary",
                 "snippet": 'from Bio import Entrez\n\nEntrez.email = "seu@email.com"\nresumo = Entrez.read(Entrez.esummary(db="nucleotide", id="NC_000913.3"))',
-                "note": None,
+                "note": "Devolve só o resumo (título, tamanho, organismo) sem baixar a sequência — bom para conferir um hit antes de puxar o registro inteiro.",
             },
         ],
     },
