@@ -72,8 +72,11 @@ npm run compile     # tsc em modo strict, saída em out/
   estão. Ficheiros FASTA/XML sintéticos resolveriam a maioria. Para `.ab1`,
   **não usar** os 36 arquivos reais do LHV — são dados não publicados.
 - **Licença e nome não decididos.** `package.json` está como `UNLICENSED` por ora;
-  "Bancada" segue sendo sugestão. Se houver distribuição, é por Open VSX — o
-  Marketplace da Microsoft proíbe forks.
+  "Bancada" segue sendo sugestão. Distribuição por Open VSX **deixou de se aplicar**
+  com a virada para aplicação própria (ADR 0003) — não há mais marketplace no
+  caminho, e como distribuir passou a ser pergunta aberta.
+- **Base da aplicação não escolhida** (Tauri vs Electron vs Qt/Python). Decisão
+  adiada de propósito; ver ADR 0003.
 - **Sem testes automatizados do lado TypeScript.** O `catalog.ts` foi verificado
   à mão no node (carga e caminho de erro); `extension.ts` só foi verificado por
   compilação.
