@@ -114,6 +114,25 @@ barra de estado são **detectadas na máquina** na hora de gerar.
 
 Abra o HTML direto no navegador; é arquivo único e funciona offline.
 
+### A paleta vem do Cursor instalado, não de estimativa
+
+O tema **Cursor Dark** fica em cache no SQLite de configuração do Cursor. Para
+reextrair (útil se o tema mudar):
+
+```bash
+python3 -c "
+import sqlite3, glob, json
+for x in glob.glob('$HOME/.config/Cursor/**/state.vscdb', recursive=True):
+    v = sqlite3.connect(x).execute(\"select value from ItemTable where key='colorThemeData'\").fetchone()
+    if v: print(json.dumps(json.loads(v[0])['colorMap'], indent=2)); break
+"
+```
+
+O que importa reproduzir é o **método**, não os hex isolados: uma cor base
+`#f0f0f0` com canal alfa para todo primeiro plano, borda, hover e seleção, sobre
+dois fundos — `#141414` (casca) e `#181818` (editor). Todas as bordas são um
+token único, `#f0f0f013`.
+
 Histórico de design em `design/`:
 - `mockup-1-descartado-app-propria.html` — 1ª direção (23/07), descartada
 - `mockup-2-aprovado-vscodium.html` — direção aprovada (23/07), casca do VSCodium

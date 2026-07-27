@@ -1,228 +1,219 @@
 <meta charset="utf-8">
-<title>Bancada — IDE própria, preto fosco</title>
+<title>Bancada — IDE (casca VSCodium, cor Cursor Dark)</title>
 <style>
 <!--FONTES-->
 
+/* ============================================================
+   Paleta: Cursor Dark, extraída do tema instalado nesta máquina
+   (~/.config/Cursor -> colorThemeData, 252 cores).
+   Não são valores aproximados "no estilo do Cursor": são os dele.
+
+   O método do tema é o que importa reproduzir: UMA cor base
+   (#f0f0f0) com canal alfa para todo primeiro plano, borda, hover
+   e seleção, sobre DOIS fundos (#141414 casca / #181818 editor).
+   ============================================================ */
 :root{
-  /* ---- preto fosco: escala sem matiz ---- */
-  --void:#070707; --chrome:#0B0B0B; --bg:#0F0F0F; --panel:#0C0C0C; --sunk:#141414;
-  --line:#1A1A1A; --line2:#262626; --hover:#161616; --sel:#1F1F1F;
-  --fg:#EDEDED; --fg2:#8E8E8E; --fg3:#5A5A5A;
-  /* Um acento só. Item ativo, ação primária, ambiente de pé. Em mais nada. */
-  --acc:#3FC46B;
-  --kw:#569CD6; --ctl:#C586C0; --str:#CE9178; --num:#B5CEA8; --fn:#DCDCAA; --cmt:#5F8C51; --va:#9CDCFE;
-  /* as 4 bases — só em dado biológico */
-  --A:#3FC46B; --C:#4D96FF; --G:#E9B949; --T:#F0574F;
+  --chrome:#141414;      /* titleBar, activityBar, sideBar, statusBar, panel, aba inativa */
+  --bg:#181818;          /* editor, aba ativa, breadcrumb */
+  --line:#f0f0f013;      /* TODAS as bordas — token único, 7,5% */
+  --linehl:#262626;      /* linha atual do editor */
+  --fg:#f0f0f0;          /* texto ativo */
+  --fg74:#f0f0f0bd;      /* texto normal, lateral, painel inativo */
+  --fg60:#f0f0f099;      /* barra de estado, comentário */
+  --fg52:#f0f0f084;      /* título da janela */
+  --fg36:#f0f0f05c;      /* aba inativa, número de linha */
+  --hover:#f0f0f011;
+  --sel:#f0f0f01e;       /* item selecionado na lista */
+  --input:#f0f0f00a;
+  --focus:#f0f0f026;
+  /* acentos do próprio Cursor (família Nord) */
+  --badge:#88c0d0; --btn:#81a1c1; --btnfg:#191c22;
+  /* sintaxe do Cursor Dark */
+  --cmt:#f0f0f099; --str:#e394dc; --kw:#82d2ce; --fn:#efb080;
+  --num:#ebc88d; --var:#d6d6dd; --typ:#efb080;
+  /* as 4 bases — só em dado biológico, nunca na casca */
+  --A:#3fc46b; --C:#4d96ff; --G:#e9b949; --T:#f0574f;
   --sans:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0; background:var(--void); color:var(--fg); font-family:var(--sans); font-size:15px; -webkit-font-smoothing:antialiased}
-:focus-visible{outline:1px solid var(--acc); outline-offset:2px}
+body{margin:0; background:#0d0d0d; color:var(--fg74); font-family:var(--sans); font-size:15px; -webkit-font-smoothing:antialiased}
 button{font:inherit; color:inherit; background:none; border:0; cursor:pointer; text-align:left}
-.wrap{max-width:1320px; margin:0 auto; padding:40px 24px 72px}
+:focus-visible{outline:1px solid var(--focus); outline-offset:1px}
+.wrap{max-width:1340px; margin:0 auto; padding:38px 24px 70px}
+.masthead h1{margin:0 0 8px; font-size:21px; font-weight:600; color:var(--fg); letter-spacing:-.015em}
+.masthead p{margin:0 0 24px; max-width:70ch; color:var(--fg60); font-size:13.5px; line-height:1.65}
+.masthead em{color:var(--fg); font-style:normal; font-weight:500}
 
-/* ---------- topo da página ---------- */
-.masthead h1{margin:0 0 8px; font-size:22px; font-weight:600; letter-spacing:-.015em}
-.masthead p{margin:0 0 26px; max-width:66ch; color:var(--fg2); font-size:13.5px; line-height:1.65}
-.masthead .tip{color:var(--fg3); font-size:12.5px}
-
-/* ---------- a janela ---------- */
+/* ===================== a janela ===================== */
 .scroller{overflow-x:auto}
-.ide{min-width:1080px; border:1px solid var(--line2); border-radius:10px; overflow:hidden; background:var(--bg);
-  box-shadow:0 16px 40px -22px rgba(0,0,0,.9); display:grid; grid-template-rows:36px 1fr 24px; height:600px}
+.ide{min-width:1100px; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--bg);
+  box-shadow:0 18px 44px -24px #000; display:grid; grid-template-rows:35px 1fr 22px; height:620px}
 
-/* barra de título */
-.tbar{background:var(--chrome); display:flex; align-items:center; padding:0 8px 0 13px; gap:14px; font-size:12px; color:var(--fg3)}
-.tbar .mark{display:flex; align-items:center; gap:8px; font-weight:600; font-size:12.5px; color:var(--fg)}
-.tbar .mark svg{width:14px; height:14px; fill:none; stroke:var(--acc); stroke-width:1.5; stroke-linecap:round}
-.tbar .doc{margin:0 auto; color:var(--fg3)}
-.wctl{display:flex; gap:1px}
-.wctl i{width:28px; height:22px; display:grid; place-items:center; border-radius:4px; font-style:normal; font-size:10px; color:var(--fg3)}
-.wctl i:hover{background:var(--hover); color:var(--fg2)}
-.wctl i.x:hover{background:#A81F26; color:#fff}
+/* barra de título — LIMPA: só os controles em círculo (P1.2) */
+.tbar{background:var(--chrome); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 12px; gap:12px}
+.lights{display:flex; gap:8px}
+.lights i{width:11px; height:11px; border-radius:50%; display:block}
+.lights .c1{background:#ff5f57}.lights .c2{background:#febc2e}.lights .c3{background:#28c840}
+.tbar .doc{margin:0 auto; font-size:12px; color:var(--fg52)}
 
-.main{display:grid; grid-template-columns:46px auto 1fr; min-height:0; overflow:hidden}
-.main > *{min-height:0; min-width:0}
+.main{display:grid; grid-template-columns:48px auto 1fr; min-height:0; overflow:hidden}
+.main>*{min-height:0; min-width:0}
 
-/* barra de atividades — 4 ícones */
-.act{background:var(--chrome); display:flex; flex-direction:column; align-items:center; padding:5px 0}
-.act button{width:46px; height:42px; display:grid; place-items:center; color:var(--fg3); position:relative}
-.act button svg{width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.35; stroke-linecap:round; stroke-linejoin:round}
-.act button:hover{color:var(--fg2)}
+/* barra de atividades — Explorer / Extensions / Bancada (P1.3) */
+.act{background:var(--chrome); border-right:1px solid var(--line); display:flex; flex-direction:column; align-items:center; padding:4px 0}
+.act button{width:48px; height:46px; display:grid; place-items:center; color:var(--fg36); position:relative}
+.act button svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round}
+.act button:hover{color:var(--fg74)}
 .act button[aria-selected="true"]{color:var(--fg)}
-.act button[aria-selected="true"]::before{content:""; position:absolute; left:0; top:9px; bottom:9px; width:2px; background:var(--acc)}
+/* Cursor não usa barra colorida: o indicador é a própria cor do ícone + traço claro */
+.act button[aria-selected="true"]::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--fg)}
+.act .badge{position:absolute; right:7px; bottom:9px; background:var(--badge); color:var(--btnfg); font-size:9px;
+  font-weight:600; min-width:15px; height:15px; border-radius:99px; display:grid; place-items:center; padding:0 4px}
 .act .sp{margin-top:auto}
 
-/* ---------- lateral: navegador de dois níveis ---------- */
-.side{width:270px; background:var(--chrome); display:flex; flex-direction:column; min-height:0; overflow:hidden}
-.side .hd{display:flex; align-items:center; gap:8px; padding:13px 14px 10px; font-size:11px; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--fg3)}
-.side .hd .n{margin-left:auto; letter-spacing:0; font-family:var(--mono); font-size:10px}
-.side .find{margin:0 12px 10px; display:flex; align-items:center; gap:8px; background:var(--sunk);
-  border:1px solid transparent; border-radius:6px; padding:7px 10px; font-size:12.5px; color:var(--fg3)}
-.side .find:focus-within,.side .find:hover{border-color:var(--line2)}
-.side .find svg{width:13px; height:13px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6}
-.side .find input{flex:1; min-width:0; background:none; border:0; outline:0; color:var(--fg); font:inherit; font-size:12.5px}
-.side .find input::placeholder{color:var(--fg3)}
-.list{flex:1; min-height:0; overflow-y:auto; padding:2px 0 12px}
+/* lateral */
+.side{width:250px; background:var(--chrome); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; overflow:hidden}
+.side .hd{display:flex; align-items:center; padding:10px 18px 8px; font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg74)}
+.side .hd .dots{margin-left:auto; color:var(--fg36); letter-spacing:0}
+.body{flex:1; min-height:0; overflow-y:auto; padding-bottom:12px; font-size:13px}
 
-/* volta (nível 2) */
-.back{display:flex; align-items:center; gap:9px; width:100%; padding:9px 14px; color:var(--fg2); font-size:12.5px}
-.back:hover{color:var(--fg)}
-.back span.a{font-size:14px; line-height:1}
-.back b{font-weight:500}
-
-/* linha de tarefa (nível 1) */
-.row{display:flex; align-items:center; gap:10px; width:100%; padding:9px 14px; font-size:13px; color:var(--fg2)}
+/* árvore do Explorer, no formato do VSCodium */
+.sect{display:flex; align-items:center; gap:6px; padding:4px 18px; font-size:11px; font-weight:600;
+  letter-spacing:.02em; text-transform:uppercase; color:var(--fg74)}
+.sect .ch{font-size:9px; color:var(--fg74)}
+.row{display:flex; align-items:center; gap:7px; width:100%; padding:3px 18px 3px 26px; color:var(--fg74); white-space:nowrap}
 .row:hover{background:var(--hover); color:var(--fg)}
-.row .n{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--fg3)}
-.row .a{color:var(--fg3); font-size:11px}
+.row.on{background:var(--sel); color:var(--fg)}
+.row .ch{font-size:9px; width:9px; flex:none; color:var(--fg36)}
+.row .ic{width:14px; flex:none; text-align:center; font-size:11px; color:var(--fg36)}
+.row.d2{padding-left:40px}
 
-/* linha de entrada (nível 2) */
-.ent{display:block; width:100%; padding:7px 14px; color:var(--fg2)}
-.ent:hover{background:var(--hover)}
-.ent[aria-current="true"]{background:var(--sel); color:var(--fg); box-shadow:inset 2px 0 0 var(--acc)}
-.ent .nm{font-family:var(--mono); font-size:12px; display:flex; align-items:center; gap:7px}
-.ent .nm i{color:var(--G); font-style:normal; font-size:10px}
-/* display:block é necessário: text-overflow não se aplica a span inline */
-.ent .dc{display:block; font-size:11px; color:var(--fg3); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.empty{padding:18px 14px; color:var(--fg3); font-size:12.5px; line-height:1.6}
+/* Bancada pausada */
+.pausa{padding:22px 18px; color:var(--fg36); font-size:12.5px; line-height:1.75}
+.pausa b{color:var(--fg74); font-weight:600; display:block; margin-bottom:8px; font-size:13px}
+.pausa code{font-family:var(--mono); font-size:11.5px; color:var(--fg60)}
 
-/* ---------- palco ---------- */
+/* ===================== palco ===================== */
 .stage{display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden}
-.panes{flex:1; display:grid; min-height:0; overflow:hidden}
-.pane{display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden}
-.pane+.pane{border-left:1px solid var(--line)}
-.tabs{display:flex; align-items:center; background:var(--chrome); min-height:34px; padding-right:8px}
-.tab{display:flex; align-items:center; gap:9px; padding:0 13px; height:34px; font-size:12.5px; color:var(--fg)}
-.tab.on{background:var(--bg); box-shadow:inset 0 1px 0 var(--acc)}
-.tab .x{color:var(--fg3); font-size:12px}
-.tab .x:hover{color:var(--fg)}
-.tabs .run{margin-left:auto; display:flex; align-items:center; gap:6px; color:var(--fg3); font-size:11.5px; padding:4px 8px; border-radius:5px}
-.tabs .run:hover{color:var(--acc); background:var(--hover)}
-.tabs .run svg{width:12px; height:12px; fill:currentColor; stroke:none}
+.tabs{display:flex; align-items:stretch; background:var(--chrome); border-bottom:1px solid var(--line); min-height:35px}
+.tab{display:flex; align-items:center; gap:9px; padding:0 14px; font-size:13px; color:var(--fg36);
+  background:var(--chrome); border-right:1px solid var(--line)}
+/* Cursor deixa tab.activeBorderTop transparente: a aba ativa se distingue
+   pelo fundo e pelo texto, sem traço colorido. */
+.tab.on{background:var(--bg); color:var(--fg)}
+.tab .x{color:var(--fg36); font-size:13px}
+.crumb{padding:4px 16px; font-size:11.5px; color:var(--fg60); background:var(--bg); font-family:var(--sans)}
+.crumb span{color:var(--fg36)}
 
-.code{flex:1; min-height:0; overflow:auto; padding:12px 0; font-family:var(--mono); font-size:12.6px; line-height:1.8; background:var(--bg)}
+.code{flex:1; min-height:0; overflow:auto; padding:6px 0 14px; font-family:var(--mono); font-size:12.8px;
+  line-height:1.75; background:var(--bg)}
 .ln{display:flex}
-.ln .n{width:44px; flex:none; text-align:right; padding-right:16px; color:#3D3D3D; user-select:none}
+.ln.cur{background:var(--linehl)}
+.ln .n{width:52px; flex:none; text-align:right; padding-right:18px; color:var(--fg36); user-select:none}
+.ln.cur .n{color:var(--fg)}
 .ln .t{white-space:pre}
-.kw{color:var(--kw)}.ctl{color:var(--ctl)}.str{color:var(--str)}.num{color:var(--num)}.fn{color:var(--fn)}.cmt{color:var(--cmt)}.va{color:var(--va)}
+.cmt{color:var(--cmt)}.str{color:var(--str)}.kw{color:var(--kw)}.fn{color:var(--fn)}
+.num{color:var(--num)}.va{color:var(--var)}.ty{color:var(--typ)}
+/* sugestão em linha (P1.4) — texto fantasma, como no Cursor/Copilot */
+.ghost{color:var(--fg36); font-style:italic}
+.ghosthint{display:inline-flex; align-items:center; gap:5px; margin-left:12px; padding:1px 7px; border-radius:99px;
+  border:1px solid var(--line); background:var(--input); font-family:var(--sans); font-size:9.5px;
+  font-style:normal; color:var(--fg60); letter-spacing:.04em; vertical-align:middle}
+.ghosthint i{width:5px; height:5px; border-radius:50%; background:var(--badge); display:block}
 
-/* ---------- painel direito: documentação sob demanda ---------- */
-.doc{flex:1; min-height:0; overflow-y:auto; padding:20px 22px; background:var(--bg)}
-.doc .path{font-family:var(--mono); font-size:13px; color:var(--va); word-break:break-all}
-.doc .sig{font-family:var(--mono); font-size:11.5px; color:var(--fg3); line-height:1.6; margin-top:5px}
-.doc .txt{font-size:13px; color:var(--fg2); line-height:1.65; margin:16px 0 0}
-.doc .warn{margin:16px 0 0; padding:10px 12px; border-left:2px solid var(--G); background:var(--sunk);
-  font-size:12px; color:var(--G); line-height:1.6}
-.doc h4{margin:22px 0 8px; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--fg3); font-weight:500}
-.doc pre{margin:0; background:var(--sunk); border-radius:6px; padding:13px 14px; font-family:var(--mono);
-  font-size:11.8px; line-height:1.8; overflow-x:auto; white-space:pre}
-.doc .ins{margin-top:14px; background:var(--acc); color:#07130B; font-weight:600; font-size:12px; border-radius:6px; padding:8px 14px}
-.doc .note{margin:16px 0 0; font-size:12px; color:var(--fg3); line-height:1.6}
-.doc .src{margin-top:22px; padding-top:14px; border-top:1px solid var(--line); font-family:var(--mono); font-size:10px; color:var(--fg3)}
-.doc .src b{color:var(--acc); font-weight:500}
+/* painel inferior */
+.panel{background:var(--chrome); border-top:1px solid var(--line); display:flex; flex-direction:column; flex:none}
+.ptabs{display:flex; align-items:center; height:32px; padding:0 16px}
+.pt{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--fg36); padding:0 12px; line-height:32px}
+.pt.on{color:var(--fg)}
+.ptabs .r{margin-left:auto; display:flex; gap:14px; color:var(--fg36); font-size:12px}
+.term{height:132px; overflow-y:auto; padding:6px 16px 12px; font-family:var(--mono); font-size:12px;
+  line-height:1.7; color:var(--fg74); white-space:pre-wrap}
+.term .pr{color:var(--kw)}
+.term .dim{color:var(--fg36)}
 
-/* ---------- painel direito: cromatograma ---------- */
-.ab1{flex:1; min-height:0; overflow-y:auto; padding:20px 22px; background:var(--bg)}
-.ab1 h3{margin:0; font-size:15px; font-weight:600}
-.ab1 .sub{font-family:var(--mono); font-size:10.5px; color:var(--fg3); margin-top:4px}
-.mx{display:flex; gap:26px; margin:20px 0 18px}
-.mx div{font-size:11px; color:var(--fg3)}
-.mx b{display:block; font-size:15px; color:var(--fg); font-weight:500; margin-bottom:3px; font-family:var(--mono)}
-.chroma{display:block; width:100%; height:104px}
-.calls{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; margin-top:7px}
-.legend{display:flex; gap:15px; font-family:var(--mono); font-size:10px; color:var(--fg3); margin-top:16px}
-.legend i{width:7px; height:7px; border-radius:1px; display:inline-block; margin-right:5px}
+/* barra de estado */
+.sbar{background:var(--chrome); border-top:1px solid var(--line); display:flex; align-items:center; gap:16px;
+  padding:0 12px; font-size:11px; color:var(--fg60)}
+.sbar .r{margin-left:auto; display:flex; gap:16px}
 
-/* ---------- terminal: fechado até ser pedido ---------- */
-.term{background:var(--panel); display:flex; flex-direction:column; flex:none}
-.term .bar{display:flex; align-items:center; gap:9px; height:29px; padding:0 13px; border-top:1px solid var(--line);
-  font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--fg3); width:100%}
-.term .bar:hover{color:var(--fg2)}
-.term .bar .a{font-size:9px}
-.term .bar .r{margin-left:auto; text-transform:none; letter-spacing:0; font-family:var(--mono); font-size:10px}
-.term .out{height:150px; overflow-y:auto; padding:10px 15px 14px; font-family:var(--mono); font-size:12px;
-  line-height:1.7; color:var(--fg2); white-space:pre-wrap}
-.term .out .pr{color:var(--acc)}
-.term .out .dim{color:var(--fg3)}
-
-/* ---------- barra de estado: 4 itens ---------- */
-.sbar{background:var(--chrome); display:flex; align-items:center; gap:18px; padding:0 13px; font-size:11px; color:var(--fg3)}
-.sbar .env{display:flex; align-items:center; gap:6px; color:var(--fg3)}
-.sbar .env em{font-style:normal; color:var(--acc); font-size:13px; line-height:1}
-.sbar .env:hover{color:var(--fg2)}
-.sbar .r{margin-left:auto; display:flex; gap:18px}
-
-/* ---------- notas, fechadas ---------- */
-.notes{margin-top:34px}
-details{border-top:1px solid var(--line); padding:16px 0 4px}
-summary{cursor:pointer; font-size:12.5px; color:var(--fg2); list-style:none; display:flex; align-items:center; gap:9px}
+/* ===================== notas ===================== */
+.notes{margin-top:32px}
+details{border-top:1px solid var(--line); padding:15px 0 3px}
+summary{cursor:pointer; font-size:12.5px; color:var(--fg60); list-style:none; display:flex; align-items:center; gap:9px}
 summary::-webkit-details-marker{display:none}
-summary .a{color:var(--fg3); font-size:10px}
+summary .a{color:var(--fg36); font-size:10px}
 summary:hover{color:var(--fg)}
-details[open] summary{margin-bottom:14px; color:var(--fg)}
-.body{max-width:78ch; font-size:13px; color:var(--fg2); line-height:1.7; padding-bottom:14px}
-.body p{margin:0 0 12px}
-.body em{color:var(--fg); font-style:normal; font-weight:500}
-.body code{font-family:var(--mono); font-size:12px; color:var(--str)}
-.body .k{display:flex; flex-wrap:wrap; gap:9px; margin:14px 0 4px}
-.body .k span{font-family:var(--mono); font-size:9.5px; color:var(--fg3); text-align:center}
-.body .k i{display:block; width:50px; height:30px; border:1px solid var(--line2); border-radius:4px; margin-bottom:4px}
+details[open] summary{margin-bottom:13px; color:var(--fg)}
+.nb{max-width:80ch; font-size:13px; color:var(--fg60); line-height:1.7; padding-bottom:12px}
+.nb p{margin:0 0 11px}
+.nb em{color:var(--fg); font-style:normal; font-weight:500}
+.nb code{font-family:var(--mono); font-size:12px; color:var(--str)}
+.nb table{border-collapse:collapse; margin:10px 0 14px; font-size:12px}
+.nb th,.nb td{text-align:left; padding:5px 14px 5px 0; border-bottom:1px solid var(--line); color:var(--fg60)}
+.nb th{color:var(--fg74); font-weight:600}
+.nb td:first-child{font-family:var(--mono); color:var(--fg74)}
+.k{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px}
+.k span{font-family:var(--mono); font-size:9.5px; color:var(--fg36); text-align:center}
+.k i{display:block; width:56px; height:32px; border:1px solid var(--line); border-radius:4px; margin-bottom:4px}
 </style>
 
 <div class="wrap">
   <header class="masthead">
     <h1>Bancada</h1>
-    <p>IDE própria para o laboratório, em preto fosco. Mesmo layout aprovado em 23/07, mas a tela
-       começa vazia: <em>nada aparece até ser pedido</em>. Nada aqui executa — é estudo visual.
-       O catálogo, porém, é o verificado contra o Biopython instalado.</p>
-    <p class="tip" id="tip"></p>
+    <p>Casca no formato do VSCodium, cor do <em>Cursor Dark</em> — a paleta foi extraída do tema
+       instalado nesta máquina, não aproximada. Barra de título limpa (só os controles em círculo).
+       Nada aqui executa: é estudo visual.</p>
   </header>
 
   <div class="scroller">
   <div class="ide">
 
+    <!-- P1.2 — barra de título sem menu -->
     <div class="tbar">
-      <div class="mark">
-        <svg viewBox="0 0 24 24"><path d="M8 3v5L4.6 13.4A3.6 3.6 0 008 19h8a3.6 3.6 0 003.4-5.6L16 8V3"/><path d="M7 3h10"/><path d="M5.6 14.2h12.8"/></svg>
-        Bancada
-      </div>
-      <div class="doc" id="titulo">aparar_qualidade.py</div>
-      <div class="wctl"><i>&#8210;</i><i>&#9723;</i><i class="x">&#10005;</i></div>
+      <div class="lights"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
+      <div class="doc">aparar_qualidade.py — corrida_18S_2026-07</div>
     </div>
 
     <div class="main">
 
+      <!-- P1.3 — Explorer / Extensions / Bancada -->
       <nav class="act" id="act" aria-label="Barra de atividades">
-        <button data-painel="arquivos" title="Arquivos" aria-selected="false">
-          <svg viewBox="0 0 24 24"><path d="M4 6h5.5l1.8 2H20v10H4z"/></svg></button>
-        <button data-painel="catalogo" title="Catálogo do Biopython" aria-selected="true">
-          <svg viewBox="0 0 24 24"><path d="M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/><path d="M9.4 7.5h5.2M8.4 11.5h7.2M9.4 15.8h5.2"/></svg></button>
-        <button data-painel="leituras" title="Leituras .ab1" aria-selected="false">
-          <svg viewBox="0 0 24 24"><path d="M3 15c1.8-5 3.4 3.4 5.2-1.6S11.6 17 13.4 12s3.4 2.6 5.2-1.8"/></svg></button>
-        <button class="sp" data-painel="config" title="Configurações" aria-selected="false">
+        <button data-p="explorer" aria-selected="true" title="Explorer">
+          <svg viewBox="0 0 24 24"><path d="M4 6h5.5l1.8 2H20v11H4z"/></svg></button>
+        <button data-p="extensions" aria-selected="false" title="Extensions">
+          <svg viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4zM13.5 13.5H20V20h-6.5zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4z"/></svg>
+          <span class="badge">2</span></button>
+        <!-- Erlenmeyer, não hélice: a 22px a dupla-hélice lê como um "X".
+             É o mesmo desenho da marca, o que dá consistência ao produto. -->
+        <button data-p="bancada" aria-selected="false" title="Bancada">
+          <svg viewBox="0 0 24 24"><path d="M9 3v5.2L5.2 14A3.9 3.9 0 008.5 20h7A3.9 3.9 0 0018.8 14L15 8.2V3"/><path d="M7.6 3h8.8"/><path d="M6.4 14.6h11.2"/><circle cx="11" cy="17" r="1.05"/><circle cx="14.6" cy="17.9" r=".8"/></svg></button>
+        <button class="sp" data-p="config" aria-selected="false" title="Configurações">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.4v2.3M12 18.3v2.3M3.4 12h2.3M18.3 12h2.3M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></svg></button>
       </nav>
 
       <aside class="side">
-        <div class="hd"><span id="sideT">Biopython</span><span class="n" id="sideN"></span></div>
-        <label class="find" id="caixaBusca">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.4-4.4"/></svg>
-          <input id="busca" placeholder="Buscar tarefa ou função" autocomplete="off">
-        </label>
-        <div class="list" id="lista"></div>
+        <div class="hd"><span id="sideT">Explorer</span><span class="dots">···</span></div>
+        <div class="body" id="lateral"></div>
       </aside>
 
       <div class="stage">
-        <div class="panes" id="panes"></div>
-        <div class="term">
-          <button class="bar" id="termBar">
-            <span class="a" id="termA">&#9656;</span> Terminal
-            <span class="r" id="termR"></span>
-          </button>
-          <div class="out" id="termOut" hidden></div>
+        <div class="tabs">
+          <span class="tab on">aparar_qualidade.py <span class="x">&#10005;</span></span>
+          <span class="tab">montar_contig.py <span class="x">&#10005;</span></span>
+        </div>
+        <div class="crumb">corrida_18S_2026-07 <span>&rsaquo;</span> aparar_qualidade.py</div>
+        <div class="code" id="code"></div>
+
+        <div class="panel">
+          <div class="ptabs">
+            <span class="pt">Problems</span><span class="pt">Output</span>
+            <span class="pt on">Terminal</span><span class="pt">Ports</span>
+            <span class="r"><span>+</span><span>&#8964;</span><span>&#9645;</span><span>&#10005;</span></span>
+          </div>
+          <div class="term" id="term"></div>
         </div>
       </div>
 
@@ -230,326 +221,205 @@ details[open] summary{margin-bottom:14px; color:var(--fg)}
 
     <div class="sbar">
       <span>&#8687; main*</span>
-      <button class="env" id="env" title="clique para ver as versões"><em>&#9679;</em> <span id="envT">Ambiente de pé</span></button>
-      <span class="r"><span>Ln 13, Col 34</span><span id="pyver">Python</span></span>
+      <span>&#8855; 0 &nbsp; &#9888; 0</span>
+      <span id="env"></span>
+      <span class="r"><span>Ln 13, Col 34</span><span>Spaces: 4</span><span>UTF-8</span><span>LF</span><span id="pyver">Python</span></span>
     </div>
 
   </div>
   </div>
 
   <section class="notes">
-    <details>
-      <summary><span class="a">&#9656;</span> Por que a tela começa vazia</summary>
-      <div class="body">
-        <p>O protótipo anterior mostrava tudo de uma vez: 12 seções abertas com 55 entradas, um cartão de
-           detalhe ocupando metade da lateral, um painel à direita com a moldura vazia de
-           <em>"clique num .ab1"</em>, terminal aberto sem ninguém ter rodado nada, 7 ícones na barra de
-           atividades e 8 itens na barra de estado.</p>
-        <p>Agora cada superfície só existe quando é pedida. A lateral é <em>navegador de dois níveis</em>:
-           12 tarefas fechadas; a que você clicar abre. O detalhe da função não se aperta num cartão —
-           abre no painel direito, com espaço para assinatura, aviso de depreciação e trecho.
-           O painel direito <em>não existe</em> até algo ser aberto, e fecha no ✕. O terminal é uma barra
-           fina até você rodar.</p>
-        <p>Sobrou o essencial: 4 ícones, 1 aba, 4 itens de estado, sem breadcrumb.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary><span class="a">&#9656;</span> A cor: preto fosco</summary>
-      <div class="body">
-        <p>O Dark Modern do VS Code tem viés azul — <code>#1F1F1F</code> sobre <code>#181818</code>, acento
-           <code>#0078D4</code>. Aqui a casca é cinza sem matiz, e a sombra da janela é fechada, sem halo:
-           superfície fosca, não vidro.</p>
+    <details open>
+      <summary><span class="a">&#9662;</span> P0 — a cor é do Cursor, medida e não estimada</summary>
+      <div class="nb">
+        <p>Achei o tema <em>Cursor Dark</em> em cache no <code>~/.config/Cursor</code> (chave
+           <code>colorThemeData</code>, 252 cores) e usei os valores dele. O que vale reproduzir não são
+           os hex isolados, é o <em>método</em>: uma cor base <code>#f0f0f0</code> com canal alfa para
+           todo primeiro plano, borda, hover e seleção, sobre dois fundos.</p>
+        <table>
+          <tr><th>Papel</th><th>Cursor Dark</th><th>Antes (minha estimativa)</th></tr>
+          <tr><td>casca</td><td>#141414</td><td>#0B0B0B — escuro demais</td></tr>
+          <tr><td>editor</td><td>#181818</td><td>#0F0F0F — escuro demais</td></tr>
+          <tr><td>bordas</td><td>#f0f0f013 (7,5%)</td><td>#1A1A1A opaco</td></tr>
+          <tr><td>linha atual</td><td>#262626</td><td>—</td></tr>
+        </table>
         <div class="k" id="rampa"></div>
-        <p><em>Um acento só</em>, o verde da bancada, em três lugares: ícone ativo, ação primária e
-           ambiente de pé. Seleção é preenchimento com um traço à esquerda, não cor. O motivo é o
-           cromatograma — as quatro bases têm de ser as cores mais fortes da tela; se a casca competir,
-           o dado perde.</p>
+        <p>Duas consequências de fidelidade que valem confirmação: o Cursor deixa
+           <code>tab.activeBorderTop</code> <em>transparente</em> — a aba ativa se distingue só pelo fundo,
+           sem traço colorido; e a casca não tem acento verde. O verde da bancada fica reservado ao
+           cromatograma, onde é dado. Se você preferir o traço verde na aba ativa, é um token.</p>
       </div>
     </details>
 
     <details>
-      <summary><span class="a">&#9656;</span> O custo que a IDE própria assume</summary>
-      <div class="body">
-        <p>A decisão 0001 do projeto concluiu que IDE própria é inviável e que manter plugin custa ordens
-           de grandeza menos que manter casca. Sair do VSCodium significa passar a manter, por conta
-           própria, o que vinha de graça: abas, painéis redimensionáveis, busca em arquivos, git, terminal
-           integrado, atalhos, temas e o ciclo de atualização.</p>
-        <p>O caminho realista é <em>compor componentes prontos</em> — CodeMirror 6 para o editor e
-           xterm.js para o terminal — e não escrever editor de texto. A base (Tauri, Electron ou
-           Qt/Python) segue sem decisão.</p>
+      <summary><span class="a">&#9656;</span> P1.4 — o autocomplete no visual, e o que ele custa</summary>
+      <div class="nb">
+        <p>A sugestão em linha aparece na linha 13 como <em>texto fantasma</em>, no padrão
+           Cursor/Copilot, com a etiqueta indicando que o contexto reconhecido é Biopython. É a
+           decisão visual; o resto é engenharia.</p>
+        <p><em>O aviso honesto:</em> este é de longe o item mais caro dos quatro, e ele já funciona no
+           seu ambiente atual — você usa Twinny no VS Code com a API da DeepSeek. Construir de novo
+           significa refazer: protocolo de completamento, debounce, janela de contexto, cancelamento
+           de requisição em voo, e um servidor de linguagem para o contexto "geral". Vale decidir se
+           P1.4 é <em>construir</em> ou <em>herdar</em>.</p>
       </div>
     </details>
 
     <details>
-      <summary><span class="a">&#9656;</span> O que é real e o que é cenário nesta tela</summary>
-      <div class="body">
-        <p><em>Real:</em> os nomes, assinaturas, docstrings e avisos de depreciação do catálogo, verificados
-           por introspecção do Biopython instalado; e as versões da barra de estado, detectadas na máquina
-           na hora de gerar este arquivo.</p>
-        <p><em>Cenário:</em> o código no editor, a saída do terminal, a lista de arquivos e o cromatograma
-           — que é uma curva gerada por seno a partir de uma sequência 18S de exemplo. Os 36
-           <code>.ab1</code> reais do LHV não entram em material que circula, e nenhum nome de arquivo aqui
-           corresponde a amostra de verdade.</p>
+      <summary><span class="a">&#9656;</span> O que está pausado, e o que isso implica</summary>
+      <div class="nb">
+        <p>O painel da <em>Bancada</em> está pausado a seu pedido, enquanto você pensa na estrutura.
+           O navegador de catálogo de dois níveis que eu havia construído não foi apagado: está no
+           template atrás de <code>BANCADA_PAUSADA</code>. Virar essa constante para
+           <code>false</code> traz de volta a lateral com as 12 tarefas e as 55 funções, mais o
+           painel de documentação.</p>
+        <p>Enquanto está pausado, o cromatograma e o catálogo ficam inalcançáveis — é o único lugar
+           onde entra cor além da casca, então esta tela está integralmente monocromática.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span class="a">&#9656;</span> O que é real e o que é cenário</summary>
+      <div class="nb">
+        <p><em>Real:</em> a paleta (extraída do Cursor instalado) e as versões da barra de estado,
+           detectadas na máquina ao gerar o arquivo. O catálogo de 55 funções também é real, embora
+           esteja fora de alcance nesta tela por causa da pausa.</p>
+        <p><em>Cenário:</em> o código no editor, a árvore de arquivos, a sugestão de autocomplete e a
+           saída do terminal. Nenhum nome de arquivo corresponde a amostra real — os 36
+           <code>.ab1</code> do LHV não entram em material que circula.</p>
       </div>
     </details>
   </section>
 </div>
 
 <script>
-const COL={A:"#3FC46B",C:"#4D96FF",G:"#E9B949",T:"#F0574F"};
-const BASES="GGTTGATCCTGCCAGTAGTCATATGCTTGTCTCAAAGATTAAGCCATGCATGTCTAAGTATAAGCTTTTATACGGCGAAACTGCGAATGGCTCATTAAAACAGTTATAGTTTATTTGATGGTCACCTACTACTCGGATAACCGTAGTAATTCTAGAGCTAATACATGCACC";
-
-/* injetados pelo gerador — não editar à mão */
 const CATALOGO = /*CATALOGO*/null/*FIM*/;
 const VERSOES  = /*VERSOES*/null/*FIM*/;
 
-const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const $ = id => document.getElementById(id);
+/* P1.3 — painel da Bancada pausado a pedido do autor (2026-07-26).
+   Virar para false devolve o navegador de catálogo + painel de documentação. */
+const BANCADA_PAUSADA = true;
 
-/* realce de Python, depois de escapar */
-const KW=["from","import","as","with","open","None","True","False","print"];
-const CTL=["for","in","if","else","return","while","not","and","or"];
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const $=id=>document.getElementById(id);
+
+const KW=["from","import","as","with","open","None","True","False","print","def","return","lambda"];
+const CTL=["for","in","if","else","while","not","and","or"];
 function py(src){
   let h=esc(src);
   h=h.replace(/(#[^\n]*)/g,'<span class="cmt">$1</span>');
   h=h.replace(/(&quot;[^&\n]*?&quot;|'[^'\n]*?')/g,'<span class="str">$1</span>');
   h=h.replace(/\b(\d+\.?\d*)\b/g,'<span class="num">$1</span>');
-  h=h.replace(new RegExp("\\b("+KW.join("|")+")\\b","g"),'<span class="kw">$1</span>');
-  h=h.replace(new RegExp("\\b("+CTL.join("|")+")\\b","g"),'<span class="ctl">$1</span>');
+  h=h.replace(new RegExp("\\b("+KW.concat(CTL).join("|")+")\\b","g"),'<span class="kw">$1</span>');
   h=h.replace(/\b([a-zA-Z_]\w*)\(/g,'<span class="fn">$1</span>(');
   return h;
 }
 
-/* ------------------------------------------------------------------ estado */
-const S={
-  painel:"catalogo",     /* arquivos | catalogo | leituras | config */
-  tarefa:null,           /* id da tarefa aberta, ou null = nível 1  */
-  direita:null,          /* null | {tipo:"doc",path} | {tipo:"ab1",arq} */
-  terminal:false,
-  busca:"",
-};
-
-const ARQUIVOS=["corrida_18S_2026-07/","  aparar_qualidade.py","  montar_contig.py","  A01_F.ab1","  A01_R.ab1","  B02_F.ab1","  B02_R.ab1"];
-const LEITURAS=[
-  {arq:"A01_F.ab1", sub:"leitura direta · primer 18S-F", bases:"1 042", phred:"41", trecho:"38–986", gc:"46,2 %"},
-  {arq:"A01_R.ab1", sub:"leitura reversa · primer 18S-R", bases:"1 018", phred:"38", trecho:"44–961", gc:"45,8 %"},
-  {arq:"B02_F.ab1", sub:"leitura direta · primer 18S-F", bases:"1 067", phred:"42", trecho:"31–994", gc:"46,9 %"},
-  {arq:"B02_R.ab1", sub:"leitura reversa · primer 18S-R", bases:"996",   phred:"36", trecho:"52–948", gc:"45,1 %"},
+/* ------------------------------- lateral ------------------------------- */
+const ARVORE=[
+  ["sect","CORRIDA_18S_2026-07"],
+  ["dir","dados"],
+  ["file2","A01_F.ab1"],["file2","A01_R.ab1"],["file2","B02_F.ab1"],
+  ["file","aparar_qualidade.py",1],
+  ["file","montar_contig.py"],
+  ["file","referencias_18S.fasta"],
+  ["file","README.md"],
 ];
-const todas = () => CATALOGO.tasks.flatMap(t=>t.entries.map(e=>({...e, tarefa:t.title})));
+const EXT=[
+  ["Python","ms-python · 2026.1.0"],
+  ["Bancada — Biopython","local · 0.0.1"],
+];
 
-/* Rótulo: só o nome final perde de qual módulo vem; o caminho todo não cabe.
-   Mostra módulo + nome, sem o "Bio." que é igual em todas as entradas. */
-function rotulo(path){
-  const p=path.replace(/^Bio\./,"").split(".");
-  const u=p.slice(-2);
-  return (u.length===2 && u[0]===u[1]) ? u[1] : u.join(".");
-}
-
-/* ------------------------------------------------------------- lateral */
-const TITULOS={arquivos:"Arquivos", catalogo:"Biopython", leituras:"Leituras", config:"Configurações"};
-/* Cada painel diz o que a busca faz nele. Painel sem busca não mostra a caixa:
-   caixa de busca que não busca é pior que caixa nenhuma. */
-const BUSCA={arquivos:"Buscar arquivo", catalogo:"Buscar tarefa ou função", leituras:"Buscar leitura", config:null};
-
-function desenhaLateral(){
-  $("sideT").textContent=TITULOS[S.painel];
-  const dica=BUSCA[S.painel];
-  $("caixaBusca").hidden = !dica;
-  if(dica) $("busca").placeholder = dica;
-
-  const l=$("lista"); let n="";
-  const q=S.busca.toLowerCase();
-
-  if(S.painel==="catalogo"){
-    if(S.busca){
-      const hits=todas().filter(e=>e.path.toLowerCase().includes(q)||(e.doc||"").toLowerCase().includes(q)||e.tarefa.toLowerCase().includes(q));
-      n=hits.length;
-      l.innerHTML = hits.length ? hits.map(linhaEntrada).join("")
-        : `<div class="empty">Nada para <b>${esc(S.busca)}</b>.</div>`;
-    } else if(S.tarefa===null){
-      n=CATALOGO.tasks.length;
-      l.innerHTML=CATALOGO.tasks.map(t=>
-        `<button class="row" data-tarefa="${esc(t.id)}" title="${esc(t.why)}">${esc(t.title)}
-           <span class="n">${t.entries.length}</span><span class="a">&#8250;</span></button>`).join("");
+function lateral(p){
+  $("sideT").textContent={explorer:"Explorer",extensions:"Extensions",bancada:"Bancada",config:"Configurações"}[p];
+  const l=$("lateral");
+  if(p==="explorer"){
+    l.innerHTML=ARVORE.map(([t,nome,on])=>{
+      if(t==="sect") return `<div class="sect"><span class="ch">&#9662;</span>${esc(nome)}</div>`;
+      /* chevron aberto (▾): os filhos estão visíveis logo abaixo. Fechado
+         com filhos à mostra era contradição na própria árvore. */
+      if(t==="dir")  return `<button class="row"><span class="ch">&#9662;</span><span class="ic">&#128193;</span>${esc(nome)}</button>`;
+      const d2 = t==="file2" ? " d2" : "";
+      return `<button class="row${d2}${on?" on":""}"><span class="ch"></span><span class="ic">&#9679;</span>${esc(nome)}</button>`;
+    }).join("");
+  }
+  else if(p==="extensions"){
+    l.innerHTML=EXT.map(([n,s])=>
+      `<button class="row" style="display:block;padding:8px 18px">
+         <div style="color:var(--fg)">${esc(n)}</div>
+         <div style="font-size:11px;color:var(--fg36);font-family:var(--mono);margin-top:2px">${esc(s)}</div>
+       </button>`).join("");
+  }
+  else if(p==="bancada"){
+    if(BANCADA_PAUSADA){
+      l.innerHTML=`<div class="pausa"><b>Pausado</b>
+        A estrutura deste painel está em definição.<br><br>
+        O navegador de catálogo já construído (${CATALOGO.task_count} tarefas,
+        ${CATALOGO.entry_count} funções verificadas contra o Biopython
+        ${esc(CATALOGO.biopython_version)}) está preservado no template, atrás de
+        <code>BANCADA_PAUSADA</code>.</div>`;
     } else {
-      const t=CATALOGO.tasks.find(x=>x.id===S.tarefa);
-      n=t.entries.length;
-      l.innerHTML=`<button class="back" data-volta="1"><span class="a">&#8249;</span> <b>${esc(t.title)}</b></button>`
-        + t.entries.map(linhaEntrada).join("");
+      l.innerHTML=CATALOGO.tasks.map(t=>
+        `<button class="row"><span class="ch">&#9656;</span>${esc(t.title)}
+          <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg36)">${t.entries.length}</span>
+         </button>`).join("");
     }
   }
-  else if(S.painel==="arquivos"){
-    const vis=ARQUIVOS.filter(a=>!S.busca || a.toLowerCase().includes(q));
-    n=vis.filter(a=>a.trim().endsWith(".py")||a.trim().endsWith(".ab1")).length;
-    l.innerHTML = vis.length ? vis.map(a=>{
-      const ab1=a.trim().endsWith(".ab1");
-      return `<button class="row" ${ab1?`data-ab1="${esc(a.trim())}"`:""} style="font-family:var(--mono);font-size:11.8px">${esc(a).replace(/ /g,"&nbsp;")}</button>`;
-    }).join("") : `<div class="empty">Nada para <b>${esc(S.busca)}</b>.</div>`;
-  }
-  else if(S.painel==="leituras"){
-    const vis=LEITURAS.filter(r=>!S.busca || (r.arq+" "+r.sub).toLowerCase().includes(q));
-    n=vis.length;
-    l.innerHTML = vis.length ? vis.map(r=>
-      `<button class="ent" data-ab1="${esc(r.arq)}" ${S.direita&&S.direita.tipo==="ab1"&&S.direita.arq===r.arq?'aria-current="true"':''}>
-         <span class="nm">${esc(r.arq)}</span><span class="dc">${esc(r.sub)}</span></button>`).join("")
-      : `<div class="empty">Nada para <b>${esc(S.busca)}</b>.</div>`;
-  }
-  else{
-    n="";
-    l.innerHTML=`<div class="empty">Nada aqui neste estudo visual.</div>`;
-  }
-  $("sideN").textContent=n;
+  else l.innerHTML=`<div class="pausa">Nada aqui neste estudo visual.</div>`;
 }
 
-function linhaEntrada(e){
-  const atual = S.direita && S.direita.tipo==="doc" && S.direita.path===e.path;
-  return `<button class="ent" data-path="${esc(e.path)}" ${atual?'aria-current="true"':''} title="${esc(e.path)}">
-    <span class="nm">${esc(rotulo(e.path))}${e.deprecated?'<i title="depreciado">&#9888;</i>':''}</span>
-    <span class="dc">${esc(e.doc||"")}</span></button>`;
-}
-
-/* ------------------------------------------------------------- palco */
+/* ------------------------------- editor ------------------------------- */
 const LINHAS=[
- [1,'from Bio import SeqIO'],[2,'from Bio.SeqUtils import gc_fraction'],[3,''],
- [4,'# 1. abrir a leitura direta da amostra'],
- [5,'registro = SeqIO.read("A01_F.ab1", "abi")'],
- [6,'qualidade = registro.letter_annotations["phred_quality"]'],[7,''],
- [8,'# 2. cortar as pontas com Phred abaixo de 20'],
- [9,'bom = [i for i, q in enumerate(qualidade) if q >= 20]'],
- [10,'aparado = registro[bom[0] : bom[-1] + 1]'],[11,''],
- [12,'# 3. inserido pelo catálogo da Bancada'],
- [13,'gc = gc_fraction(aparado.seq)'],[14,''],
+ [1,'from Bio import SeqIO'],
+ [2,'from Bio.SeqUtils import gc_fraction'],
+ [3,'import pandas as pd'],
+ [4,''],
+ [5,'# 1. abrir a leitura direta da amostra'],
+ [6,'registro = SeqIO.read("A01_F.ab1", "abi")'],
+ [7,'qualidade = registro.letter_annotations["phred_quality"]'],
+ [8,''],
+ [9,'# 2. cortar as pontas com Phred abaixo de 20'],
+ [10,'bom = [i for i, q in enumerate(qualidade) if q >= 20]'],
+ [11,'aparado = registro[bom[0] : bom[-1] + 1]'],
+ [12,''],
+ [13,'GHOST'],   /* linha com sugestão em linha */
+ [14,''],
  [15,'SeqIO.write(aparado, "A01_F.aparado.fasta", "fasta")'],
- [16,'print(f"{len(registro)} pb -> {len(aparado)} pb - GC {gc:.1%}")'],
 ];
 
-function chroma(seq,w,h){
-  const step=w/seq.length, sig=step*0.34, out=[];
-  for(const b of "ACGT"){
-    const pts=[];
-    for(let x=0;x<=w;x+=1.6){
-      let y=0;
-      [...seq].forEach((base,i)=>{ if(base!==b) return;
-        const c=(i+.5)*step, amp=h*(.5+.42*Math.abs(Math.sin(i*2.4+b.charCodeAt(0))));
-        y+=amp*Math.exp(-((x-c)**2)/(2*sig*sig));});
-      pts.push(`${x.toFixed(1)},${(h-y).toFixed(1)}`);
-    }
-    out.push(`<path d="M${pts.join("L")}" fill="none" stroke="${COL[b]}" stroke-width="1.3" vector-effect="non-scaling-stroke"/>`);
-  }
-  return `<svg class="chroma" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Cromatograma">${out.join("")}</svg>`;
+function editor(){
+  $("code").innerHTML=LINHAS.map(([n,t])=>{
+    let corpo;
+    if(t==="GHOST"){
+      corpo = py('gc = ') +
+        '<span class="ghost">gc_fraction(aparado.seq)</span>' +
+        '<span class="ghosthint"><i></i>Biopython &middot; Tab para aceitar</span>';
+    } else corpo = t ? py(t) : "";
+    return `<div class="ln${t==="GHOST"?" cur":""}"><span class="n">${n}</span><span class="t">${corpo}</span></div>`;
+  }).join("");
 }
 
-function painelDoc(path){
-  const e=todas().find(x=>x.path===path);
-  if(!e) return "";
-  return `<div class="doc">
-    <div class="path">${esc(e.path)}</div>
-    ${e.signature?`<div class="sig">${esc(e.signature)}</div>`:""}
-    ${e.doc?`<p class="txt">${esc(e.doc)}</p>`:""}
-    ${e.deprecated?`<div class="warn">&#9888; ${esc(e.deprecated)}</div>`:""}
-    <h4>Trecho</h4>
-    <pre>${py(e.snippet)}</pre>
-    <button class="ins">Inserir no script</button>
-    ${e.note?`<p class="note">${esc(e.note)}</p>`:""}
-    <div class="src">Biopython ${esc(CATALOGO.biopython_version)} &middot; <b>verificado por introspecção</b></div>
-  </div>`;
-}
-
-function painelAb1(arq){
-  const r=LEITURAS.find(x=>x.arq===arq)||LEITURAS[0];
-  const ini=(arq.charCodeAt(1)*7)%90;
-  return `<div class="ab1">
-    <h3>${esc(r.arq)}</h3><div class="sub">${esc(r.sub)}</div>
-    <div class="mx">
-      <div><b>${r.bases}</b>bases</div><div><b>${r.phred}</b>phred médio</div>
-      <div><b>${r.trecho}</b>trecho útil</div><div><b>${r.gc}</b>GC</div>
-    </div>
-    ${chroma(BASES.slice(ini,ini+40),520,104)}
-    <div class="calls">${[...BASES.slice(ini,ini+40)].map(b=>`<span style="color:${COL[b]}">${b}</span>`).join("")}</div>
-    <div class="legend">${"ACGT".split("").map(b=>`<span><i style="background:${COL[b]}"></i>${b}</span>`).join("")}</div>
-  </div>`;
-}
-
-function desenhaPalco(){
-  const p=$("panes");
-  const dir=S.direita;
-  p.style.gridTemplateColumns = dir ? "1fr 1fr" : "1fr";
-
-  let html=`<div class="pane">
-    <div class="tabs">
-      <span class="tab on">aparar_qualidade.py <button class="x" title="fechar">&#10005;</button></span>
-      <button class="run" id="run" title="executar"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Executar</button>
-    </div>
-    <div class="code">${LINHAS.map(([n,t])=>
-      `<div class="ln"><span class="n">${n}</span><span class="t">${t?py(t):""}</span></div>`).join("")}</div>
-  </div>`;
-
-  if(dir){
-    const nome = dir.tipo==="doc" ? rotulo(dir.path) : dir.arq;
-    html+=`<div class="pane">
-      <div class="tabs"><span class="tab on">${esc(nome)} <button class="x" id="fecharDir" title="fechar">&#10005;</button></span></div>
-      ${dir.tipo==="doc" ? painelDoc(dir.path) : painelAb1(dir.arq)}
-    </div>`;
-  }
-  p.innerHTML=html;
-  $("run").addEventListener("click",()=>{ S.terminal=true; desenhaTerminal(); });
-  if($("fecharDir")) $("fecharDir").addEventListener("click",e=>{ e.stopPropagation(); S.direita=null; render(); });
-}
-
-function desenhaTerminal(){
-  $("termA").innerHTML = S.terminal ? "&#9662;" : "&#9656;";
-  $("termOut").hidden = !S.terminal;
-  $("termR").textContent = S.terminal ? "" : "fechado";
-  if(S.terminal){
-    $("termOut").innerHTML =
+$("term").innerHTML=
 `<span class="pr">&#10148; corrida_18S_2026-07</span> python aparar_qualidade.py
-1042 pb -> 948 pb - GC 46,2 %
+1042 pb -> 948 pb &middot; GC 46,2 %
 <span class="dim">Gravado: A01_F.aparado.fasta</span>
 <span class="pr">&#10148; corrida_18S_2026-07</span> <span class="dim">&#9613;</span>`;
-  }
-}
 
-function render(){ desenhaLateral(); desenhaPalco(); desenhaTerminal(); }
+/* rampa de alfa, para conferir o método do tema */
+$("rampa").innerHTML=[["#141414","casca"],["#181818","editor"],["#262626","linha"],
+  ["#f0f0f013","borda 7,5%"],["#f0f0f036","36%"],["#f0f0f099","60%"],["#f0f0f0bd","74%"],["#f0f0f0","100%"]]
+  .map(([c,r])=>`<span><i style="background:${c}"></i>${r}</span>`).join("");
 
-/* ------------------------------------------------------------- eventos */
-$("act").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-painel]"); if(!b) return;
-  S.painel=b.dataset.painel; S.tarefa=null; S.busca=""; $("busca").value="";
-  [...$("act").querySelectorAll("button")].forEach(x=>x.setAttribute("aria-selected",String(x===b)));
-  render();
-});
-
-$("lista").addEventListener("click",e=>{
-  const t=e.target.closest("[data-tarefa]");
-  if(t){ S.tarefa=t.dataset.tarefa; return render(); }
-  if(e.target.closest("[data-volta]")){ S.tarefa=null; return render(); }
-  const ent=e.target.closest("[data-path]");
-  if(ent){ S.direita={tipo:"doc",path:ent.dataset.path}; return render(); }
-  const ab1=e.target.closest("[data-ab1]");
-  if(ab1){ S.direita={tipo:"ab1",arq:ab1.dataset.ab1}; return render(); }
-});
-
-$("busca").addEventListener("input",e=>{ S.busca=e.target.value.trim(); desenhaLateral(); });
-$("termBar").addEventListener("click",()=>{ S.terminal=!S.terminal; desenhaTerminal(); });
-
-let envAberto=false;
-$("env").addEventListener("click",()=>{
-  envAberto=!envAberto;
-  $("envT").textContent = envAberto
-    ? `Biopython ${VERSOES.biopython} · BLAST+ ${VERSOES.blast} · Tracy ${VERSOES.tracy}`
-    : "Ambiente de pé";
-});
-
-/* rampa de cor nas notas */
-const RAMPA=[["void","#070707"],["chrome","#0B0B0B"],["panel","#0C0C0C"],["bg","#0F0F0F"],
-             ["sunk","#141414"],["line2","#262626"],["fg2","#8E8E8E"],["fg","#EDEDED"]];
-$("rampa").innerHTML=RAMPA.map(([n,c])=>`<span><i style="background:${c}"></i>${c}</span>`).join("");
-
+$("env").textContent=`Biopython ${VERSOES.biopython} · BLAST+ ${VERSOES.blast} · Tracy ${VERSOES.tracy}`;
 $("pyver").textContent="Python "+VERSOES.python;
-$("tip").textContent=`Clique numa tarefa para abrir · ${CATALOGO.task_count} tarefas, `+
-  `${CATALOGO.entry_count} entradas verificadas contra o Biopython ${CATALOGO.biopython_version}`;
 
-render();
+$("act").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-p]"); if(!b) return;
+  [...$("act").querySelectorAll("button")].forEach(x=>x.setAttribute("aria-selected",String(x===b)));
+  lateral(b.dataset.p);
+});
+
+lateral("explorer");
+editor();
 </script>
