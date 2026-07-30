@@ -6,7 +6,16 @@ import type { EventoExecucao, Resultado } from "../shared/tipos.js";
 import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
 import { estaRodando, pararScript, rodarScript } from "./execucao.js";
-import { abrirProjeto, ehTexto, gravarArquivo, lerArquivo, listar } from "./projeto.js";
+import {
+  abrirProjeto,
+  criarArquivo,
+  criarPasta,
+  ehTexto,
+  gravarArquivo,
+  lerArquivo,
+  listar,
+  renomear,
+} from "./projeto.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
 
@@ -140,6 +149,40 @@ function registrarPonte(): void {
   ipcMain.handle(
     "arquivo:gravar",
     seguro((_e, arquivo: string, conteudo: string) => gravarArquivo(arquivo, conteudo)),
+  );
+
+  ipcMain.handle(
+    "arquivo:criar",
+    seguro((_e, raiz: string, dir: string, nome: string) => criarArquivo(raiz, dir, nome)),
+  );
+  ipcMain.handle(
+    "pasta:criar",
+    seguro((_e, raiz: string, dir: string, nome: string) => criarPasta(raiz, dir, nome)),
+  );
+  ipcMain.handle(
+    "caminho:renomear",
+    seguro((_e, raiz: string, antigo: string, nome: string) => renomear(raiz, antigo, nome)),
+  );
+
+  ipcMain.handle(
+    "caminho:excluir",
+    seguro(async (_e, alvo: string) => {
+      if (!janela) throw new Error("Janela não disponível.");
+      const nome = path.basename(alvo);
+      const r = await dialog.showMessageBox(janela, {
+        type: "warning",
+        buttons: ["Mover para a lixeira", "Cancelar"],
+        defaultId: 1,
+        cancelId: 1,
+        message: `Excluir "${nome}"?`,
+        detail: "Vai para a lixeira do sistema — dá para recuperar de lá.",
+      });
+      if (r.response !== 0) return false;
+      // Lixeira, não `unlink`. Numa pasta de corrida pode haver .ab1 insubstituível;
+      // apagar de vez a partir de um clique errado não é reversível.
+      await shell.trashItem(alvo);
+      return true;
+    }),
   );
 
   ipcMain.handle("exec:rodando", () => estaRodando());
