@@ -76,6 +76,29 @@ quase todo sem anotação de tipo, e o estrito viraria ruído.
 
 Sem o servidor o editor continua inteiro; só perde os avisos.
 
+## Texto fantasma (opcional, e sai da máquina)
+
+Sugestão de código por IA em cinza à frente do cursor; `Tab` aceita, `Esc`
+dispensa. Usa **FIM** (fill-in-the-middle) — manda o que vem antes e o que vem
+depois do cursor —, então a sugestão encaixa no meio de uma linha em vez de só
+continuar o arquivo.
+
+**Este é o único recurso que envia código para fora.** O trecho em volta do
+cursor vai para o modelo. O painel *Configurações* diz isso na cara, tem
+interruptor e um botão para esquecer a chave. Vem desligado até haver chave.
+
+A chave fica em `~/.config/bancada/config.json`, **cifrada pelo `safeStorage` do
+Electron** (chaveiro do sistema), com o arquivo em `0600`. Se a máquina não
+oferecer chaveiro, a chave vai em texto puro — e a tela avisa, em vez de fingir
+que guardou bem.
+
+Quem já usa **Twinny no VS Code** pode importar o provedor FIM com um botão. A
+Bancada passa a ter cópia própria: desinstalar o Twinny não a quebra. A leitura
+do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
+
+O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
+fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
+
 ## O catálogo nunca é escrito à mão
 
 Esta é a regra central do projeto. `data/biopython-catalog.json` é **gerado** por
