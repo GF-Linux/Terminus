@@ -247,6 +247,36 @@ button:disabled{opacity:.35; cursor:default}
 .cm-info-bancada .imp{font-family:var(--mono); font-size:11px; color:var(--kw);
   white-space:pre-wrap; border-top:1px solid var(--line); padding-top:8px}
 
+/* ===================== cromatograma =====================
+   O único lugar do aplicativo com cor saturada. A casca é monocromática
+   justamente para que as quatro bases sejam as cores mais fortes da tela
+   (ADR 0005) — aqui a cor é dado, não decoração. */
+.cromatogramaHost{flex:1; min-height:0; background:var(--bg); display:none}
+.cromatogramaHost.ativo{display:flex}
+.cromatograma{flex:1; min-width:0; display:flex; flex-direction:column}
+
+.cromatograma .cabecalho{display:flex; align-items:baseline; gap:14px; padding:10px 16px;
+  border-bottom:1px solid var(--line); flex:none}
+.cromatograma .titulo{color:var(--fg); font-size:13px}
+.cromatograma .resumo{color:var(--fg36); font-size:11.5px; font-family:var(--mono)}
+
+.cromatograma .rolagem{flex:1; min-height:0; overflow:auto}
+.cromatograma canvas{display:block}
+
+.cromatograma .rodape{display:flex; align-items:center; gap:16px; padding:7px 16px;
+  border-top:1px solid var(--line); font-size:11px; color:var(--fg36); flex:none}
+.cromatograma .legenda{display:flex; gap:14px; align-items:center; font-family:var(--mono)}
+.cromatograma .legenda i{display:inline-block; width:9px; height:9px; border-radius:2px;
+  margin-right:5px; vertical-align:-1px}
+.cromatograma .zoom{margin-left:auto; display:flex; align-items:center; gap:10px}
+.cromatograma .zoom button{width:20px; height:20px; display:grid; place-items:center;
+  border-radius:4px; color:var(--fg36); font-size:13px}
+.cromatograma .zoom button:hover{color:var(--fg); background:var(--hover)}
+.cromatograma .nivel{font-family:var(--mono); min-width:32px; text-align:center}
+
+.cromatograma .falhou{padding:26px 22px; font-size:12.5px; line-height:1.7; color:var(--fg60)}
+.cromatograma .falhou b{display:block; color:var(--T); margin-bottom:8px; font-size:13px}
+
 /* ===================== texto fantasma ===================== */
 /* Cinza e itálico: tem de se ler como proposta, não como código escrito. */
 .cm-fantasma{color:var(--fg36); font-style:italic; white-space:pre-wrap}

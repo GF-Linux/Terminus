@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { EventoExecucao, Resultado } from "../shared/tipos.js";
 import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
+import { lerCromatograma } from "./cromatograma.js";
 import {
   esquecerFantasma,
   estadoDoFantasma,
@@ -180,12 +181,16 @@ function registrarPonte(): void {
     seguro((_e, arquivo: string) => {
       if (!ehTexto(arquivo)) {
         throw new Error(
-          `${path.basename(arquivo)} não é arquivo de texto. ` +
-            "Cromatograma (.ab1) ainda não tem visualizador nesta versão.",
+          `${path.basename(arquivo)} não é arquivo de texto — a Bancada não sabe abrir.`,
         );
       }
       return lerArquivo(arquivo);
     }),
+  );
+
+  ipcMain.handle(
+    "cromatograma:ler",
+    seguro((_e, arquivo: string) => lerCromatograma(RAIZ_APP, arquivo)),
   );
 
   ipcMain.handle(

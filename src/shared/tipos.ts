@@ -107,6 +107,31 @@ export interface LugarNoCodigo {
   coluna: number;
 }
 
+/* ------------------------------- cromatograma ----------------------------- */
+
+/** Saída de `tools/ler_ab1.py`. */
+export interface Cromatograma {
+  arquivo: string;
+  amostra: string;
+  /** Qual canal DATA é qual base, tipicamente "GATC". */
+  ordem_canais: string;
+  sequencia: string;
+  qualidade: number[];
+  /** Índice de amostra onde cada base foi chamada, já reescalado. */
+  picos: number[];
+  tracos: Record<"A" | "C" | "G" | "T", number[]>;
+  n_amostras: number;
+  fator_reducao: number;
+  resumo: {
+    bases: number;
+    phred_medio: number | null;
+    phred_min: number | null;
+    phred_max: number | null;
+    bases_boas: number;
+    ambiguas: number;
+  };
+}
+
 /* ------------------------------ texto fantasma ---------------------------- */
 
 export interface ConfigFantasma {

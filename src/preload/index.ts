@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   AvisoDeArquivo,
   Catalogo,
+  Cromatograma,
   EstadoFantasma,
   EventoExecucao,
   LugarNoCodigo,
@@ -77,6 +78,10 @@ const api = {
       ipcRenderer.on("lsp:falhou", (_, motivo: string) => ouvinte(motivo));
     },
   },
+
+  /** Lê um .ab1 e devolve os traços para o cromatograma. */
+  cromatograma: (arquivo: string): Promise<Resultado<Cromatograma>> =>
+    ipcRenderer.invoke("cromatograma:ler", arquivo),
 
   fantasma: {
     estado: (): Promise<Resultado<EstadoFantasma>> => ipcRenderer.invoke("fantasma:estado"),
