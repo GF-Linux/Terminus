@@ -27,6 +27,8 @@ pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado 
 | Atalho | O que faz |
 |---|---|
 | `Ctrl+P` | abrir arquivo por nome (casa por subsequência: `mgc` → `medir_gc.py`) |
+| `Ctrl+Espaço` | sugerir do catálogo do Biopython |
+| `Tab` | aceitar a sugestão (o `Enter` **não** aceita — quebra linha) |
 | `Ctrl+N` | novo arquivo, já com `.py` preenchido |
 | `Ctrl+S` | gravar |
 | `Ctrl+Enter` | grava e executa o script aberto |
@@ -36,6 +38,23 @@ pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado 
 
 Clicar num `File "...", line N` do traceback abre o arquivo naquela linha —
 inclusive quadros dentro de bibliotecas, que abrem para leitura.
+
+## O autocomplete que só a Bancada tem
+
+O catálogo alimenta o autocomplete do editor. A diferença para um language
+server não é a assinatura — é a **nota de curadoria**: digitar `gc_` oferece
+`gc_fraction` e a caixa de detalhe diz, junto com a assinatura real, que ela
+*devolve fração de 0 a 1, não porcentagem*, e que substitui a `Bio.SeqUtils.GC`
+removida. Aceitar acrescenta o `import` que falta no topo do arquivo e anuncia
+isso na barra de estado.
+
+A linha de `import` não é deduzida do caminho pontilhado — sai do trecho
+verificado do próprio catálogo, porque `Bio.SeqIO.parse` se escreve
+`SeqIO.parse` e `Bio.SeqUtils.gc_fraction` se escreve só `gc_fraction`, e só o
+trecho sabe qual é qual.
+
+Entradas depreciadas continuam aparecendo — o catálogo as inclui para serem
+reconhecidas em código antigo — mas sempre no fim da lista.
 
 ## O catálogo nunca é escrito à mão
 
