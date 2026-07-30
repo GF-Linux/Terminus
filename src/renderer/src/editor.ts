@@ -8,17 +8,26 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
 import { bracketMatching, foldGutter, indentUnit } from "@codemirror/language";
+import { lintGutter, linter } from "@codemirror/lint";
 import { searchKeymap } from "@codemirror/search";
 import { Compartment, EditorState } from "@codemirror/state";
 import {
   EditorView,
   highlightActiveLine,
   highlightActiveLineGutter,
+  hoverTooltip,
   keymap,
   lineNumbers,
 } from "@codemirror/view";
 import { comentariosMarcados } from "./comentarios.js";
 import { fonteDoCatalogo } from "./completar.js";
+import {
+  diagnosticosDoArquivo,
+  efeitoDiagnostico,
+  fonteDoServidor,
+  hoverDoServidor,
+  precisaRelintar,
+} from "./servidor.js";
 import { realceCursor, temaCursor } from "./tema.js";
 
 /** Compartimento para trocar de linguagem sem recriar o editor. */
@@ -73,8 +82,14 @@ export class Editor {
         realceCursor,
         // Depois do realce: a marca de comentário sobrepõe a cor de comentário.
         comentariosMarcados,
+        // Sublinha os avisos do pyright. `needsRefresh` deixa o CodeMirror
+        // pedir de novo quando o servidor empurra diagnóstico novo — sem isso
+        // o sublinhado só apareceria na próxima tecla.
+        linter(diagnosticosDoArquivo, { delay: 150, needsRefresh: precisaRelintar }),
+        lintGutter(),
+        hoverTooltip((view, pos) => hoverDoServidor(view, pos), { hideOnChange: true }),
         autocompletion({
-          override: [fonteDoCatalogo(this.op.aoImportar)],
+          override: [fonteDoCatalogo(this.op.aoImportar), fonteDoServidor()],
           activateOnTyping: true,
           icons: false,
           // Sem o keymap padrão: nele o Enter aceita a sugestão. O público
@@ -183,5 +198,19 @@ export class Editor {
 
   focar(): void {
     this.view.focus();
+  }
+
+  /** Diz ao `linter` que o servidor mandou diagnóstico novo. */
+  avisarDiagnosticos(): void {
+    this.view.dispatch({ effects: efeitoDiagnostico.of(null) });
+  }
+
+  /** Deslocamento do cursor, para consultas ao servidor. */
+  posicaoDoCursor(): number {
+    return this.view.state.selection.main.head;
+  }
+
+  vista(): EditorView {
+    return this.view;
   }
 }

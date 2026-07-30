@@ -2,6 +2,7 @@ import type { Catalogo, NoArquivo, ProjetoAberto, Resultado } from "../../shared
 import { definirCatalogo } from "./completar.js";
 import { Editor } from "./editor.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
+import { definicaoEm, definirArquivoAtual, iniciarServidor, limparArquivo } from "./servidor.js";
 import { TerminalSaida } from "./terminal.js";
 
 /* -------------------------------------------------------------------------
@@ -38,6 +39,8 @@ interface Aba {
   conteudo: string;
   /** O que está no disco. `conteudo !== gravado` é o que acende o marcador. */
   gravado: string;
+  /** Versão do documento no language server; o protocolo exige que só cresça. */
+  versao: number;
 }
 
 const estaSuja = (a: Aba): boolean => a.conteudo !== a.gravado;
@@ -67,6 +70,16 @@ async function irParaQuadro(arquivo: string, linha: number): Promise<void> {
   if (abas[ativa]?.caminho === arquivo) editor.irParaLinha(linha);
 }
 
+/** F12 — mesmo salto do traceback, com o destino vindo do pyright. */
+async function irParaDefinicao(): Promise<void> {
+  const alvo = await definicaoEm(editor.vista(), editor.posicaoDoCursor());
+  if (!alvo) {
+    avisar("sem definição para o que está sob o cursor");
+    return;
+  }
+  await irParaQuadro(alvo.arquivo, alvo.linha);
+}
+
 function definirPainel(aberto: boolean): void {
   $("painel").classList.toggle("oculto", !aberto);
   $("btPainel").classList.toggle("on", aberto);
@@ -87,8 +100,10 @@ const editor = new Editor({
   host: $("editorHost"),
   aoMudar: () => {
     if (ativa >= 0) {
-      abas[ativa]!.conteudo = editor.conteudo();
+      const aba = abas[ativa]!;
+      aba.conteudo = editor.conteudo();
       desenharAbas();
+      sincronizarComServidor(aba);
     }
   },
   aoMoverCursor: ({ linha, coluna }) => {
@@ -109,6 +124,36 @@ function avisar(texto: string): void {
   avisoPendente = window.setTimeout(() => {
     alvo.textContent = rodando ? "rodando…" : "pronto";
   }, 5000);
+}
+
+/* ======================= sincronia com o servidor ======================= */
+
+/**
+ * Manda o texto ao pyright depois que a digitação para.
+ *
+ * Só `.py`: mandar FASTA ou CSV faria o servidor analisar o que não é Python.
+ * O atraso existe porque cada tecla dispararia uma reanálise do arquivo inteiro
+ * — e a análise é o trabalho caro do outro lado.
+ */
+let sincronizaPendente: number | undefined;
+
+function ehPython(caminho: string): boolean {
+  return caminho.toLowerCase().endsWith(".py");
+}
+
+function sincronizarComServidor(aba: Aba): void {
+  if (!ehPython(aba.caminho)) return;
+  window.clearTimeout(sincronizaPendente);
+  sincronizaPendente = window.setTimeout(() => {
+    aba.versao += 1;
+    api.lsp.mudar(aba.caminho, aba.versao, aba.conteudo);
+  }, 300);
+}
+
+/** Registra o documento no servidor e passa a ser o alvo dos diagnósticos. */
+function focarNoServidor(aba: Aba | undefined): void {
+  definirArquivoAtual(aba && ehPython(aba.caminho) ? aba.caminho : null);
+  editor.avisarDiagnosticos();
 }
 
 /* ============================ lateral ============================ */
@@ -556,14 +601,18 @@ async function abrirArquivo(caminho: string): Promise<void> {
   }
 
   guardarAtual();
-  abas.push({
+  const aba: Aba = {
     caminho,
     nome: caminho.split("/").pop() ?? caminho,
     conteudo: r.valor,
     gravado: r.valor,
-  });
+    versao: 1,
+  };
+  abas.push(aba);
   ativa = abas.length - 1;
   editor.abrir(r.valor);
+  if (ehPython(caminho)) api.lsp.abrir(caminho, r.valor);
+  focarNoServidor(aba);
   desenharAbas();
   desenharArvore();
   editor.focar();
@@ -579,6 +628,7 @@ function trocarAba(i: number): void {
   guardarAtual();
   ativa = i;
   editor.abrir(abas[i]!.conteudo, abas[i]!.gravado);
+  focarNoServidor(abas[i]);
   desenharAbas();
   desenharArvore();
   editor.focar();
@@ -589,6 +639,11 @@ function fecharAba(i: number): void {
   if (!a) return;
   if (estaSuja(a) && !confirm(`${a.nome} tem alterações não gravadas. Fechar mesmo assim?`)) return;
 
+  if (ehPython(a.caminho)) {
+    api.lsp.fechar(a.caminho);
+    limparArquivo(a.caminho);
+  }
+
   abas.splice(i, 1);
   if (abas.length === 0) {
     ativa = -1;
@@ -597,6 +652,7 @@ function fecharAba(i: number): void {
     ativa = Math.min(i, abas.length - 1);
     editor.abrir(abas[ativa]!.conteudo, abas[ativa]!.gravado);
   }
+  focarNoServidor(abas[ativa]);
   desenharAbas();
   desenharArvore();
 }
@@ -777,6 +833,13 @@ window.addEventListener("keydown", (ev) => {
   }
   if (ev.key === "Escape") fecharMenu();
 
+  // F12 no editor: ir para a definição do que está sob o cursor.
+  if (ev.key === "F12" && document.activeElement?.closest("#editorHost")) {
+    ev.preventDefault();
+    void irParaDefinicao();
+    return;
+  }
+
   // F2 e Delete valem sobre a linha da árvore que está com o foco. Dentro do
   // editor, Delete apaga texto — roubar isso apagaria arquivo por engano.
   const linha = document.activeElement?.closest<HTMLElement>("#lateral [data-no]");
@@ -802,6 +865,15 @@ async function iniciar(): Promise<void> {
   definirLateral("explorer");
   desenharAbas();
   definirRodando(false);
+
+  iniciarServidor(
+    () => editor.avisarDiagnosticos(),
+    (motivo) => {
+      // Sem language server o editor continua inteiro — só perde os avisos.
+      terminal.erro(`language server indisponível: ${motivo}\r\n`);
+      $("ambiente").textContent = "sem análise de tipos";
+    },
+  );
 
   // `bancada ~/corridas/18S` já abre a pasta, sem passar pelo diálogo.
   const inicial = await api.projetoInicial();
