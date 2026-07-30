@@ -72,3 +72,37 @@ export type EventoExecucao =
 
 /** Resultado de qualquer operação que pode falhar por culpa do ambiente. */
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };
+
+/* ----------------------------- language server ---------------------------- */
+
+/** Um aviso do pyright. Linhas e colunas são 0-based, como no protocolo LSP. */
+export interface Diagnostico {
+  linhaInicio: number;
+  colunaInicio: number;
+  linhaFim: number;
+  colunaFim: number;
+  gravidade: "error" | "warning" | "info" | "hint";
+  mensagem: string;
+  codigo: string | null;
+}
+
+/** Diagnósticos de um arquivo, como chegam do processo principal. */
+export interface AvisoDeArquivo {
+  arquivo: string;
+  diagnosticos: Diagnostico[];
+}
+
+export interface SugestaoLsp {
+  rotulo: string;
+  detalhe: string | null;
+  tipo: string;
+  documentacao: string | null;
+  inserir: string;
+}
+
+/** Onde uma definição mora. Linha e coluna 0-based. */
+export interface LugarNoCodigo {
+  arquivo: string;
+  linha: number;
+  coluna: number;
+}

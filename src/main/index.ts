@@ -6,6 +6,7 @@ import type { EventoExecucao, Resultado } from "../shared/tipos.js";
 import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
 import { estaRodando, pararScript, rodarScript } from "./execucao.js";
+import { ServidorPython } from "./lsp.js";
 import {
   abrirProjeto,
   criarArquivo,
@@ -27,6 +28,31 @@ const RAIZ_APP = app.isPackaged
   : path.resolve(__dirname_, "..", "..");
 
 let janela: BrowserWindow | null = null;
+let servidor: ServidorPython | null = null;
+
+/**
+ * Sobe o pyright para a pasta aberta. Um servidor por projeto: ele indexa a
+ * raiz, então trocar de pasta significa trocar de servidor.
+ */
+async function ligarServidor(raiz: string): Promise<void> {
+  servidor?.parar();
+  servidor = new ServidorPython({
+    raiz,
+    aoDiagnosticar: (uri, diagnosticos) => {
+      janela?.webContents.send("lsp:diagnosticos", {
+        arquivo: decodeURIComponent(uri.replace(/^file:\/\//, "")),
+        diagnosticos,
+      });
+    },
+  });
+  try {
+    await servidor.iniciar(RAIZ_APP);
+  } catch (err) {
+    servidor = null;
+    // Sem language server o editor continua inteiro — só perde os avisos.
+    janela?.webContents.send("lsp:falhou", err instanceof Error ? err.message : String(err));
+  }
+}
 
 /**
  * Pasta passada na linha de comando: `bancada ~/corridas/18S`.
@@ -120,16 +146,22 @@ function registrarPonte(): void {
         properties: ["openDirectory"],
       });
       if (r.canceled || !r.filePaths[0]) return null;
+      void ligarServidor(r.filePaths[0]);
       return abrirProjeto(r.filePaths[0]);
     }),
   );
 
+  // `projeto:abrir` também serve de "atualizar" para a árvore, e é chamado a
+  // cada criação de arquivo — religar o servidor ali reindexaria o projeto
+  // inteiro a cada toque. Por isso ele não liga nada.
   ipcMain.handle("projeto:abrir", seguro((_e, raiz: string) => abrirProjeto(raiz)));
   ipcMain.handle(
     "projeto:inicial",
     seguro(async () => {
       const pasta = pastaDaLinhaDeComando();
-      return pasta ? await abrirProjeto(pasta) : null;
+      if (!pasta) return null;
+      void ligarServidor(pasta);
+      return abrirProjeto(pasta);
     }),
   );
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listar(dir)));
@@ -187,6 +219,31 @@ function registrarPonte(): void {
     }),
   );
 
+  ipcMain.on("lsp:abrir", (_e, arquivo: string, texto: string) => servidor?.abrir(arquivo, texto));
+  ipcMain.on("lsp:mudar", (_e, arquivo: string, versao: number, texto: string) =>
+    servidor?.mudar(arquivo, versao, texto),
+  );
+  ipcMain.on("lsp:fechar", (_e, arquivo: string) => servidor?.fechar(arquivo));
+
+  ipcMain.handle(
+    "lsp:completar",
+    seguro((_e, arquivo: string, linha: number, coluna: number) =>
+      servidor?.completar(arquivo, linha, coluna) ?? [],
+    ),
+  );
+  ipcMain.handle(
+    "lsp:hover",
+    seguro((_e, arquivo: string, linha: number, coluna: number) =>
+      servidor?.hover(arquivo, linha, coluna) ?? null,
+    ),
+  );
+  ipcMain.handle(
+    "lsp:definicao",
+    seguro((_e, arquivo: string, linha: number, coluna: number) =>
+      servidor?.definicao(arquivo, linha, coluna) ?? null,
+    ),
+  );
+
   ipcMain.handle("exec:rodando", () => estaRodando());
   ipcMain.on("exec:rodar", (e, arquivo: string) => {
     rodarScript(arquivo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento));
@@ -210,5 +267,6 @@ void app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   pararScript();
+  servidor?.parar();
   if (process.platform !== "darwin") app.quit();
 });

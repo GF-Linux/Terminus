@@ -1,10 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  AvisoDeArquivo,
   Catalogo,
   EventoExecucao,
+  LugarNoCodigo,
   NoArquivo,
   ProjetoAberto,
   Resultado,
+  SugestaoLsp,
   Versoes,
 } from "../shared/tipos.js";
 
@@ -53,6 +56,25 @@ const api = {
     const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
     ipcRenderer.on("exec:evento", wrap);
     return () => ipcRenderer.off("exec:evento", wrap);
+  },
+
+  lsp: {
+    abrir: (arquivo: string, texto: string): void => ipcRenderer.send("lsp:abrir", arquivo, texto),
+    mudar: (arquivo: string, versao: number, texto: string): void =>
+      ipcRenderer.send("lsp:mudar", arquivo, versao, texto),
+    fechar: (arquivo: string): void => ipcRenderer.send("lsp:fechar", arquivo),
+    completar: (a: string, l: number, c: number): Promise<Resultado<SugestaoLsp[]>> =>
+      ipcRenderer.invoke("lsp:completar", a, l, c),
+    hover: (a: string, l: number, c: number): Promise<Resultado<string | null>> =>
+      ipcRenderer.invoke("lsp:hover", a, l, c),
+    definicao: (a: string, l: number, c: number): Promise<Resultado<LugarNoCodigo | null>> =>
+      ipcRenderer.invoke("lsp:definicao", a, l, c),
+    aoDiagnosticar: (ouvinte: (a: AvisoDeArquivo) => void): void => {
+      ipcRenderer.on("lsp:diagnosticos", (_, aviso: AvisoDeArquivo) => ouvinte(aviso));
+    },
+    aoFalhar: (ouvinte: (motivo: string) => void): void => {
+      ipcRenderer.on("lsp:falhou", (_, motivo: string) => ouvinte(motivo));
+    },
   },
 
   janela: {
