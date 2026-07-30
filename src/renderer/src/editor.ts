@@ -21,6 +21,7 @@ import {
 } from "@codemirror/view";
 import { comentariosMarcados } from "./comentarios.js";
 import { fonteDoCatalogo } from "./completar.js";
+import { aceitarFantasma, dispensarFantasma, textoFantasma } from "./fantasma.js";
 import {
   diagnosticosDoArquivo,
   efeitoDiagnostico,
@@ -98,6 +99,7 @@ export class Editor {
           // Enter é sempre Enter; quem aceita é o Tab.
           defaultKeymap: false,
         }),
+        textoFantasma,
         keymap.of([
           {
             key: "Mod-s",
@@ -115,9 +117,12 @@ export class Editor {
               return true;
             },
           },
-          // Antes do indentWithTab: `acceptCompletion` devolve false quando não
-          // há sugestão aberta, então o Tab volta a indentar sozinho.
+          // Tab em cascata, do mais específico ao mais genérico: cada um
+          // devolve false quando não se aplica, e o seguinte assume. Ordem
+          // deliberada — o catálogo é verificado, o fantasma é adivinhado.
           { key: "Tab", run: acceptCompletion },
+          { key: "Tab", run: aceitarFantasma },
+          { key: "Escape", run: dispensarFantasma },
           { key: "ArrowDown", run: moveCompletionSelection(true) },
           { key: "ArrowUp", run: moveCompletionSelection(false) },
           { key: "Escape", run: closeCompletion },

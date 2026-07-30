@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 import type { EventoExecucao, Resultado } from "../shared/tipos.js";
 import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
+import {
+  esquecerFantasma,
+  estadoDoFantasma,
+  lerDoTwinny,
+  ligarFantasma,
+  salvarFantasma,
+} from "./config.js";
+import { cancelarFantasma, sugerir } from "./fantasma.js";
 import { estaRodando, pararScript, rodarScript } from "./execucao.js";
 import { ServidorPython } from "./lsp.js";
 import {
@@ -243,6 +251,22 @@ function registrarPonte(): void {
       servidor?.definicao(arquivo, linha, coluna) ?? null,
     ),
   );
+
+  ipcMain.handle("fantasma:estado", seguro(() => estadoDoFantasma()));
+  ipcMain.handle("fantasma:ligar", seguro((_e, ligado: boolean) => ligarFantasma(ligado)));
+  ipcMain.handle("fantasma:esquecer", seguro(() => esquecerFantasma()));
+  ipcMain.handle(
+    "fantasma:importar",
+    seguro(async () => {
+      const t = await lerDoTwinny();
+      return salvarFantasma({ ...t, ligado: true });
+    }),
+  );
+  ipcMain.handle(
+    "fantasma:sugerir",
+    seguro((_e, texto: string, cursor: number) => sugerir({ texto, cursor })),
+  );
+  ipcMain.on("fantasma:cancelar", () => cancelarFantasma());
 
   ipcMain.handle("exec:rodando", () => estaRodando());
   ipcMain.on("exec:rodar", (e, arquivo: string) => {

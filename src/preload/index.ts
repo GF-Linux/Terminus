@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   AvisoDeArquivo,
   Catalogo,
+  EstadoFantasma,
   EventoExecucao,
   LugarNoCodigo,
   NoArquivo,
@@ -75,6 +76,18 @@ const api = {
     aoFalhar: (ouvinte: (motivo: string) => void): void => {
       ipcRenderer.on("lsp:falhou", (_, motivo: string) => ouvinte(motivo));
     },
+  },
+
+  fantasma: {
+    estado: (): Promise<Resultado<EstadoFantasma>> => ipcRenderer.invoke("fantasma:estado"),
+    ligar: (ligado: boolean): Promise<Resultado<EstadoFantasma>> =>
+      ipcRenderer.invoke("fantasma:ligar", ligado),
+    importarDoTwinny: (): Promise<Resultado<EstadoFantasma>> =>
+      ipcRenderer.invoke("fantasma:importar"),
+    esquecer: (): Promise<Resultado<EstadoFantasma>> => ipcRenderer.invoke("fantasma:esquecer"),
+    sugerir: (texto: string, cursor: number): Promise<Resultado<string | null>> =>
+      ipcRenderer.invoke("fantasma:sugerir", texto, cursor),
+    cancelar: (): void => ipcRenderer.send("fantasma:cancelar"),
   },
 
   janela: {

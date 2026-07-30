@@ -27,8 +27,9 @@ pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado 
 | Atalho | O que faz |
 |---|---|
 | `Ctrl+P` | abrir arquivo por nome (casa por subsequência: `mgc` → `medir_gc.py`) |
-| `Ctrl+Espaço` | sugerir do catálogo do Biopython |
+| `Ctrl+Espaço` | sugerir (catálogo do Biopython + pyright) |
 | `Tab` | aceitar a sugestão (o `Enter` **não** aceita — quebra linha) |
+| `F12` | ir para a definição |
 | `Ctrl+N` | novo arquivo, já com `.py` preenchido |
 | `Ctrl+S` | gravar |
 | `Ctrl+Enter` | grava e executa o script aberto |
@@ -55,6 +56,25 @@ trecho sabe qual é qual.
 
 Entradas depreciadas continuam aparecendo — o catálogo as inclui para serem
 reconhecidas em código antigo — mas sempre no fim da lista.
+
+## Análise de tipos: pyright
+
+O erro aparece **antes de rodar**. `"GC: " + gc_fraction(s)` é sublinhado com
+`Operator "+" not supported for "Literal['GC: ']" and "float | Literal[0]"`, que
+é a armadilha do `gc_fraction` pega na origem em vez de virar traceback.
+
+A escolha foi medida, não assumida: o pyright resolveu o Biopython do miniforge
+neste ambiente. `jedi-language-server` seria mais leve e não faz checagem de
+tipo. A **Pylance faria melhor e está juridicamente fora** — a licença dela
+permite uso *"only with Visual Studio Products and Services"*.
+
+O servidor é um pacote npm com `typeshed` embutido, então **viaja com o
+aplicativo**: nenhum laboratório precisa instalar language server no próprio
+env. Roda pelo binário do Electron com `ELECTRON_RUN_AS_NODE`, sem exigir node
+na máquina. O modo é `basic`, não `strict` — código de análise científica é
+quase todo sem anotação de tipo, e o estrito viraria ruído.
+
+Sem o servidor o editor continua inteiro; só perde os avisos.
 
 ## O catálogo nunca é escrito à mão
 
