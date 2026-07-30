@@ -1,0 +1,5 @@
+/* Gerado por tools/extract_fonts.py a partir do mockup aprovado de 23/07.
+   Não editar à mão: rode o gerador. */
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:block;src:url('./fontes/ibm-plex-sans-400.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:block;src:url('./fontes/ibm-plex-mono-400.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:block;src:url('./fontes/ibm-plex-mono-500.woff2') format('woff2')}

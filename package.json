@@ -1,83 +1,41 @@
 {
   "name": "bancada",
-  "displayName": "Bancada — Biopython por tarefa",
-  "description": "Catálogo do Biopython organizado por tarefa, não por módulo, com trechos prontos para inserir no script.",
-  "version": "0.0.1",
-  "publisher": "juaredbr",
+  "productName": "Bancada",
+  "description": "Ambiente de análise para quem é alfabetizado em Python e trabalha com dado biológico.",
+  "version": "0.1.0",
   "license": "UNLICENSED",
   "private": true,
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Education",
-    "Snippets"
-  ],
-  "keywords": [
-    "biopython",
-    "bioinformatics",
-    "sanger",
-    "dna"
-  ],
-  "main": "./out/extension.js",
-  "activationEvents": [],
-  "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "bancada",
-          "title": "Bancada",
-          "icon": "media/icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "bancada": [
-        {
-          "id": "bancada.catalogo",
-          "name": "Biopython por tarefa"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "command": "bancada.inserirTrecho",
-        "title": "Bancada: inserir trecho no editor"
-      },
-      {
-        "command": "bancada.copiarTrecho",
-        "title": "Bancada: copiar trecho"
-      },
-      {
-        "command": "bancada.recarregarCatalogo",
-        "title": "Bancada: recarregar catálogo",
-        "icon": "$(refresh)"
-      }
-    ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "bancada.recarregarCatalogo",
-          "when": "view == bancada.catalogo",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "bancada.copiarTrecho",
-          "when": "view == bancada.catalogo && viewItem == bancada.entrada"
-        }
-      ]
-    }
-  },
+  "author": "Gustavo Freitas",
+  "main": "./out/main/index.js",
+  "type": "module",
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "vscode:prepublish": "npm run compile"
+    "dev": "electron-vite dev",
+    "build": "tsc --noEmit && electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "catalogo": "python3 tools/build_catalog.py",
+    "fontes": "python3 tools/extract_fonts.py"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/lang-python": "^6.1.6",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/search": "^6.5.8",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.36.1",
+    "@lezer/highlight": "^1.2.1",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
-    "typescript": "^5.3.3"
+    "@types/node": "^22.10.5",
+    "electron": "^33.3.1",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "esbuild@0.21.5": true
   }
 }
