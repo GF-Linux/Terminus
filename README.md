@@ -18,8 +18,11 @@ Também já existem os gestos que separam um editor de um ambiente: criar,
 renomear e excluir na árvore, **`Ctrl+P`** para abrir arquivo por nome, e
 **traceback clicável** — o quadro de erro no terminal leva à linha do arquivo.
 
-O que ainda não existe: o cromatograma de `.ab1`, o painel da Bancada (pausado a
-pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado em
+O **cromatograma de `.ab1`** existe: clicar num arquivo `.ab1` abre os quatro
+traços com as letras alinhadas aos picos, barras de Phred, zoom e rolagem.
+
+O que ainda não existe: o painel da Bancada (pausado a pedido) e busca em
+arquivos. O esqueleto da extensão do VSCodium está preservado em
 `legado-extensao/`.
 
 ## Atalhos
@@ -98,6 +101,42 @@ do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
 
 O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
 fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
+
+## Cromatograma
+
+Clicar num `.ab1` abre o visualizador. **É o único lugar do aplicativo com cor
+saturada** — a casca é monocromática justamente para que as quatro bases
+(A `#3fc46b`, C `#4d96ff`, G `#e9b949`, T `#f0574f`) sejam as cores mais fortes
+da tela. `Ctrl`+roda amplia; a roda sozinha rola.
+
+A leitura é feita por `tools/ler_ab1.py`, com o Biopython do laboratório —
+conforme a ADR 0003, quem entende de dado biológico é o Python, não a casca. O
+script não importa nada da Bancada e roda sozinho:
+
+```bash
+python3 tools/ler_ab1.py amostra.ab1 | jq .resumo
+```
+
+Duas escolhas que mudam o que se vê:
+
+- **Reamostragem por máximo, nunca por média.** Um `.ab1` tem 10 a 15 mil pontos
+  por canal; a redução para 6000 usa o máximo de cada balde, porque média achata
+  pico — e pico é exatamente o que se foi olhar.
+- **Sem a marca `FWO_1`, o leitor falha** em vez de assumir `GATC`. Adivinhar a
+  ordem dos canais produziria um cromatograma bonito e errado, que é pior do que
+  nenhum.
+
+### Dados de exemplo
+
+Os 36 `.ab1` reais do LHV **não entram em repositório** — são dados não
+publicados. Para desenvolver e testar há um gerador de arquivos sintéticos:
+
+```bash
+python3 tools/make_ab1.py exemplos/sintetico_01.ab1 --bases 900
+```
+
+O que sai é um ABIF válido (o Biopython abre como abriria um de sequenciador),
+mas **não é biologia**. Ver `exemplos/LEIA-ME.md`.
 
 ## O catálogo nunca é escrito à mão
 
