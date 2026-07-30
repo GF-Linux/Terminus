@@ -5,6 +5,7 @@ import type {
   Resultado,
 } from "../../shared/tipos.js";
 import { definirCatalogo } from "./completar.js";
+import { VistaCromatograma } from "./cromatograma.js";
 import { Editor } from "./editor.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
 import { definicaoEm, definirArquivoAtual, iniciarServidor, limparArquivo } from "./servidor.js";
@@ -37,9 +38,13 @@ function ou<T>(r: Resultado<T>, aoFalhar: T): T {
 
 /* ============================ estado ============================ */
 
+type TipoAba = "texto" | "cromatograma";
+
 interface Aba {
   caminho: string;
   nome: string;
+  /** Texto abre no editor; cromatograma abre no visualizador de .ab1. */
+  tipo: TipoAba;
   /** O que está em edição — pode divergir do disco. */
   conteudo: string;
   /** O que está no disco. `conteudo !== gravado` é o que acende o marcador. */
@@ -48,7 +53,7 @@ interface Aba {
   versao: number;
 }
 
-const estaSuja = (a: Aba): boolean => a.conteudo !== a.gravado;
+const estaSuja = (a: Aba): boolean => a.tipo === "texto" && a.conteudo !== a.gravado;
 
 let projeto: ProjetoAberto | null = null;
 let catalogo: Catalogo | null = null;
@@ -130,6 +135,12 @@ function avisar(texto: string): void {
     alvo.textContent = rodando ? "rodando…" : "pronto";
   }, 5000);
 }
+
+/* ============================ cromatograma ============================ */
+
+const vistaAb1 = new VistaCromatograma($("cromatogramaHost"));
+
+const EXT_CROMATOGRAMA = /\.ab1$/i;
 
 /* ======================= sincronia com o servidor ======================= */
 
@@ -350,7 +361,7 @@ function desenharArvore(): void {
       } else {
         const aberto = abas[ativa]?.caminho === no.caminho;
         // O .ab1 aparece na árvore mas não abre: ainda não há cromatograma.
-        const suportado = /\.(py|txt|md|fasta|fa|fastq|csv|tsv|json|xml|cfg|toml|ya?ml)$/i.test(no.nome);
+        const suportado = /\.(py|txt|md|fasta|fa|fastq|csv|tsv|json|xml|cfg|toml|ya?ml|ab1)$/i.test(no.nome);
         linhas.push(
           editando
             ? `<div class="row" style="padding-left:${recuo + 16}px">
@@ -653,7 +664,9 @@ function desenharAbas(): void {
   $("tituloDoc").textContent = a
     ? `${a.nome}${estaSuja(a) ? " •" : ""}${projeto ? ` — ${projeto.nome}` : ""}`
     : "Bancada";
-  $("editorHost").classList.toggle("ativo", ativa >= 0);
+  const cromo = a?.tipo === "cromatograma";
+  $("editorHost").classList.toggle("ativo", ativa >= 0 && !cromo);
+  $("cromatogramaHost").classList.toggle("ativo", cromo);
   $("vazio").classList.toggle("oculto", ativa >= 0);
 }
 
@@ -663,6 +676,8 @@ async function abrirArquivo(caminho: string): Promise<void> {
     trocarAba(jaAberta);
     return;
   }
+
+  if (EXT_CROMATOGRAMA.test(caminho)) return abrirCromatograma(caminho);
 
   const r = await api.ler(caminho);
   if (!r.ok) {
@@ -675,6 +690,7 @@ async function abrirArquivo(caminho: string): Promise<void> {
   const aba: Aba = {
     caminho,
     nome: caminho.split("/").pop() ?? caminho,
+    tipo: "texto",
     conteudo: r.valor,
     gravado: r.valor,
     versao: 1,
@@ -689,20 +705,77 @@ async function abrirArquivo(caminho: string): Promise<void> {
   editor.focar();
 }
 
+/**
+ * Abre um `.ab1` no visualizador.
+ *
+ * A leitura é feita pelo Python do laboratório e pode levar um segundo em
+ * arquivo grande, então a aba nasce antes do dado chegar — do contrário o
+ * clique pareceria não ter feito nada.
+ */
+async function abrirCromatograma(caminho: string): Promise<void> {
+  guardarAtual();
+  const aba: Aba = {
+    caminho,
+    nome: caminho.split("/").pop() ?? caminho,
+    tipo: "cromatograma",
+    conteudo: "",
+    gravado: "",
+    versao: 1,
+  };
+  abas.push(aba);
+  ativa = abas.length - 1;
+  focarNoServidor(undefined);
+  desenharAbas();
+  desenharArvore();
+  avisar(`lendo ${aba.nome}…`);
+
+  const r = await api.cromatograma(caminho);
+  // Entre o pedido e a resposta o usuário pode ter fechado a aba ou trocado.
+  if (!abas.includes(aba)) return;
+  if (!r.ok) {
+    vistaAb1.falhar(r.erro);
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  if (abas[ativa] === aba) {
+    vistaAb1.mostrar(r.valor);
+    avisar(`${aba.nome}: ${r.valor.resumo.bases} bases`);
+  }
+}
+
 /** Guarda o texto em edição na aba atual antes de trocar de documento. */
 function guardarAtual(): void {
-  if (ativa >= 0) abas[ativa]!.conteudo = editor.conteudo();
+  const a = abas[ativa];
+  if (a?.tipo === "texto") a.conteudo = editor.conteudo();
 }
 
 function trocarAba(i: number): void {
   if (i === ativa || !abas[i]) return;
   guardarAtual();
   ativa = i;
-  editor.abrir(abas[i]!.conteudo, abas[i]!.gravado);
-  focarNoServidor(abas[i]);
+  const alvo = abas[i]!;
+  if (alvo.tipo === "cromatograma") {
+    // Relê: guardar megabytes de traço por aba aberta custaria mais memória do
+    // que reler custa tempo.
+    focarNoServidor(undefined);
+    desenharAbas();
+    desenharArvore();
+    void reabrirCromatograma(alvo);
+    return;
+  }
+  editor.abrir(alvo.conteudo, alvo.gravado);
+  focarNoServidor(alvo);
   desenharAbas();
   desenharArvore();
   editor.focar();
+}
+
+async function reabrirCromatograma(aba: Aba): Promise<void> {
+  const r = await api.cromatograma(aba.caminho);
+  if (abas[ativa] !== aba) return;
+  if (r.ok) vistaAb1.mostrar(r.valor);
+  else vistaAb1.falhar(r.erro);
 }
 
 function fecharAba(i: number): void {
@@ -719,18 +792,25 @@ function fecharAba(i: number): void {
   if (abas.length === 0) {
     ativa = -1;
     editor.abrir("");
+    focarNoServidor(undefined);
   } else {
     ativa = Math.min(i, abas.length - 1);
-    editor.abrir(abas[ativa]!.conteudo, abas[ativa]!.gravado);
+    const alvo = abas[ativa]!;
+    if (alvo.tipo === "cromatograma") {
+      focarNoServidor(undefined);
+      void reabrirCromatograma(alvo);
+    } else {
+      editor.abrir(alvo.conteudo, alvo.gravado);
+      focarNoServidor(alvo);
+    }
   }
-  focarNoServidor(abas[ativa]);
   desenharAbas();
   desenharArvore();
 }
 
 async function salvar(): Promise<void> {
   const a = abas[ativa];
-  if (!a) return;
+  if (!a || a.tipo !== "texto") return;
   const conteudo = editor.conteudo();
   const r = await api.gravar(a.caminho, conteudo);
   if (!r.ok) {
