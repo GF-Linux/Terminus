@@ -14,9 +14,28 @@ ponta: abre uma pasta de corrida, edita `.py` com realce, grava, executa com o
 Python do laboratório e mostra o stdout real. O protótipo preto fosco foi
 **aprovado** em 29/07, com fidelidade total ao Cursor (casca sem acento verde).
 
+Também já existem os gestos que separam um editor de um ambiente: criar,
+renomear e excluir na árvore, **`Ctrl+P`** para abrir arquivo por nome, e
+**traceback clicável** — o quadro de erro no terminal leva à linha do arquivo.
+
 O que ainda não existe: o cromatograma de `.ab1`, o painel da Bancada (pausado a
 pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado em
 `legado-extensao/`.
+
+## Atalhos
+
+| Atalho | O que faz |
+|---|---|
+| `Ctrl+P` | abrir arquivo por nome (casa por subsequência: `mgc` → `medir_gc.py`) |
+| `Ctrl+N` | novo arquivo, já com `.py` preenchido |
+| `Ctrl+S` | gravar |
+| `Ctrl+Enter` | grava e executa o script aberto |
+| `Ctrl+W` | fechar aba |
+| ``Ctrl+` `` | abrir/fechar o terminal |
+| `F2` / `Delete` | renomear / excluir a linha em foco na árvore |
+
+Clicar num `File "...", line N` do traceback abre o arquivo naquela linha —
+inclusive quadros dentro de bibliotecas, que abrem para leitura.
 
 ## O catálogo nunca é escrito à mão
 

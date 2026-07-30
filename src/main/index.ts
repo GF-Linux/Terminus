@@ -14,6 +14,7 @@ import {
   gravarArquivo,
   lerArquivo,
   listar,
+  listarTudo,
   renomear,
 } from "./projeto.js";
 
@@ -132,6 +133,7 @@ function registrarPonte(): void {
     }),
   );
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listar(dir)));
+  ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarTudo(raiz)));
 
   ipcMain.handle(
     "arquivo:ler",

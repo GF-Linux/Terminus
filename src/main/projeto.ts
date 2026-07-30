@@ -38,6 +38,43 @@ export async function abrirProjeto(raiz: string): Promise<ProjetoAberto> {
   return { raiz, nome: path.basename(raiz), filhos: await listar(raiz) };
 }
 
+/** Teto de arquivos varridos pelo Ctrl+P. Uma pasta de corrida tem dezenas;
+ *  este número existe para o caso de alguém abrir `$HOME` por engano e a
+ *  varredura não segurar a janela por minutos. */
+const TETO_VARREDURA = 20_000;
+
+/**
+ * Todos os arquivos do projeto, em caminho relativo à raiz, para o Ctrl+P.
+ *
+ * Percorre em largura para que, se o teto for atingido, o que sobrou seja o
+ * nível mais raso — que é onde estão os scripts que se quer abrir, não o fundo
+ * de alguma pasta de dados.
+ */
+export async function listarTudo(raiz: string): Promise<string[]> {
+  const achados: string[] = [];
+  let fila = [raiz];
+
+  while (fila.length > 0 && achados.length < TETO_VARREDURA) {
+    const proxima: string[] = [];
+    for (const dir of fila) {
+      let entradas;
+      try {
+        entradas = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        continue; // pasta sem permissão ou que sumiu no meio da varredura
+      }
+      for (const e of entradas) {
+        if (e.name.startsWith(".") || IGNORAR.has(e.name)) continue;
+        const alvo = path.join(dir, e.name);
+        if (e.isDirectory()) proxima.push(alvo);
+        else if (achados.length < TETO_VARREDURA) achados.push(path.relative(raiz, alvo));
+      }
+    }
+    fila = proxima;
+  }
+  return achados;
+}
+
 /** Extensões que o editor abre como texto. O resto precisa de visualizador
  *  próprio — `.ab1` é o caso que importa, e ainda não existe. */
 const TEXTO = new Set([".py", ".txt", ".md", ".fasta", ".fa", ".fastq", ".csv", ".tsv", ".json", ".xml", ".cfg", ".toml", ".yaml", ".yml"]);
