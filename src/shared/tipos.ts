@@ -106,3 +106,23 @@ export interface LugarNoCodigo {
   linha: number;
   coluna: number;
 }
+
+/* ------------------------------ texto fantasma ---------------------------- */
+
+export interface ConfigFantasma {
+  endpoint: string;
+  modelo: string;
+  ligado: boolean;
+}
+
+/** O que a tela de configurações mostra. Nunca inclui a chave. */
+export interface EstadoFantasma {
+  configurado: boolean;
+  ligado: boolean;
+  endpoint: string | null;
+  modelo: string | null;
+  /** Se `false`, a chave está em texto puro no disco — e a tela avisa. */
+  chaveiroDisponivel: boolean;
+  chaveEmTextoPuro: boolean;
+  arquivo: string;
+}

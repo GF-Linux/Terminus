@@ -1,4 +1,9 @@
-import type { Catalogo, NoArquivo, ProjetoAberto, Resultado } from "../../shared/tipos.js";
+import type {
+  Catalogo,
+  NoArquivo,
+  ProjetoAberto,
+  Resultado,
+} from "../../shared/tipos.js";
 import { definirCatalogo } from "./completar.js";
 import { Editor } from "./editor.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
@@ -208,10 +213,76 @@ function definirLateral(painel: string): void {
       desenharCatalogo();
     }
   } else {
-    corpo.innerHTML = `<div class="aviso"><b>Ainda não existe</b>
-      O interpretador usado está fixo no código (<code>src/main/ambiente.ts</code>).
-      Vira tela de configuração quando houver mais de uma coisa para configurar.</div>`;
+    void desenharConfiguracoes();
   }
+}
+
+/* ------------------------- painel de configurações ------------------------ */
+
+async function desenharConfiguracoes(): Promise<void> {
+  const corpo = $("lateral");
+  const r = await api.fantasma.estado();
+  if (!r.ok) {
+    corpo.innerHTML = `<div class="aviso"><b>Erro</b>${esc(r.erro)}</div>`;
+    return;
+  }
+  const e = r.valor;
+
+  const alerta = e.chaveEmTextoPuro
+    ? `<div class="alerta">A chave está em <b>texto puro</b> no disco, porque este
+         sistema não ofereceu chaveiro. Arquivo: <code>${esc(e.arquivo)}</code></div>`
+    : "";
+
+  corpo.innerHTML = `
+    <div class="cfg">
+      <b>Texto fantasma</b>
+      <p class="dim">Sugestão de código por IA, em cinza à frente do cursor. Sai
+         desta máquina: o trecho em volta do cursor vai para o modelo.</p>
+      ${
+        e.configurado
+          ? `<label class="chave">
+               <input type="checkbox" id="cfgLigado" ${e.ligado ? "checked" : ""}>
+               <span>${e.ligado ? "Ligado" : "Desligado"}</span>
+             </label>
+             <div class="linhas">
+               <div><span>modelo</span><code>${esc(e.modelo ?? "?")}</code></div>
+               <div><span>destino</span><code>${esc(e.endpoint ?? "?")}</code></div>
+               <div><span>chave</span><code>${e.chaveiroDisponivel ? "no chaveiro do sistema" : "em texto puro"}</code></div>
+             </div>
+             ${alerta}
+             <button class="acao" id="cfgEsquecer">Esquecer a chave</button>`
+          : `<p class="dim">Nenhuma chave configurada.</p>
+             <button class="acao" id="cfgImportar">Importar do Twinny (VS Code)</button>`
+      }
+
+      <b class="sep">Interpretador</b>
+      <p class="dim">Ainda fixo no código (<code>src/main/ambiente.ts</code>):
+         tenta o env <code>easycontig-demo</code> do miniforge e cai para
+         <code>/usr/bin/python3</code>.</p>
+    </div>`;
+
+  const marca = document.getElementById("cfgLigado") as HTMLInputElement | null;
+  marca?.addEventListener("change", async () => {
+    await api.fantasma.ligar(marca.checked);
+    void desenharConfiguracoes();
+  });
+
+  document.getElementById("cfgImportar")?.addEventListener("click", async () => {
+    const s = await api.fantasma.importarDoTwinny();
+    if (!s.ok) {
+      terminal.erro(`${s.erro}\r\n`);
+      abrirPainel();
+      return;
+    }
+    avisar("chave importada do Twinny");
+    void desenharConfiguracoes();
+  });
+
+  document.getElementById("cfgEsquecer")?.addEventListener("click", async () => {
+    if (!confirm("Esquecer a chave? O texto fantasma para de funcionar.")) return;
+    await api.fantasma.esquecer();
+    void desenharConfiguracoes();
+  });
 }
 
 /** O navegador de catálogo, preservado atrás de BANCADA_PAUSADA. */

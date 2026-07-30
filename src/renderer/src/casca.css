@@ -247,6 +247,25 @@ button:disabled{opacity:.35; cursor:default}
 .cm-info-bancada .imp{font-family:var(--mono); font-size:11px; color:var(--kw);
   white-space:pre-wrap; border-top:1px solid var(--line); padding-top:8px}
 
+/* ===================== texto fantasma ===================== */
+/* Cinza e itálico: tem de se ler como proposta, não como código escrito. */
+.cm-fantasma{color:var(--fg36); font-style:italic; white-space:pre-wrap}
+
+/* ===================== painel de configurações ===================== */
+.cfg{padding:16px 18px; font-size:12.5px; line-height:1.6; color:var(--fg74)}
+.cfg b{display:block; color:var(--fg); font-size:13px; margin-bottom:6px}
+.cfg b.sep{margin-top:24px; padding-top:16px; border-top:1px solid var(--line)}
+.cfg .dim{color:var(--fg36); margin:0 0 12px}
+.cfg code{font-family:var(--mono); font-size:11px; color:var(--fg60); word-break:break-all}
+.cfg .chave{display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:12px}
+.cfg .chave input{accent-color:var(--btn)}
+.cfg .linhas div{display:flex; gap:8px; margin-bottom:4px}
+.cfg .linhas span{color:var(--fg36); min-width:56px; flex:none}
+.cfg .alerta{margin:12px 0; padding:9px 11px; border-left:2px solid var(--T);
+  background:var(--input); color:var(--fg74); font-size:12px}
+.cfg button.acao{color:var(--btn); margin-top:14px; display:block}
+.cfg button.acao:hover{text-decoration:underline}
+
 /* ===================== avisos do pyright ===================== */
 /* Sublinhado ondulado, não fundo colorido: o fundo competiria com a seleção e
    com a linha atual, e o erro tem de se ler sem tirar o código da frente. */
