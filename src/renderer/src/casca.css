@@ -1,0 +1,161 @@
+/* ============================================================
+   Casca da Bancada.
+
+   Paleta: Cursor Dark, extraída do tema instalado nesta máquina
+   (~/.config/Cursor -> colorThemeData, 252 cores). Não são valores
+   aproximados "no estilo do Cursor": são os dele.
+
+   O método do tema é o que importa reproduzir: UMA cor base
+   (#f0f0f0) com canal alfa para todo primeiro plano, borda, hover
+   e seleção, sobre DOIS fundos (#141414 casca / #181818 editor).
+
+   Decidido em 29/07: fidelidade total. A casca não tem acento verde.
+   O verde existe só no cromatograma, onde é dado.
+   ============================================================ */
+:root{
+  --chrome:#141414;      /* titleBar, activityBar, sideBar, statusBar, panel, aba inativa */
+  --bg:#181818;          /* editor, aba ativa, breadcrumb */
+  --line:#f0f0f013;      /* TODAS as bordas — token único, 7,5% */
+  --linehl:#262626;      /* linha atual do editor */
+  --fg:#f0f0f0;          /* texto ativo */
+  --fg74:#f0f0f0bd;      /* texto normal, lateral, painel inativo */
+  --fg60:#f0f0f099;      /* barra de estado, comentário */
+  --fg52:#f0f0f084;      /* título da janela */
+  --fg36:#f0f0f05c;      /* aba inativa, número de linha */
+  --hover:#f0f0f011;
+  --sel:#f0f0f01e;       /* item selecionado na lista */
+  --input:#f0f0f00a;
+  --focus:#f0f0f026;
+  /* acentos do próprio Cursor (família Nord) */
+  --badge:#88c0d0; --btn:#81a1c1; --btnfg:#191c22;
+  /* sintaxe do Cursor Dark */
+  --cmt:#f0f0f099; --str:#e394dc; --kw:#82d2ce; --fn:#efb080;
+  --num:#ebc88d; --var:#d6d6dd; --typ:#efb080;
+  /* as 4 bases — só em dado biológico, nunca na casca */
+  --A:#3fc46b; --C:#4d96ff; --G:#e9b949; --T:#f0574f;
+  --sans:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; overflow:hidden}
+body{background:var(--chrome); color:var(--fg74); font-family:var(--sans); font-size:15px;
+  -webkit-font-smoothing:antialiased; user-select:none}
+button{font:inherit; color:inherit; background:none; border:0; cursor:pointer; text-align:left; padding:0}
+button:disabled{opacity:.35; cursor:default}
+:focus-visible{outline:1px solid var(--focus); outline-offset:1px}
+
+.ide{height:100%; background:var(--bg); display:grid; grid-template-rows:35px 1fr 22px}
+
+/* barra de título — LIMPA: só os controles em círculo (P1.2) */
+.tbar{background:var(--chrome); border-bottom:1px solid var(--line); display:flex; align-items:center;
+  padding:0 12px; gap:12px; -webkit-app-region:drag}
+.lights{display:flex; gap:8px; -webkit-app-region:no-drag}
+.lights button{width:11px; height:11px; border-radius:50%; display:block; padding:0}
+.lights .c1{background:#ff5f57}.lights .c2{background:#febc2e}.lights .c3{background:#28c840}
+.lights button:hover{filter:brightness(1.25)}
+.tbar .doc{margin:0 auto; font-size:12px; color:var(--fg52)}
+
+.main{display:grid; grid-template-columns:48px auto 1fr; min-height:0; overflow:hidden}
+.main>*{min-height:0; min-width:0}
+
+/* barra de atividades — Explorer / Extensions / Bancada (P1.3) */
+.act{background:var(--chrome); border-right:1px solid var(--line); display:flex; flex-direction:column;
+  align-items:center; padding:4px 0}
+.act button{width:48px; height:46px; display:grid; place-items:center; color:var(--fg36); position:relative}
+.act button svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.4;
+  stroke-linecap:round; stroke-linejoin:round}
+.act button:hover{color:var(--fg74)}
+.act button[aria-selected="true"]{color:var(--fg)}
+/* Cursor não usa barra colorida: o indicador é a própria cor do ícone + traço claro */
+.act button[aria-selected="true"]::before{content:""; position:absolute; left:0; top:0; bottom:0;
+  width:2px; background:var(--fg)}
+.act .sp{margin-top:auto}
+
+/* lateral */
+.side{width:250px; background:var(--chrome); border-right:1px solid var(--line); display:flex;
+  flex-direction:column; min-height:0; overflow:hidden}
+.side .hd{display:flex; align-items:center; padding:10px 18px 8px; font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--fg74)}
+.side .hd .dots{margin-left:auto; color:var(--fg36); letter-spacing:0; font-size:12px}
+.side .hd .dots:hover{color:var(--fg)}
+.body{flex:1; min-height:0; overflow-y:auto; padding-bottom:12px; font-size:13px}
+
+/* árvore do Explorer, no formato do VSCodium */
+.sect{display:flex; align-items:center; gap:6px; padding:4px 18px; font-size:11px; font-weight:600;
+  letter-spacing:.02em; text-transform:uppercase; color:var(--fg74)}
+.sect .ch{font-size:9px; color:var(--fg74)}
+.row{display:flex; align-items:center; gap:7px; width:100%; padding:3px 18px 3px 8px; color:var(--fg74);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row:hover{background:var(--hover); color:var(--fg)}
+.row.on{background:var(--sel); color:var(--fg)}
+.row .ch{font-size:9px; width:9px; flex:none; color:var(--fg36)}
+.row .ic{width:14px; flex:none; text-align:center; font-size:11px; color:var(--fg36)}
+.row .nome{overflow:hidden; text-overflow:ellipsis}
+.row.opaco{color:var(--fg36)}
+.row.opaco:hover{color:var(--fg60)}
+
+.aviso{padding:22px 18px; color:var(--fg36); font-size:12.5px; line-height:1.75}
+.aviso b{color:var(--fg74); font-weight:600; display:block; margin-bottom:8px; font-size:13px}
+.aviso code{font-family:var(--mono); font-size:11.5px; color:var(--fg60)}
+.aviso button.acao{color:var(--btn); margin-top:10px; display:block}
+.aviso button.acao:hover{text-decoration:underline}
+
+/* ===================== palco ===================== */
+.stage{display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden}
+.tabs{display:flex; align-items:stretch; background:var(--chrome); border-bottom:1px solid var(--line);
+  min-height:35px; overflow-x:auto; scrollbar-width:none; flex:none}
+.tabs::-webkit-scrollbar{display:none}
+/* Sem arquivo aberto não há faixa de abas: uma barra vazia de 35px é ruído que
+   promete conteúdo. Divulgação progressiva. */
+.tabs:empty{display:none}
+.tab{display:flex; align-items:center; gap:9px; padding:0 14px; font-size:13px; color:var(--fg36);
+  background:var(--chrome); border-right:1px solid var(--line); white-space:nowrap; flex:none}
+/* Cursor deixa tab.activeBorderTop transparente: a aba ativa se distingue
+   pelo fundo e pelo texto, sem traço colorido. */
+.tab.on{background:var(--bg); color:var(--fg)}
+.tab .x{color:var(--fg36); font-size:13px; padding:0 2px}
+.tab .x:hover{color:var(--fg)}
+.tab .sujo{width:7px; height:7px; border-radius:50%; background:var(--fg60); display:block}
+
+.crumb{padding:4px 16px; font-size:11.5px; color:var(--fg60); background:var(--bg); flex:none}
+.crumb span{color:var(--fg36)}
+.crumb:empty{display:none}
+
+.editorHost{flex:1; min-height:0; overflow:hidden; background:var(--bg); user-select:text}
+.editorHost:not(.ativo){display:none}
+.vazio{flex:1; display:grid; place-content:center; gap:6px; background:var(--bg); text-align:center;
+  font-size:13px; color:var(--fg60)}
+.vazio.oculto{display:none}
+.vazio p{margin:0}
+.vazio .dim{color:var(--fg36); font-size:12px}
+
+/* painel inferior */
+.panel{background:var(--chrome); border-top:1px solid var(--line); display:flex; flex-direction:column;
+  flex:none; height:190px}
+.panel.oculto{display:none}
+.ptabs{display:flex; align-items:center; height:32px; padding:0 16px; flex:none}
+.pt{font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--fg36); padding:0 12px;
+  line-height:32px}
+.pt.on{color:var(--fg)}
+.ptabs .r{margin-left:auto; display:flex; gap:14px; color:var(--fg36); font-size:12px}
+.ptabs .r button:hover:not(:disabled){color:var(--fg)}
+.term{flex:1; min-height:0; padding:0 8px 8px 16px; user-select:text}
+
+/* barra de estado */
+.sbar{background:var(--chrome); border-top:1px solid var(--line); display:flex; align-items:center;
+  gap:16px; padding:0 12px; font-size:11px; color:var(--fg60); white-space:nowrap; overflow:hidden}
+.sbar .r{margin-left:auto; display:flex; gap:16px}
+.sbar button{font-size:11px; color:var(--fg60)}
+.sbar button:hover, .sbar button.on{color:var(--fg)}
+
+/* xterm: a barra de rolagem própria dele é clara demais para esta casca. */
+.xterm .xterm-viewport{background:transparent !important; scrollbar-width:thin;
+  scrollbar-color:#f0f0f026 transparent}
+.xterm .xterm-viewport::-webkit-scrollbar{width:10px}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb{background:#f0f0f026; border-radius:5px}
+.xterm .xterm-viewport::-webkit-scrollbar-track{background:transparent}
+
+/* ===================== CodeMirror ===================== */
+.cm-editor{height:100%; font-family:var(--mono); font-size:12.8px}
+.cm-editor.cm-focused{outline:none}
+.cm-scroller{line-height:1.75; font-family:var(--mono)}

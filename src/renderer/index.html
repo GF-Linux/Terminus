@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'">
+<title>Bancada</title>
+<link rel="stylesheet" href="./fontes.css">
+<link rel="stylesheet" href="./src/casca.css">
+</head>
+<body>
+
+<div class="ide">
+
+  <!-- P1.2 — barra de título limpa: só os controles em círculo, sem menu. -->
+  <div class="tbar" id="tbar">
+    <div class="lights">
+      <button class="c1" id="btFechar" title="Fechar"></button>
+      <button class="c2" id="btMinimizar" title="Minimizar"></button>
+      <button class="c3" id="btMaximizar" title="Maximizar"></button>
+    </div>
+    <div class="doc" id="tituloDoc">Bancada</div>
+  </div>
+
+  <div class="main">
+
+    <!-- P1.3 — Explorer / Extensions / Bancada -->
+    <nav class="act" id="act" aria-label="Barra de atividades">
+      <button data-p="explorer" aria-selected="true" title="Explorer">
+        <svg viewBox="0 0 24 24"><path d="M4 6h5.5l1.8 2H20v11H4z"/></svg></button>
+      <button data-p="extensions" aria-selected="false" title="Extensions">
+        <svg viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4zM13.5 13.5H20V20h-6.5zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4z"/></svg></button>
+      <!-- Erlenmeyer, não hélice: a 22px a dupla-hélice lê como um "X".
+           É o mesmo desenho da marca, o que dá consistência ao produto. -->
+      <button data-p="bancada" aria-selected="false" title="Bancada">
+        <svg viewBox="0 0 24 24"><path d="M9 3v5.2L5.2 14A3.9 3.9 0 008.5 20h7A3.9 3.9 0 0018.8 14L15 8.2V3"/><path d="M7.6 3h8.8"/><path d="M6.4 14.6h11.2"/><circle cx="11" cy="17" r="1.05"/><circle cx="14.6" cy="17.9" r=".8"/></svg></button>
+      <button class="sp" data-p="config" aria-selected="false" title="Configurações">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.4v2.3M12 18.3v2.3M3.4 12h2.3M18.3 12h2.3M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></svg></button>
+    </nav>
+
+    <aside class="side">
+      <div class="hd"><span id="sideT">Explorer</span><span class="dots" id="sideAcao"></span></div>
+      <div class="body" id="lateral"></div>
+    </aside>
+
+    <div class="stage">
+      <div class="tabs" id="abas"></div>
+      <div class="crumb" id="trilha"></div>
+      <div class="editorHost" id="editorHost"></div>
+      <div class="vazio" id="vazio">
+        <p>Nenhum arquivo aberto.</p>
+        <p class="dim">Abra uma pasta de corrida no Explorer.</p>
+      </div>
+
+      <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão
+           da barra de estado, ou sozinho quando há saída para mostrar. -->
+      <div class="panel oculto" id="painel">
+        <div class="ptabs">
+          <span class="pt on">Terminal</span>
+          <span class="r">
+            <button id="btRodar" title="Rodar o arquivo aberto (Ctrl+Enter)">&#9654;</button>
+            <button id="btParar" title="Parar" disabled>&#9632;</button>
+            <button id="btLimpar" title="Limpar">&#9645;</button>
+            <button id="btFecharPainel" title="Fechar painel">&#10005;</button>
+          </span>
+        </div>
+        <div class="term" id="term"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sbar">
+    <button id="btPainel" title="Terminal (Ctrl+`)">Terminal</button>
+    <span id="estadoExec">pronto</span>
+    <span id="posicao">Ln 1, Col 1</span>
+    <span class="r">
+      <span id="ambiente">detectando ambiente…</span>
+      <span>UTF-8</span><span>LF</span>
+      <span id="pyver">Python</span>
+    </span>
+  </div>
+
+</div>
+
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>

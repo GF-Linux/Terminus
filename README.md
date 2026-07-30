@@ -8,12 +8,15 @@ O problema que resolve: a documentação do Biopython é indexada por módulo, o
 só ajuda quem já sabe o nome do que procura. Aqui se procura pela tarefa —
 "medir GC", "ler cromatograma", "montar árvore".
 
-**Estado (2026-07-26):** o catálogo verificado e a referência de leitura estão
-prontos e são o que há de mais sólido no repo. A aplicação em si **não começou** —
-em 26/07 o projeto deixou de ser extensão do VSCodium e virou aplicação própria
-(ADR 0003 no segundo cérebro), e a base (Tauri / Electron / Qt+Python) ainda não
-foi escolhida. Existe protótipo visual em `design/`. O esqueleto de extensão em
-`src/` é de antes da virada e está preservado, não descartado.
+**Estado (2026-07-29):** a aplicação **começou a existir**. A base foi decidida —
+Electron + CodeMirror 6 + xterm.js (ADR 0004) — e a primeira fatia roda de ponta a
+ponta: abre uma pasta de corrida, edita `.py` com realce, grava, executa com o
+Python do laboratório e mostra o stdout real. O protótipo preto fosco foi
+**aprovado** em 29/07, com fidelidade total ao Cursor (casca sem acento verde).
+
+O que ainda não existe: o cromatograma de `.ab1`, o painel da Bancada (pausado a
+pedido) e o autocomplete. O esqueleto da extensão do VSCodium está preservado em
+`legado-extensao/`.
 
 ## O catálogo nunca é escrito à mão
 
@@ -70,18 +73,58 @@ Trechos que fariam requisição ao NCBI nunca são executados.
 Estado atual: 12 tarefas, 55 entradas, 22 trechos executando de ponta a ponta,
 0 defeitos.
 
-## Compilar a extensão
+## Rodar a aplicação
 
 ```bash
 npm install
-npm run compile     # tsc em modo strict, saída em out/
+npm run dev                 # janela com recarga a quente
+npm run dev -- ~/corridas/18S   # já abrindo uma pasta
+npm run build && npm start  # produção
 ```
+
+`npm run typecheck` roda o `tsc` em modo strict sobre os três lados (principal,
+preload e interface).
+
+### Arquitetura
+
+| Diretório | Papel |
+|---|---|
+| `src/main/` | processo principal: janela, catálogo, detecção de ambiente, execução |
+| `src/preload/` | a **única** superfície exposta à interface (`contextBridge`) |
+| `src/renderer/` | a casca: HTML/CSS aprovados, CodeMirror 6, xterm.js |
+| `src/shared/` | tipos que atravessam o IPC — sem `electron`, sem `node:*`, sem DOM |
+
+`contextIsolation` ligado e `nodeIntegration` desligado: a interface não tem
+`require`, `fs` nem `child_process`. Tudo o que ela pode fazer está listado em
+`src/preload/index.ts`.
+
+### O terminal não tem PTY, e é decisão forçada
+
+`node-pty` é módulo nativo e precisa compilar contra o ABI do Electron. A máquina
+de desenvolvimento (SteamOS) **não tem `gcc` nem `make`** e tem a raiz
+somente-leitura. Então a execução usa canos comuns (`python -u`) e o xterm.js
+serve só de tela.
+
+O que se perde: `input()` trava, não há cor de programas que checam `isatty`, e
+não há barra de progresso reescrevendo a linha. Para rodar um script de análise e
+ler o stdout — que é o caso de uso — basta. Trocar isso por PTY passa a exigir
+toolchain nativo na máquina de quem compila.
+
+### As fontes vêm do mockup aprovado
+
+```bash
+python3 tools/extract_fonts.py    # mockup de 23/07 -> src/renderer/fontes/
+```
+
+O gerador avisa de um achado de 29/07: os três "pesos" do IBM Plex Sans no mockup
+(400, 500 e 600) são **o mesmo arquivo**. Como cada `@font-face` declarava um peso
+exato, o navegador não sintetizava negrito — todo `font-weight:600` da casca vinha
+sendo desenhado em peso regular desde 23/07. O gerador agora declara o intervalo
+`400 600` numa face só, o que diz a verdade e preserva a aparência aprovada.
+Corrigir de fato exige trazer os `.woff2` reais dos pesos 500 e 600.
 
 ## Pendências conhecidas
 
-- **VSCodium não está instalado nesta máquina** — o que existe é VS Code flatpak
-  (`com.visualstudio.code`). A API de extensão é a mesma, então o esqueleto serve
-  aos dois, mas o teste no alvo real (VSCodium) ainda não foi feito.
 - **Sem dados de exemplo.** 14 trechos leem arquivos (`entrada.fasta`,
   `resultado.xml`, `amostra.ab1`) que não existem no repo, então não rodam como
   estão. Ficheiros FASTA/XML sintéticos resolveriam a maioria. Para `.ab1`,
@@ -90,13 +133,21 @@ npm run compile     # tsc em modo strict, saída em out/
   "Bancada" segue sendo sugestão. Distribuição por Open VSX **deixou de se aplicar**
   com a virada para aplicação própria (ADR 0003) — não há mais marketplace no
   caminho, e como distribuir passou a ser pergunta aberta.
-- **Base da aplicação não escolhida** (Tauri vs Electron vs Qt/Python). Decisão
-  adiada de propósito; ver ADR 0003.
-- **Sem testes automatizados do lado TypeScript.** O `catalog.ts` foi verificado
-  à mão no node (carga e caminho de erro); `extension.ts` só foi verificado por
-  compilação.
-- A pré-visualização de `.ab1` como cromatograma (processo Python auxiliar +
-  webview) não foi começada.
+- **Sem empacotamento.** Não há `electron-builder` nem AppImage: hoje só roda a
+  partir do repo.
+- **Sem testes automatizados do lado TypeScript.** A fatia atual foi verificada
+  rodando o aplicativo de verdade (abrir pasta → abrir `.py` → executar → ler o
+  stdout) e por `tsc` strict, não por suíte.
+- **O interpretador está fixo no código** (`src/main/ambiente.ts`): tenta o env
+  `easycontig-demo` do miniforge e cai para `/usr/bin/python3`. Vira configuração
+  quando a tela de Configurações existir.
+- A pré-visualização de `.ab1` como cromatograma (processo Python auxiliar) não
+  foi começada — e, pela ADR 0003, é o **coração** da IDE, não um acréscimo.
+- **O painel da Bancada está pausado** a pedido do autor, atrás da constante
+  `BANCADA_PAUSADA` em `src/renderer/src/main.ts`. Virar para `false` devolve a
+  navegação pelas 12 tarefas.
+- **Autocomplete (P1.4) não começou.** A decisão pendente é *construir ou herdar* —
+  o autor já tem o problema resolvido com Twinny + API da DeepSeek no VS Code.
 
 ## Protótipo visual da IDE própria (preto fosco)
 
@@ -143,6 +194,7 @@ Histórico de design em `design/`:
 
 ### O esqueleto de extensão continua no repo
 
-O `package.json` de extensão e `src/extension.ts` são de antes da mudança de rumo.
-O que sobrevive sem alteração para a IDE própria é o que importa: o catálogo
-gerado e as duas ferramentas de verificação, que não dependem da casca.
+Em `legado-extensao/`: o `package.json` de extensão e o `extension.ts` de antes da
+mudança de rumo. Não compilam mais e não fazem parte do build — ficam como
+registro. O que sobreviveu sem alteração é o que importa: o catálogo gerado e as
+duas ferramentas de verificação, que nunca dependeram da casca.
