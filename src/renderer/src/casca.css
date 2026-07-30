@@ -197,6 +197,23 @@ button:disabled{opacity:.35; cursor:default}
 .xterm .xterm-viewport::-webkit-scrollbar-thumb{background:#f0f0f026; border-radius:5px}
 .xterm .xterm-viewport::-webkit-scrollbar-track{background:transparent}
 
+/* ===================== comentários marcados =====================
+   O gesto é o do Better Comments; as cores, não. Cada uma já existe no realce
+   do Cursor Dark, para nenhuma cor nova competir com as quatro bases do
+   cromatograma (ADR 0005). Ver src/renderer/src/comentarios.ts.
+
+   O seletor precisa alcançar os filhos: o CodeMirror aninha o span do realce
+   de sintaxe DENTRO do span da marca, e a cor declarada no filho vence a do
+   pai por herança, `!important` ou não. (Foi o que enganou na primeira versão:
+   só o `line-through` aparecia, porque decoração de texto atravessa os
+   descendentes e cor não.) */
+.cm-com-alerta,   .cm-com-alerta *   {color:var(--T)    !important; font-style:normal} /* !    */
+.cm-com-duvida,   .cm-com-duvida *   {color:var(--kw)   !important; font-style:normal} /* ?    */
+.cm-com-destaque, .cm-com-destaque * {color:var(--str)  !important; font-style:normal} /* *    */
+.cm-com-todo,     .cm-com-todo *     {color:var(--num)  !important; font-style:normal} /* TODO */
+.cm-com-riscado,  .cm-com-riscado *  {color:var(--fg36) !important}                    /* //   */
+.cm-com-riscado{text-decoration:line-through}
+
 /* ===================== CodeMirror ===================== */
 .cm-editor{height:100%; font-family:var(--mono); font-size:12.8px}
 .cm-editor.cm-focused{outline:none}

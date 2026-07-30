@@ -10,6 +10,7 @@ import {
   keymap,
   lineNumbers,
 } from "@codemirror/view";
+import { comentariosMarcados } from "./comentarios.js";
 import { realceCursor, temaCursor } from "./tema.js";
 
 /** Compartimento para trocar de linguagem sem recriar o editor. */
@@ -60,6 +61,8 @@ export class Editor {
         linguagem.of(python()),
         temaCursor,
         realceCursor,
+        // Depois do realce: a marca de comentário sobrepõe a cor de comentário.
+        comentariosMarcados,
         keymap.of([
           {
             key: "Mod-s",
