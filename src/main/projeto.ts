@@ -53,3 +53,65 @@ export async function lerArquivo(arquivo: string): Promise<string> {
 export async function gravarArquivo(arquivo: string, conteudo: string): Promise<void> {
   await fs.writeFile(arquivo, conteudo, "utf8");
 }
+
+/* ------------------------------ criar, renomear, excluir ------------------ */
+
+/**
+ * Recusa nomes que escapariam da pasta ou quebrariam a árvore.
+ *
+ * O nome vem de um campo de texto na interface, então tratar como caminho seria
+ * deixar `../../algo` gravar fora do projeto. Aqui só se aceita um componente
+ * simples de nome.
+ */
+function validarNome(nome: string): string {
+  const limpo = nome.trim();
+  if (!limpo) throw new Error("O nome não pode ser vazio.");
+  if (limpo === "." || limpo === "..") throw new Error(`"${limpo}" não é um nome.`);
+  if (limpo.includes("/") || limpo.includes("\\")) {
+    throw new Error("O nome não pode conter barra — crie a pasta primeiro.");
+  }
+  if (limpo.includes("\0")) throw new Error("Nome inválido.");
+  return limpo;
+}
+
+/** Impede que uma operação saia da raiz do projeto aberto. */
+function dentroDe(raiz: string, alvo: string): void {
+  const rel = path.relative(raiz, alvo);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error("Fora da pasta do projeto.");
+  }
+}
+
+/** Cria o arquivo vazio e devolve o caminho. Falha se já existir. */
+export async function criarArquivo(raiz: string, dir: string, nome: string): Promise<string> {
+  const alvo = path.join(dir, validarNome(nome));
+  dentroDe(raiz, alvo);
+  // 'wx' falha se existir — melhor do que checar antes e apagar o arquivo de
+  // alguém que apareceu no meio.
+  const fh = await fs.open(alvo, "wx");
+  await fh.close();
+  return alvo;
+}
+
+export async function criarPasta(raiz: string, dir: string, nome: string): Promise<string> {
+  const alvo = path.join(dir, validarNome(nome));
+  dentroDe(raiz, alvo);
+  await fs.mkdir(alvo);
+  return alvo;
+}
+
+export async function renomear(raiz: string, antigo: string, nome: string): Promise<string> {
+  const alvo = path.join(path.dirname(antigo), validarNome(nome));
+  dentroDe(raiz, antigo);
+  dentroDe(raiz, alvo);
+  if (alvo === antigo) return antigo;
+  // `rename` sobrescreveria o destino em silêncio.
+  try {
+    await fs.access(alvo);
+    throw new Error(`Já existe "${path.basename(alvo)}" nessa pasta.`);
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("Já existe")) throw err;
+  }
+  await fs.rename(antigo, alvo);
+  return alvo;
+}

@@ -46,7 +46,10 @@ const abas: Aba[] = [];
 let ativa: number = -1;
 /** Pastas expandidas na árvore, por caminho absoluto. */
 const expandidas = new Map<string, NoArquivo[]>();
-let painelAcao: (() => void) | null = null;
+/** Pasta que recebe um "novo arquivo": a do arquivo aberto, ou a raiz. */
+let pastaAlvo: string | null = null;
+/** Edição de nome em curso na árvore, ou `null`. */
+let renomeando: { modo: "arquivo" | "pasta" | "renomear"; dir: string; alvo?: string } | null = null;
 
 /* ============================ terminal ============================ */
 
@@ -85,20 +88,31 @@ const editor = new Editor({
 
 /* ============================ lateral ============================ */
 
+/** Ícones do cabeçalho do Explorer, no traço do resto da casca. */
+const ACOES_EXPLORER = `
+  <button data-acao="novo-arquivo" title="Novo arquivo">
+    <svg viewBox="0 0 24 24"><path d="M13 3H6v18h12V8z"/><path d="M13 3v5h5"/>
+      <path d="M12 12v6M9 15h6"/></svg></button>
+  <button data-acao="nova-pasta" title="Nova pasta">
+    <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/><path d="M12 11v6M9 14h6"/></svg></button>
+  <button data-acao="atualizar" title="Atualizar">
+    <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-2.3-5.7"/><path d="M20 4v4h-4"/></svg></button>
+  <button data-acao="abrir-pasta" title="Abrir outra pasta">
+    <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg></button>`;
+
 function definirLateral(painel: string): void {
   $("sideT").textContent =
     { explorer: "Explorer", extensions: "Extensions", bancada: "Bancada", config: "Configurações" }[
       painel
     ] ?? painel;
 
-  const acao = $("sideAcao");
+  const acoes = $("sideAcoes");
   const corpo = $("lateral");
-  painelAcao = null;
-  acao.textContent = "";
+  acoes.innerHTML = "";
 
   if (painel === "explorer") {
-    acao.textContent = "···";
-    painelAcao = () => void escolherProjeto();
+    // Os ícones do cabeçalho são responsabilidade de desenharArvore(), que é
+    // quem sabe se há pasta aberta — e é chamada de novo quando ela abre.
     desenharArvore();
   } else if (painel === "extensions") {
     // Sem casca do VSCodium não há marketplace (ADR 0003). O ícone ficou porque
@@ -147,6 +161,9 @@ function desenharCatalogo(): void {
 
 function desenharArvore(): void {
   const corpo = $("lateral");
+  // Sem pasta aberta não há o que criar nem atualizar: o cabeçalho fica vazio.
+  $("sideAcoes").innerHTML = projeto ? ACOES_EXPLORER : "";
+
   if (!projeto) {
     corpo.innerHTML = `<div class="aviso"><b>Nenhuma pasta aberta</b>
       Abra a pasta da corrida para ver os arquivos e rodar os scripts nela.
@@ -159,45 +176,289 @@ function desenharArvore(): void {
     `<div class="sect"><span class="ch">&#9662;</span>${esc(projeto.nome)}</div>`,
   ];
 
+  /** A linha com o campo de texto, quando há nome sendo digitado nesta pasta. */
+  const campo = (dir: string, recuo: number): void => {
+    if (!renomeando || renomeando.modo === "renomear" || renomeando.dir !== dir) return;
+    const ic = renomeando.modo === "pasta" ? "&#128193;" : "&#9679;";
+    linhas.push(
+      `<div class="row" style="padding-left:${recuo}px">
+         <span class="ic">${ic}</span><input id="campoNome" spellcheck="false"></div>`,
+    );
+  };
+
   const nivel = (nos: NoArquivo[], prof: number): void => {
     for (const no of nos) {
       const recuo = 8 + prof * 14;
+      const editando = renomeando?.modo === "renomear" && renomeando.alvo === no.caminho;
+
       if (no.tipo === "pasta") {
         const aberta = expandidas.has(no.caminho);
         linhas.push(
-          `<button class="row" data-pasta="${esc(no.caminho)}" style="padding-left:${recuo}px">
-             <span class="ch">${aberta ? "&#9662;" : "&#9656;"}</span>
-             <span class="ic">&#128193;</span><span class="nome">${esc(no.nome)}</span></button>`,
+          editando
+            ? `<div class="row" style="padding-left:${recuo}px"><span class="ch"></span>
+                 <span class="ic">&#128193;</span><input id="campoNome" spellcheck="false"></div>`
+            : `<button class="row" data-pasta="${esc(no.caminho)}" data-no="${esc(no.caminho)}"
+                       style="padding-left:${recuo}px">
+                 <span class="ch">${aberta ? "&#9662;" : "&#9656;"}</span>
+                 <span class="ic">&#128193;</span><span class="nome">${esc(no.nome)}</span></button>`,
         );
-        if (aberta) nivel(expandidas.get(no.caminho)!, prof + 1);
+        if (aberta) {
+          campo(no.caminho, recuo + 30);
+          nivel(expandidas.get(no.caminho)!, prof + 1);
+        }
       } else {
         const aberto = abas[ativa]?.caminho === no.caminho;
         // O .ab1 aparece na árvore mas não abre: ainda não há cromatograma.
         const suportado = /\.(py|txt|md|fasta|fa|fastq|csv|tsv|json|xml|cfg|toml|ya?ml)$/i.test(no.nome);
         linhas.push(
-          `<button class="row${aberto ? " on" : ""}${suportado ? "" : " opaco"}"
-                   data-arquivo="${esc(no.caminho)}" style="padding-left:${recuo + 16}px"
-                   ${suportado ? "" : 'title="Sem visualizador nesta versão"'}>
-             <span class="ic">&#9679;</span><span class="nome">${esc(no.nome)}</span></button>`,
+          editando
+            ? `<div class="row" style="padding-left:${recuo + 16}px">
+                 <span class="ic">&#9679;</span><input id="campoNome" spellcheck="false"></div>`
+            : `<button class="row${aberto ? " on" : ""}${suportado ? "" : " opaco"}"
+                       data-arquivo="${esc(no.caminho)}" data-no="${esc(no.caminho)}"
+                       style="padding-left:${recuo + 16}px"
+                       ${suportado ? "" : 'title="Sem visualizador nesta versão"'}>
+                 <span class="ic">&#9679;</span><span class="nome">${esc(no.nome)}</span></button>`,
         );
       }
     }
   };
 
+  campo(projeto.raiz, 8 + 14);
   nivel(projeto.filhos, 1);
   corpo.innerHTML = linhas.join("");
+
+  const entrada = document.getElementById("campoNome") as HTMLInputElement | null;
+  if (entrada) prepararCampo(entrada);
 }
+
+/* -------------------- criar, renomear, excluir na árvore ------------------ */
+
+/** Liga o campo de nome: Enter confirma, Esc cancela, sair do campo cancela. */
+function prepararCampo(entrada: HTMLInputElement): void {
+  const atual = renomeando;
+  if (!atual) return;
+
+  if (atual.modo === "renomear" && atual.alvo) {
+    const nome = atual.alvo.split("/").pop() ?? "";
+    entrada.value = nome;
+    // Seleciona só o miolo: renomear costuma ser mexer no nome, não na extensão.
+    const ponto = nome.lastIndexOf(".");
+    entrada.setSelectionRange(0, ponto > 0 ? ponto : nome.length);
+  } else if (atual.modo === "arquivo") {
+    // Pré-preenchido com a extensão que este ambiente existe para escrever.
+    entrada.value = ".py";
+    entrada.setSelectionRange(0, 0);
+  }
+  entrada.focus();
+
+  let encerrado = false;
+  const encerrar = (): void => {
+    encerrado = true;
+    renomeando = null;
+    desenharArvore();
+  };
+
+  entrada.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      const nome = entrada.value;
+      encerrado = true;
+      void confirmarNome(atual, nome);
+    } else if (ev.key === "Escape") {
+      ev.preventDefault();
+      encerrar();
+    }
+  });
+  entrada.addEventListener("blur", () => {
+    if (!encerrado) encerrar();
+  });
+}
+
+async function confirmarNome(
+  op: NonNullable<typeof renomeando>,
+  nome: string,
+): Promise<void> {
+  renomeando = null;
+  const raiz = projeto?.raiz;
+  if (!raiz || !nome.trim()) {
+    desenharArvore();
+    return;
+  }
+
+  let r;
+  if (op.modo === "arquivo") r = await api.criarArquivo(raiz, op.dir, nome);
+  else if (op.modo === "pasta") r = await api.criarPasta(raiz, op.dir, nome);
+  else r = await api.renomear(raiz, op.alvo!, nome);
+
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    await atualizarArvore();
+    return;
+  }
+
+  // Renomear move o arquivo: a aba aberta tem de acompanhar, senão o próximo
+  // Ctrl+S gravaria num caminho que não existe mais e recriaria o arquivo antigo.
+  if (op.modo === "renomear") {
+    const antigo = op.alvo!;
+    for (const aba of abas) {
+      if (aba.caminho === antigo) {
+        aba.caminho = r.valor;
+        aba.nome = r.valor.split("/").pop() ?? r.valor;
+      } else if (aba.caminho.startsWith(`${antigo}/`)) {
+        aba.caminho = r.valor + aba.caminho.slice(antigo.length);
+      }
+    }
+    if (expandidas.has(antigo)) expandidas.delete(antigo);
+    desenharAbas();
+  }
+
+  await atualizarArvore();
+  if (op.modo === "arquivo") await abrirArquivo(r.valor);
+}
+
+async function excluir(alvo: string): Promise<void> {
+  const r = await api.excluir(alvo);
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  if (!r.valor) return; // cancelado na confirmação
+
+  // Fecha as abas do que sumiu, sem perguntar de novo: o arquivo já foi para a
+  // lixeira, insistir em "há alterações não gravadas" não salvaria nada.
+  for (let i = abas.length - 1; i >= 0; i--) {
+    const c = abas[i]!.caminho;
+    if (c === alvo || c.startsWith(`${alvo}/`)) {
+      abas.splice(i, 1);
+      if (ativa >= i) ativa--;
+    }
+  }
+  if (abas.length === 0) {
+    ativa = -1;
+    editor.abrir("");
+  } else {
+    if (ativa < 0) ativa = 0;
+    editor.abrir(abas[ativa]!.conteudo, abas[ativa]!.gravado);
+  }
+  expandidas.delete(alvo);
+  desenharAbas();
+  await atualizarArvore();
+  terminal.nota(`movido para a lixeira: ${alvo}`);
+}
+
+/** Recarrega a raiz e todas as pastas expandidas, preservando o que está aberto. */
+async function atualizarArvore(): Promise<void> {
+  if (!projeto) return;
+  const raiz = await api.abrirProjeto(projeto.raiz);
+  if (!raiz.ok) {
+    terminal.erro(`${raiz.erro}\r\n`);
+    return;
+  }
+  projeto = raiz.valor;
+
+  for (const dir of [...expandidas.keys()]) {
+    const filhos = await api.listar(dir);
+    // Pasta que sumiu do disco simplesmente deixa de estar expandida.
+    if (filhos.ok) expandidas.set(dir, filhos.valor);
+    else expandidas.delete(dir);
+  }
+  desenharArvore();
+}
+
+/** Onde um "novo arquivo" deve nascer: a pasta em foco, ou a raiz. */
+function dirCorrente(): string {
+  if (pastaAlvo && expandidas.has(pastaAlvo)) return pastaAlvo;
+  const aberto = abas[ativa]?.caminho;
+  if (aberto) {
+    const dir = aberto.slice(0, aberto.lastIndexOf("/"));
+    if (dir === projeto?.raiz || expandidas.has(dir)) return dir;
+  }
+  return projeto?.raiz ?? "";
+}
+
+function comecarNovo(modo: "arquivo" | "pasta", dir = dirCorrente()): void {
+  if (!projeto) return;
+  renomeando = { modo, dir };
+  desenharArvore();
+}
+
+function comecarRenomear(alvo: string): void {
+  if (!projeto) return;
+  renomeando = { modo: "renomear", dir: alvo.slice(0, alvo.lastIndexOf("/")), alvo };
+  desenharArvore();
+}
+
+/* ------------------------------ menu de contexto -------------------------- */
+
+function fecharMenu(): void {
+  $("menu").classList.add("oculto");
+}
+
+function abrirMenu(x: number, y: number, alvo: string, pasta: boolean): void {
+  const menu = $("menu");
+  const dir = pasta ? alvo : alvo.slice(0, alvo.lastIndexOf("/"));
+  menu.innerHTML = `
+    <button data-m="novo-arquivo">Novo arquivo</button>
+    <button data-m="nova-pasta">Nova pasta</button>
+    <hr>
+    <button data-m="renomear">Renomear<span class="atalho">F2</span></button>
+    <button data-m="excluir">Excluir<span class="atalho">Del</span></button>`;
+  menu.dataset["alvo"] = alvo;
+  menu.dataset["dir"] = dir;
+  menu.classList.remove("oculto");
+
+  // Posiciona só depois de visível, senão a medida sai zerada e o menu
+  // vazaria para fora da janela perto da borda.
+  const r = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
+  menu.style.top = `${Math.min(y, window.innerHeight - r.height - 8)}px`;
+}
+
+$("menu").addEventListener("click", (ev) => {
+  const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-m]");
+  if (!b) return;
+  const menu = $("menu");
+  const alvo = menu.dataset["alvo"]!;
+  const dir = menu.dataset["dir"]!;
+  fecharMenu();
+
+  switch (b.dataset["m"]) {
+    case "novo-arquivo":
+      if (dir !== projeto?.raiz && !expandidas.has(dir)) void alternarPasta(dir);
+      comecarNovo("arquivo", dir);
+      break;
+    case "nova-pasta":
+      comecarNovo("pasta", dir);
+      break;
+    case "renomear":
+      comecarRenomear(alvo);
+      break;
+    case "excluir":
+      void excluir(alvo);
+      break;
+  }
+});
+
+window.addEventListener("click", (ev) => {
+  if (!(ev.target as HTMLElement).closest("#menu")) fecharMenu();
+});
+window.addEventListener("blur", fecharMenu);
 
 async function escolherProjeto(): Promise<void> {
   const p = ou(await api.escolherProjeto(), null);
   if (!p) return;
   projeto = p;
   expandidas.clear();
+  pastaAlvo = null;
   desenharArvore();
   terminal.nota(`pasta aberta: ${p.raiz}`);
 }
 
 async function alternarPasta(caminho: string): Promise<void> {
+  pastaAlvo = expandidas.has(caminho) ? null : caminho;
   if (expandidas.has(caminho)) {
     expandidas.delete(caminho);
   } else {
@@ -371,14 +632,47 @@ $("act").addEventListener("click", (ev) => {
   definirLateral(b.dataset["p"]!);
 });
 
-$("sideAcao").addEventListener("click", () => painelAcao?.());
+$("sideAcoes").addEventListener("click", (ev) => {
+  const b = (ev.target as HTMLElement).closest<HTMLElement>("[data-acao]");
+  if (!b) return;
+  switch (b.dataset["acao"]) {
+    case "novo-arquivo":
+      comecarNovo("arquivo");
+      break;
+    case "nova-pasta":
+      comecarNovo("pasta");
+      break;
+    case "atualizar":
+      void atualizarArvore();
+      break;
+    case "abrir-pasta":
+      void escolherProjeto();
+      break;
+  }
+});
 
 $("lateral").addEventListener("click", (ev) => {
   const alvo = ev.target as HTMLElement;
   const pasta = alvo.closest<HTMLElement>("[data-pasta]");
   if (pasta) return void alternarPasta(pasta.dataset["pasta"]!);
   const arq = alvo.closest<HTMLElement>("[data-arquivo]");
-  if (arq) return void abrirArquivo(arq.dataset["arquivo"]!);
+  if (arq) {
+    pastaAlvo = null;
+    return void abrirArquivo(arq.dataset["arquivo"]!);
+  }
+});
+
+$("lateral").addEventListener("contextmenu", (ev) => {
+  const no = (ev.target as HTMLElement).closest<HTMLElement>("[data-no]");
+  if (!projeto) return;
+  ev.preventDefault();
+  if (no) {
+    const caminho = no.dataset["no"]!;
+    abrirMenu(ev.clientX, ev.clientY, caminho, no.hasAttribute("data-pasta"));
+  } else {
+    // Clique no vazio da lateral: o alvo é a raiz do projeto.
+    abrirMenu(ev.clientX, ev.clientY, projeto.raiz, true);
+  }
 });
 
 $("abas").addEventListener("click", (ev) => {
@@ -398,11 +692,39 @@ $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
 $("btPainel").addEventListener("click", () => alternarPainel());
 
-// Ctrl+` — o mesmo atalho do VSCodium, porque é o que a mão do usuário já sabe.
+// Atalhos globais, nos mesmos gestos do VSCodium — é o que a mão já sabe.
 window.addEventListener("keydown", (ev) => {
-  if ((ev.ctrlKey || ev.metaKey) && ev.key === "`") {
+  const mod = ev.ctrlKey || ev.metaKey;
+
+  if (mod && ev.key === "`") {
     ev.preventDefault();
     alternarPainel();
+    return;
+  }
+  if (mod && ev.key.toLowerCase() === "n") {
+    ev.preventDefault();
+    comecarNovo("arquivo");
+    return;
+  }
+  if (mod && ev.key.toLowerCase() === "w" && ativa >= 0) {
+    ev.preventDefault();
+    fecharAba(ativa);
+    return;
+  }
+  if (ev.key === "Escape") fecharMenu();
+
+  // F2 e Delete valem sobre a linha da árvore que está com o foco. Dentro do
+  // editor, Delete apaga texto — roubar isso apagaria arquivo por engano.
+  const linha = document.activeElement?.closest<HTMLElement>("#lateral [data-no]");
+  const selecionado = linha?.dataset["no"];
+  if (!selecionado) return;
+
+  if (ev.key === "F2") {
+    ev.preventDefault();
+    comecarRenomear(selecionado);
+  } else if (ev.key === "Delete") {
+    ev.preventDefault();
+    void excluir(selecionado);
   }
 });
 

@@ -39,7 +39,10 @@
     </nav>
 
     <aside class="side">
-      <div class="hd"><span id="sideT">Explorer</span><span class="dots" id="sideAcao"></span></div>
+      <div class="hd">
+        <span id="sideT">Explorer</span>
+        <span class="acoes" id="sideAcoes"></span>
+      </div>
       <div class="body" id="lateral"></div>
     </aside>
 
@@ -82,6 +85,9 @@
   </div>
 
 </div>
+
+<!-- Menu de contexto da árvore. Fora da .ide para não ser recortado por ela. -->
+<div class="menu oculto" id="menu"></div>
 
 <script type="module" src="./src/main.ts"></script>
 </body>

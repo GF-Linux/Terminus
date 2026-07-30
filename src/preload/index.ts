@@ -33,6 +33,16 @@ const api = {
   gravar: (arquivo: string, conteudo: string): Promise<Resultado<void>> =>
     ipcRenderer.invoke("arquivo:gravar", arquivo, conteudo),
 
+  criarArquivo: (raiz: string, dir: string, nome: string): Promise<Resultado<string>> =>
+    ipcRenderer.invoke("arquivo:criar", raiz, dir, nome),
+  criarPasta: (raiz: string, dir: string, nome: string): Promise<Resultado<string>> =>
+    ipcRenderer.invoke("pasta:criar", raiz, dir, nome),
+  renomear: (raiz: string, antigo: string, nome: string): Promise<Resultado<string>> =>
+    ipcRenderer.invoke("caminho:renomear", raiz, antigo, nome),
+  /** `false` quando o usuário cancelou a confirmação. */
+  excluir: (alvo: string): Promise<Resultado<boolean>> =>
+    ipcRenderer.invoke("caminho:excluir", alvo),
+
   rodar: (arquivo: string): void => ipcRenderer.send("exec:rodar", arquivo),
   parar: (): void => ipcRenderer.send("exec:parar"),
   rodando: (): Promise<boolean> => ipcRenderer.invoke("exec:rodando"),
