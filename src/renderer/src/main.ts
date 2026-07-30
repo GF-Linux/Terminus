@@ -1,5 +1,6 @@
 import type { Catalogo, NoArquivo, ProjetoAberto, Resultado } from "../../shared/tipos.js";
 import { Editor } from "./editor.js";
+import { Paleta, type ItemPaleta } from "./paleta.js";
 import { TerminalSaida } from "./terminal.js";
 
 /* -------------------------------------------------------------------------
@@ -53,7 +54,17 @@ let renomeando: { modo: "arquivo" | "pasta" | "renomear"; dir: string; alvo?: st
 
 /* ============================ terminal ============================ */
 
-const terminal = new TerminalSaida($("term"));
+const terminal = new TerminalSaida($("term"), ({ arquivo, linha }) => {
+  void irParaQuadro(arquivo, linha);
+});
+
+/** Abre o arquivo de um quadro de traceback e para o cursor na linha. */
+async function irParaQuadro(arquivo: string, linha: number): Promise<void> {
+  await abrirArquivo(arquivo);
+  // Só salta se o arquivo realmente virou a aba ativa — se a leitura falhou,
+  // saltar levaria o cursor para a linha errada de outro arquivo.
+  if (abas[ativa]?.caminho === arquivo) editor.irParaLinha(linha);
+}
 
 function definirPainel(aberto: boolean): void {
   $("painel").classList.toggle("oculto", !aberto);
@@ -391,6 +402,30 @@ function comecarRenomear(alvo: string): void {
   desenharArvore();
 }
 
+/* ------------------------------ abertura rápida --------------------------- */
+
+const paleta = new Paleta((item: ItemPaleta) => void abrirArquivo(item.abs));
+
+async function abrirPaleta(): Promise<void> {
+  const raiz = projeto?.raiz;
+  if (!raiz) {
+    terminal.nota("Abra uma pasta antes — não há onde procurar.");
+    abrirPainel();
+    return;
+  }
+
+  // A lista é montada a cada abertura, não cacheada: um arquivo criado fora da
+  // Bancada tem de aparecer sem exigir "atualizar". Numa pasta de corrida a
+  // varredura é instantânea.
+  const r = await api.arquivosDoProjeto(raiz);
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  paleta.abrir(r.valor.map((rel) => ({ rel, abs: `${raiz}/${rel}` })));
+}
+
 /* ------------------------------ menu de contexto -------------------------- */
 
 function fecharMenu(): void {
@@ -696,9 +731,24 @@ $("btPainel").addEventListener("click", () => alternarPainel());
 window.addEventListener("keydown", (ev) => {
   const mod = ev.ctrlKey || ev.metaKey;
 
+  // Com a paleta aberta ela é quem manda: o teclado inteiro pertence à busca,
+  // e um Ctrl+N daqui criaria arquivo por trás dela.
+  if (paleta.aberta) {
+    if (mod && ev.key.toLowerCase() === "p") {
+      ev.preventDefault();
+      paleta.fechar();
+    }
+    return;
+  }
+
   if (mod && ev.key === "`") {
     ev.preventDefault();
     alternarPainel();
+    return;
+  }
+  if (mod && ev.key.toLowerCase() === "p") {
+    ev.preventDefault();
+    void abrirPaleta();
     return;
   }
   if (mod && ev.key.toLowerCase() === "n") {

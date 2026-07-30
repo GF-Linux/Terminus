@@ -14,11 +14,28 @@ import "@xterm/xterm/css/xterm.css";
  * script, e programas que checam `isatty` não colorem a saída. Está registrado em
  * src/main/execucao.ts.
  */
+/**
+ * A linha de quadro de um traceback do Python:
+ *
+ *     File "/home/deck/corridas/18S/medir_gc.py", line 12, in <module>
+ *
+ * O caminho é capturado inteiro entre aspas, então nome com espaço funciona. O
+ * `python -u` que a Bancada usa recebe caminho absoluto, então o que vem aqui
+ * também é absoluto — inclusive para quadros dentro de bibliotecas, que abrem
+ * em modo leitura como em qualquer IDE.
+ */
+const QUADRO = /File "([^"]+)", line (\d+)/g;
+
+export interface DestinoTraceback {
+  arquivo: string;
+  linha: number;
+}
+
 export class TerminalSaida {
   private readonly term: Terminal;
   private readonly fit = new FitAddon();
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, aoAbrirQuadro?: (d: DestinoTraceback) => void) {
     this.term = new Terminal({
       fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 12,
@@ -52,8 +69,44 @@ export class TerminalSaida {
     this.term.open(host);
     this.ajustar();
 
+    if (aoAbrirQuadro) this.ligarTraceback(aoAbrirQuadro);
+
     const ro = new ResizeObserver(() => this.ajustar());
     ro.observe(host);
+  }
+
+  /**
+   * Torna cada quadro do traceback clicável.
+   *
+   * Usa o `registerLinkProvider` do próprio xterm — que já cuida do sublinhado
+   * ao passar o mouse, do cursor e da faixa exata de células — em vez de
+   * varrer o DOM procurando texto, que quebraria assim que a saída rolasse.
+   */
+  private ligarTraceback(abrir: (d: DestinoTraceback) => void): void {
+    this.term.registerLinkProvider({
+      provideLinks: (y, retorno) => {
+        const linha = this.term.buffer.active.getLine(y - 1);
+        if (!linha) return retorno(undefined);
+
+        const texto = linha.translateToString(true);
+        const achados = [];
+        QUADRO.lastIndex = 0;
+
+        for (const m of texto.matchAll(QUADRO)) {
+          const inicio = m.index;
+          achados.push({
+            // O xterm conta células a partir de 1 e inclui o fim.
+            range: {
+              start: { x: inicio + 1, y },
+              end: { x: inicio + m[0].length, y },
+            },
+            text: m[0],
+            activate: () => abrir({ arquivo: m[1]!, linha: Number(m[2]) }),
+          });
+        }
+        retorno(achados.length > 0 ? achados : undefined);
+      },
+    });
   }
 
   private ajustar(): void {

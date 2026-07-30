@@ -123,6 +123,23 @@ export class Editor {
     this.op.aoMudar(false);
   }
 
+  /**
+   * Leva o cursor até uma linha (1-based) e centraliza a tela nela.
+   *
+   * Usada pelo clique no traceback. Uma linha além do fim do documento não é
+   * erro: o arquivo pode ter encolhido desde a execução que gerou o traceback,
+   * e nesse caso vai-se ao fim em vez de estourar.
+   */
+  irParaLinha(numero: number): void {
+    const doc = this.view.state.doc;
+    const linha = doc.line(Math.min(Math.max(1, numero), doc.lines));
+    this.view.dispatch({
+      selection: { anchor: linha.from },
+      effects: EditorView.scrollIntoView(linha.from, { y: "center" }),
+    });
+    this.view.focus();
+  }
+
   /** Insere um trecho do catálogo na posição do cursor. */
   inserir(trecho: string): void {
     const sel = this.view.state.selection.main;

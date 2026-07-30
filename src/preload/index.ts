@@ -28,6 +28,9 @@ const api = {
   projetoInicial: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:inicial"),
   listar: (dir: string): Promise<Resultado<NoArquivo[]>> => ipcRenderer.invoke("projeto:listar", dir),
+  /** Todos os arquivos do projeto, em caminho relativo — alimenta o Ctrl+P. */
+  arquivosDoProjeto: (raiz: string): Promise<Resultado<string[]>> =>
+    ipcRenderer.invoke("projeto:arquivos", raiz),
 
   ler: (arquivo: string): Promise<Resultado<string>> => ipcRenderer.invoke("arquivo:ler", arquivo),
   gravar: (arquivo: string, conteudo: string): Promise<Resultado<void>> =>
