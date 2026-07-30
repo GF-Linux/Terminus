@@ -1,4 +1,5 @@
 import type { Catalogo, NoArquivo, ProjetoAberto, Resultado } from "../../shared/tipos.js";
+import { definirCatalogo } from "./completar.js";
 import { Editor } from "./editor.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
 import { TerminalSaida } from "./terminal.js";
@@ -95,7 +96,20 @@ const editor = new Editor({
   },
   aoSalvar: () => void salvar(),
   aoRodar: () => void rodar(),
+  aoImportar: (linhas) => avisar(`import acrescentado: ${linhas.join(" · ")}`),
 });
+
+/** Aviso passageiro na barra de estado, para edições que acontecem fora da
+ *  vista — hoje só o import automático. */
+let avisoPendente: number | undefined;
+function avisar(texto: string): void {
+  const alvo = $("estadoExec");
+  alvo.textContent = texto;
+  window.clearTimeout(avisoPendente);
+  avisoPendente = window.setTimeout(() => {
+    alvo.textContent = rodando ? "rodando…" : "pronto";
+  }, 5000);
+}
 
 /* ============================ lateral ============================ */
 
@@ -799,6 +813,9 @@ async function iniciar(): Promise<void> {
   const c = await api.catalogo();
   if (c.ok) {
     catalogo = c.valor;
+    // O catálogo chega depois do editor existir; a fonte de autocomplete lê
+    // deste ponto, então basta avisá-la.
+    definirCatalogo(c.valor);
   } else {
     terminal.erro(`${c.erro}\r\n`);
     abrirPainel();
