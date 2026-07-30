@@ -17,6 +17,7 @@
     "fontes": "python3 tools/extract_fonts.py"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.7.1",
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/language": "^6.10.8",

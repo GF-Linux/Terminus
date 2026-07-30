@@ -1,3 +1,10 @@
+import {
+  acceptCompletion,
+  autocompletion,
+  closeCompletion,
+  moveCompletionSelection,
+  startCompletion,
+} from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { python } from "@codemirror/lang-python";
 import { bracketMatching, foldGutter, indentUnit } from "@codemirror/language";
@@ -11,6 +18,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { comentariosMarcados } from "./comentarios.js";
+import { fonteDoCatalogo } from "./completar.js";
 import { realceCursor, temaCursor } from "./tema.js";
 
 /** Compartimento para trocar de linguagem sem recriar o editor. */
@@ -27,6 +35,8 @@ export interface OpcoesEditor {
   aoMoverCursor: (p: Posicao) => void;
   aoSalvar: () => void;
   aoRodar: () => void;
+  /** Avisa que o autocomplete acrescentou linhas de `import` no topo. */
+  aoImportar: (linhas: string[]) => void;
 }
 
 /**
@@ -63,6 +73,16 @@ export class Editor {
         realceCursor,
         // Depois do realce: a marca de comentário sobrepõe a cor de comentário.
         comentariosMarcados,
+        autocompletion({
+          override: [fonteDoCatalogo(this.op.aoImportar)],
+          activateOnTyping: true,
+          icons: false,
+          // Sem o keymap padrão: nele o Enter aceita a sugestão. O público
+          // deste ambiente não é quem digita rápido, e um Enter para quebrar
+          // linha não pode trocar o que a pessoa acabou de escrever. Aqui
+          // Enter é sempre Enter; quem aceita é o Tab.
+          defaultKeymap: false,
+        }),
         keymap.of([
           {
             key: "Mod-s",
@@ -80,6 +100,13 @@ export class Editor {
               return true;
             },
           },
+          // Antes do indentWithTab: `acceptCompletion` devolve false quando não
+          // há sugestão aberta, então o Tab volta a indentar sozinho.
+          { key: "Tab", run: acceptCompletion },
+          { key: "ArrowDown", run: moveCompletionSelection(true) },
+          { key: "ArrowUp", run: moveCompletionSelection(false) },
+          { key: "Escape", run: closeCompletion },
+          { key: "Mod-Space", run: startCompletion },
           ...defaultKeymap,
           ...historyKeymap,
           ...searchKeymap,

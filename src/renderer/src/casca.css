@@ -214,6 +214,39 @@ button:disabled{opacity:.35; cursor:default}
 .cm-com-riscado,  .cm-com-riscado *  {color:var(--fg36) !important}                    /* //   */
 .cm-com-riscado{text-decoration:line-through}
 
+/* ===================== autocomplete do catálogo ===================== */
+/* Sem `overflow:hidden` aqui: o CodeMirror renderiza o painel de detalhe como
+   FILHO desta caixa, posicionado ao lado. Recortar o excedente some com ele —
+   e some de um jeito traiçoeiro, porque `getBoundingClientRect` continua
+   relatando a geometria certa. O arredondamento fica no `ul`. */
+.cm-tooltip.cm-tooltip-autocomplete{background:var(--chrome); border:1px solid var(--line);
+  border-radius:6px; box-shadow:0 14px 36px -14px #000}
+.cm-tooltip-autocomplete > ul{max-height:18em; font-family:var(--mono); font-size:12.5px;
+  border-radius:5px}
+.cm-tooltip-autocomplete > ul > li{padding:3px 10px; display:flex; align-items:baseline; gap:10px;
+  color:var(--fg74)}
+.cm-tooltip-autocomplete > ul > li[aria-selected]{background:var(--sel); color:var(--fg)}
+.cm-completionLabel{white-space:nowrap}
+.cm-completionMatchedText{text-decoration:underline; text-underline-offset:2px;
+  text-decoration-color:var(--fg36); color:var(--fg)}
+.cm-completionDetail{margin-left:auto; font-style:normal; font-size:11px; color:var(--fg36);
+  max-width:26em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+/* o painel de detalhe — é o que diferencia esta fonte de um language server */
+.cm-tooltip.cm-completionInfo{background:var(--chrome); border:1px solid var(--line);
+  border-radius:6px; padding:0; margin-left:6px; max-width:34em}
+.cm-info-bancada{padding:10px 12px; font-family:var(--sans); font-size:12.5px; line-height:1.6}
+.cm-info-bancada .cam{font-family:var(--mono); font-size:11px; color:var(--fg36); margin-bottom:6px}
+.cm-info-bancada .ass{font-family:var(--mono); font-size:11.5px; color:var(--fn);
+  white-space:pre-wrap; word-break:break-word; margin-bottom:8px}
+.cm-info-bancada .doc{color:var(--fg74); margin-bottom:8px}
+/* a nota de curadoria é o motivo desta fonte existir: destacada, não rodapé */
+.cm-info-bancada .nota{color:var(--fg); border-left:2px solid var(--fg36); padding-left:9px;
+  margin-bottom:8px}
+.cm-info-bancada .dep{color:var(--T); margin-bottom:8px}
+.cm-info-bancada .imp{font-family:var(--mono); font-size:11px; color:var(--kw);
+  white-space:pre-wrap; border-top:1px solid var(--line); padding-top:8px}
+
 /* ===================== CodeMirror ===================== */
 .cm-editor{height:100%; font-family:var(--mono); font-size:12.8px}
 .cm-editor.cm-focused{outline:none}
