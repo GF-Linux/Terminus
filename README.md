@@ -129,11 +129,11 @@ Plasma, janela XWayland pega o ícone do lançador, não da própria janela (a
 propriedade `_NET_WM_ICON` fica vazia).
 
 ```bash
-# 1. o lançador: um script que chama o Electron do repositório
+# 1. o lançador: chama o BINÁRIO do Electron, não o atalho em .bin/
 install -Dm755 /dev/stdin ~/.local/bin/bancada <<'EOF'
 #!/usr/bin/env bash
-cd ~/projetos/bancada || exit 1
-exec ./node_modules/.bin/electron . "$@"
+raiz="$HOME/projetos/bancada"
+exec "$raiz/node_modules/electron/dist/electron" "$raiz" "$@"
 EOF
 
 # 2. os ícones, em vários tamanhos
@@ -148,7 +148,15 @@ sed "s|^Exec=bancada|Exec=$HOME/.local/bin/bancada|" media/bancada.desktop \
 update-desktop-database ~/.local/share/applications
 ```
 
-**O caminho absoluto no `Exec` não é preciosismo.** A sessão do Plasma não tem
+**Duas armadilhas aqui, e as duas só aparecem lançando pelo menu.**
+
+A primeira: `node_modules/.bin/electron` é um **script Node**
+(`#!/usr/bin/env node`), e a sessão gráfica não tem `node` no `PATH` quando ele
+vem do nvm — que mora no perfil do shell. Pelo menu, o aplicativo abria e fechava
+na hora, sem mensagem nenhuma. Chamar `node_modules/electron/dist/electron`, que
+é binário de verdade, resolve.
+
+A segunda: **o caminho absoluto no `Exec` não é preciosismo.** A sessão do Plasma não tem
 `~/.local/bin` no `PATH` — quem coloca isso é o perfil do shell, que um lançador
 gráfico não lê. Com `Exec=bancada`, o menu responde *"could not find program
 'bancada'"*. Num pacote de verdade o binário vai para um diretório do `PATH` e
