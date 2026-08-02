@@ -73,6 +73,22 @@ export class TerminalSaida {
 
     const ro = new ResizeObserver(() => this.ajustar());
     ro.observe(host);
+
+    // O xterm pinta o próprio fundo, então trocar o tema da casca (ADR 0010)
+    // exige avisá-lo — senão o terminal fica com a cor do tema anterior.
+    window.addEventListener("bancada:tema", () => this.acompanharTema());
+  }
+
+  private acompanharTema(): void {
+    const css = getComputedStyle(document.documentElement);
+    const cor = (nome: string, reserva: string): string =>
+      css.getPropertyValue(nome).trim() || reserva;
+    this.term.options.theme = {
+      ...this.term.options.theme,
+      background: cor("--chrome", "#141414"),
+      foreground: cor("--fg74", "#f0f0f0bd"),
+      black: cor("--chrome", "#141414"),
+    };
   }
 
   /**
@@ -81,24 +97,49 @@ export class TerminalSaida {
    * Usa o `registerLinkProvider` do próprio xterm — que já cuida do sublinhado
    * ao passar o mouse, do cursor e da faixa exata de células — em vez de
    * varrer o DOM procurando texto, que quebraria assim que a saída rolasse.
+   *
+   * **A linha lógica é remontada antes de casar o padrão.** Desde a ADR 0006 o
+   * terminal fica em pé à direita, e numa coluna estreita `File "/home/…/x.py",
+   * line 12` quase sempre quebra em duas linhas físicas. Casando linha por
+   * linha, o quadro partido no meio simplesmente deixava de virar link — o
+   * recurso morreria justamente onde é mais necessário.
    */
   private ligarTraceback(abrir: (d: DestinoTraceback) => void): void {
     this.term.registerLinkProvider({
       provideLinks: (y, retorno) => {
-        const linha = this.term.buffer.active.getLine(y - 1);
-        if (!linha) return retorno(undefined);
+        const buffer = this.term.buffer.active;
+        if (!buffer.getLine(y - 1)) return retorno(undefined);
 
-        const texto = linha.translateToString(true);
+        // Volta até o começo da linha lógica. O xterm pergunta por UMA linha
+        // física — a que está sob o mouse — e ela pode ser o meio de um caminho
+        // quebrado; sem recuar, meia linha nunca casa o padrão.
+        let inicioY = y;
+        while (buffer.getLine(inicioY - 1)?.isWrapped) inicioY--;
+
+        // Emenda as continuações. Só a última pode ter espaço à direita
+        // aparado: as do meio ocupam a largura inteira, e aparar encostaria
+        // caracteres que estão separados.
+        const colunas = this.term.cols;
+        let texto = "";
+        for (let i = inicioY; ; i++) {
+          const atual = buffer.getLine(i - 1);
+          if (!atual) break;
+          const continua = buffer.getLine(i)?.isWrapped === true;
+          texto += atual.translateToString(!continua);
+          if (!continua) break;
+        }
+
         const achados = [];
-        QUADRO.lastIndex = 0;
-
         for (const m of texto.matchAll(QUADRO)) {
           const inicio = m.index;
+          const fim = inicio + m[0].length - 1;
           achados.push({
-            // O xterm conta células a partir de 1 e inclui o fim.
+            // O xterm conta células a partir de 1 e inclui o fim. Como cada
+            // linha emendada contribuiu exatamente `cols` células, a conta de
+            // volta para (linha, coluna) é divisão inteira.
             range: {
-              start: { x: inicio + 1, y },
-              end: { x: inicio + m[0].length, y },
+              start: { x: (inicio % colunas) + 1, y: inicioY + Math.floor(inicio / colunas) },
+              end: { x: (fim % colunas) + 1, y: inicioY + Math.floor(fim / colunas) },
             },
             text: m[0],
             activate: () => abrir({ arquivo: m[1]!, linha: Number(m[2]) }),

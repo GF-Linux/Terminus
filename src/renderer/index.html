@@ -19,6 +19,11 @@
       <button class="c2" id="btMinimizar" title="Minimizar"></button>
       <button class="c3" id="btMaximizar" title="Maximizar"></button>
     </div>
+    <!-- A marca: pico de cromatograma que é também o acento do cursor. -->
+    <span class="marca" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M2.6 16.4h4.5l2-4.3L12 3.2l2.9 8.9 2 4.3h4.5"/>
+        <path d="M12 19.1v2.5" stroke-width="2.6"/></svg>
+    </span>
     <div class="doc" id="tituloDoc">Bancada</div>
   </div>
 
@@ -38,44 +43,78 @@
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.4v2.3M12 18.3v2.3M3.4 12h2.3M18.3 12h2.3M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></svg></button>
     </nav>
 
-    <aside class="side">
+    <aside class="side" id="side">
       <div class="hd">
         <span id="sideT">Explorer</span>
         <span class="acoes" id="sideAcoes"></span>
       </div>
       <div class="body" id="lateral"></div>
     </aside>
+    <!-- Clicar de novo no ícone já selecionado fecha a lateral (Ctrl+B); o
+         divisor ajusta a largura. -->
+    <div class="divv" id="divLateral" role="separator" aria-orientation="vertical"
+         title="Arraste para redimensionar (duplo clique volta ao padrão)"></div>
 
-    <div class="stage">
+    <div class="stage" id="stage">
+      <!-- Papel de parede: só atrás da área de escrita, nunca atrás do
+           cromatograma nem da casca (ADR 0010). -->
+      <div class="fundoTela oculto" id="fundoTela"></div>
       <div class="tabs" id="abas"></div>
       <div class="crumb" id="trilha"></div>
       <div class="editorHost" id="editorHost"></div>
-      <div class="cromatogramaHost" id="cromatogramaHost"></div>
       <div class="vazio" id="vazio">
+        <span class="marcaGrande" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M2.6 16.4h4.5l2-4.3L12 3.2l2.9 8.9 2 4.3h4.5"/>
+            <path d="M12 19.1v2.5" stroke-width="2.6"/></svg>
+        </span>
         <p>Nenhum arquivo aberto.</p>
         <p class="dim">Abra uma pasta de corrida no Explorer.</p>
       </div>
 
-      <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão
-           da barra de estado, ou sozinho quando há saída para mostrar. -->
-      <div class="panel oculto" id="painel">
+      <!-- O cromatograma é uma faixa deitada embaixo do editor, não uma tela
+           inteira: montar cromatograma é parte da corrida, escrever o script é
+           o resto dela, e as duas coisas acontecem juntas. Só aparece quando há
+           um .ab1 aberto. -->
+      <div class="divh oculto" id="divCromo" role="separator" aria-orientation="horizontal"
+           title="Arraste para redimensionar (duplo clique volta ao padrão)"></div>
+      <div class="painelCromo oculto" id="painelCromo">
         <div class="ptabs">
-          <span class="pt on">Terminal</span>
+          <span class="pabas" id="abasCromo"></span>
           <span class="r">
-            <button id="btRodar" title="Rodar o arquivo aberto (Ctrl+Enter)">&#9654;</button>
-            <button id="btParar" title="Parar" disabled>&#9632;</button>
-            <button id="btLimpar" title="Limpar">&#9645;</button>
-            <button id="btFecharPainel" title="Fechar painel">&#10005;</button>
+            <button id="btFecharCromo" title="Fechar o painel do cromatograma">&#10005;</button>
           </span>
         </div>
-        <div class="term" id="term"></div>
+        <div class="cromatogramaHost" id="cromatogramaHost"></div>
       </div>
     </div>
 
+    <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão
+         da barra de estado, ou sozinho quando há saída para mostrar. Fica em pé
+         à direita para não disputar altura com o editor nem com o cromatograma. -->
+    <div class="divv oculto" id="divTerm" role="separator" aria-orientation="vertical"
+         title="Arraste para redimensionar (duplo clique volta ao padrão)"></div>
+    <aside class="painelTerm oculto" id="painel">
+      <div class="ptabs">
+        <span class="pt on">Terminal</span>
+        <span class="r">
+          <button id="btRodar" title="Rodar o arquivo aberto (Ctrl+Enter)">&#9654;</button>
+          <button id="btParar" title="Parar" disabled>&#9632;</button>
+          <button id="btLimpar" title="Limpar">&#9645;</button>
+          <button id="btFecharPainel" title="Fechar painel">&#10005;</button>
+        </span>
+      </div>
+      <div class="term" id="term"></div>
+    </aside>
+
   </div>
+
+  <!-- Mascote: flutua por cima da área de escrita, arrastável e dispensável.
+       Fica fora de .main para não ser recortado por nenhum painel. -->
+  <div class="mascote" id="mascote"></div>
 
   <div class="sbar">
     <button id="btPainel" title="Terminal (Ctrl+`)">Terminal</button>
+    <button id="btMascote" title="Mostrar/esconder o mascote">Mascote</button>
     <span id="estadoExec">pronto</span>
     <span id="posicao">Ln 1, Col 1</span>
     <span class="r">

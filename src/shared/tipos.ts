@@ -141,6 +141,68 @@ export interface ConfigFantasma {
 }
 
 /** O que a tela de configurações mostra. Nunca inclui a chave. */
+/* ------------------------------ aparência --------------------------------- */
+
+/** Wallpaper e tema (ADR 0010). `imagem` é `data:` URL, ou null. */
+export interface EstadoAparencia {
+  wallpaper: string | null;
+  imagem: string | null;
+  escurecer: number;
+  desfoque: number;
+  /** "seco" | "crossfade" | "vaivem" — como esconder a volta do loop. */
+  junta: string;
+  tema: string;
+  gerado: Record<string, string> | null;
+  /** Preenchido pela interface: a imagem é animada e o reprodutor a assumiu. */
+  animado?: boolean;
+}
+
+/* ------------------------------- mascote ---------------------------------- */
+
+/** Os estados que o mascote sabe mostrar. Cada um é um quadro de sprite. */
+export type EstadoMascote = "parado" | "piscando" | "feliz" | "preocupado" | "pensando";
+
+/** Uma fala da conversa. `mascote` é o que o modelo respondeu. */
+export interface FalaMascote {
+  quem: "autor" | "mascote";
+  texto: string;
+}
+
+/** Um arquivo da memória do mascote, para a tela de auditoria (ADR 0009). */
+export interface ArquivoDeMemoria {
+  nome: string;
+  caminho: string;
+  /** "perfil", "nota" ou "diário". */
+  tipo: string;
+  bytes: number;
+  alterado: number;
+}
+
+/** O que o mascote respondeu, mais o que ele mexeu na memória ao responder. */
+export interface RespostaMascote {
+  texto: string;
+  /** Frases como "guardado no diário de 2026-08-01", para a interface avisar. */
+  memoria: string[];
+}
+
+export interface EstadoDoMascote {
+  /** Há chave configurada — a mesma do texto fantasma. */
+  temChave: boolean;
+  /** A conversa está ligada. Vem desligada. */
+  ligado: boolean;
+  endpoint: string;
+  modelo: string;
+  nome: string;
+  /** O miniMD existe e será o contexto da conversa. */
+  temContexto: boolean;
+  /** Caminho do miniMD, para a tela poder dizer o que ele lê. */
+  arquivoContexto: string;
+  /** Pasta onde moram os quadros do sprite. */
+  pastaSprite: string;
+  /** Quais quadros foram achados no disco. */
+  quadros: EstadoMascote[];
+}
+
 export interface EstadoFantasma {
   configurado: boolean;
   ligado: boolean;

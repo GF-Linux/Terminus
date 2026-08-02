@@ -18,7 +18,15 @@ const CORES: Record<string, string> = {
   T: "#f0574f",
 };
 
-const FUNDO = "#181818";
+/**
+ * O fundo do desenho sai do CSS, não de uma constante: desde a ADR 0010 o tema
+ * da casca pode mudar, e um canvas pintado com `#181818` fixo apareceria como um
+ * retângulo de cor errada dentro do painel.
+ */
+function fundoAtual(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#181818";
+}
+
 const REGUA = "#f0f0f013";
 const FRACO = "#f0f0f05c";
 const FORTE = "#f0f0f0";
@@ -59,7 +67,8 @@ export class VistaCromatograma {
         <span class="zoom">
           <button data-z="-">−</button><span class="nivel"></span><button data-z="+">+</button>
         </span>
-      </div>`;
+      </div>
+      <div class="falhou oculto"></div>`;
 
     this.rolagem = this.host.querySelector(".rolagem")!;
     this.canvas = this.host.querySelector("canvas")!;
@@ -77,22 +86,70 @@ export class VistaCromatograma {
       this.ampliar(alvo.dataset["z"] === "+" ? 1.5 : 1 / 1.5);
     });
 
-    // Ctrl+roda amplia, como em qualquer visualizador; roda sozinha rola.
+    // Ctrl+roda amplia, como em qualquer visualizador; a roda sozinha anda no
+    // eixo do dado.
+    //
+    // A casca não pinta barra de rolagem em lugar nenhum, então a roda é o
+    // caminho principal para andar na corrida: qualquer eixo dela — vertical do
+    // mouse, horizontal do trackpad — vira deslocamento para o lado, porque
+    // aqui não existe "para baixo" a percorrer.
     this.rolagem.addEventListener(
       "wheel",
       (ev) => {
-        if (!ev.ctrlKey) return;
+        if (ev.ctrlKey) {
+          ev.preventDefault();
+          this.ampliar(ev.deltaY < 0 ? 1.15 : 1 / 1.15);
+          return;
+        }
+        const bruto = Math.abs(ev.deltaX) > Math.abs(ev.deltaY) ? ev.deltaX : ev.deltaY;
+        if (!bruto) return;
+        // deltaMode 1 conta linhas, não pixels — sem converter, a roda de um
+        // mouse comum andaria três pixels por clique.
+        const passo = ev.deltaMode === 1 ? bruto * 16 : bruto;
         ev.preventDefault();
-        this.ampliar(ev.deltaY < 0 ? 1.15 : 1 / 1.15);
+        this.rolagem.scrollLeft += passo;
       },
       { passive: false },
     );
+
+    // Arrastar o traço com o mouse, como se pega um mapa. Sem barra visível,
+    // esta é a outra forma óbvia de percorrer a corrida; no toque o próprio
+    // navegador já arrasta, então só o mouse é tratado aqui.
+    this.rolagem.addEventListener("pointerdown", (ev) => {
+      if (ev.pointerType !== "mouse" || ev.button !== 0) return;
+      const partida = ev.clientX;
+      const rolado = this.rolagem.scrollLeft;
+      let arrastou = false;
+
+      const mover = (e: PointerEvent): void => {
+        const andou = e.clientX - partida;
+        // Alguns pixels de folga: um clique com a mão trêmula não deve sair
+        // andando com a vista.
+        if (!arrastou && Math.abs(andou) < 3) return;
+        arrastou = true;
+        this.rolagem.classList.add("arrastando");
+        this.rolagem.scrollLeft = rolado - andou;
+      };
+      const soltar = (): void => {
+        this.rolagem.classList.remove("arrastando");
+        this.rolagem.removeEventListener("pointermove", mover);
+        this.rolagem.removeEventListener("pointerup", soltar);
+        this.rolagem.removeEventListener("pointercancel", soltar);
+      };
+
+      this.rolagem.setPointerCapture(ev.pointerId);
+      this.rolagem.addEventListener("pointermove", mover);
+      this.rolagem.addEventListener("pointerup", soltar);
+      this.rolagem.addEventListener("pointercancel", soltar);
+    });
 
     // Só se pinta a janela visível — 8 mil pixels de traço a cada quadro seria
     // desperdício. A contrapartida é que **rolar precisa repintar**: sem isto,
     // arrastar para a direita mostra vazio.
     this.rolagem.addEventListener("scroll", () => this.agendar(), { passive: true });
     new ResizeObserver(() => this.agendar()).observe(this.rolagem);
+    // Trocar de tema muda o fundo do canvas; repinta.
+    window.addEventListener("bancada:tema", () => this.agendar());
   }
 
   /** Junta vários pedidos de repintura num quadro só. */
@@ -116,6 +173,8 @@ export class VistaCromatograma {
 
   mostrar(dados: Cromatograma): void {
     this.dados = dados;
+    this.host.classList.remove("comFalha");
+    this.host.querySelector(".falhou")!.classList.add("oculto");
     this.maximo = Math.max(
       1,
       ...(["A", "C", "G", "T"] as const).flatMap((b) => [Math.max(...dados.tracos[b])]),
@@ -149,8 +208,13 @@ export class VistaCromatograma {
     // Os traços ocupam a altura que houver: o cromatograma é o conteúdo da
     // tela, não um gráfico encaixado num canto dela. Com altura fixa sobrava um
     // vazio grande embaixo, e um pico raso ficava indistinguível do fundo.
+    // O piso é 90 e não 120 porque o cromatograma virou uma faixa de altura
+    // arrastável (ADR 0006): um piso alto demais fazia o desenho ultrapassar a
+    // janela e nascer com barra de rolagem VERTICAL — que é justamente o que
+    // não faz sentido aqui, já que a leitura é para o lado. A altura mínima do
+    // painel, no CSS, é casada com este piso.
     const disponivel = this.rolagem.clientHeight - m.faixaBases - m.faixaQualidade - 2;
-    m.alturaTracos = Math.max(120, disponivel);
+    m.alturaTracos = Math.max(90, disponivel);
 
     const altura = m.alturaTracos + m.faixaBases + m.faixaQualidade;
     const largura = Math.max(this.rolagem.clientWidth, Math.ceil(d.tracos.A.length * m.escala));
@@ -164,7 +228,7 @@ export class VistaCromatograma {
 
     const c = this.ctx;
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    c.fillStyle = FUNDO;
+    c.fillStyle = fundoAtual();
     c.fillRect(0, 0, largura, altura);
 
     this.desenharQualidade(largura);
@@ -270,10 +334,32 @@ export class VistaCromatograma {
     }
   }
 
-  /** Um aviso no lugar do desenho, quando a leitura falhou. */
+  /**
+   * Um aviso por cima do desenho, quando a leitura falhou.
+   *
+   * Camada, não substituição do conteúdo: trocar o `innerHTML` do host levava
+   * junto o canvas e os ouvintes do zoom e da rolagem, e o `.ab1` seguinte —
+   * bom — não tinha mais onde ser desenhado. Com o painel em abas, abrir um
+   * arquivo ruim e logo um bom é gesto de todo dia.
+   */
   falhar(motivo: string): void {
     this.dados = null;
-    this.host.innerHTML = `<div class="falhou"><b>Não consegui ler o cromatograma</b>${escapar(motivo)}</div>`;
+    const aviso = this.host.querySelector(".falhou")!;
+    aviso.innerHTML = `<b>Não consegui ler o cromatograma</b>${escapar(motivo)}`;
+    aviso.classList.remove("oculto");
+    this.host.classList.add("comFalha");
+  }
+
+  /** Volta ao estado de painel vazio — usado ao fechar a última aba de `.ab1`. */
+  limpar(): void {
+    this.dados = null;
+    this.host.classList.remove("comFalha");
+    this.host.querySelector(".falhou")!.classList.add("oculto");
+    const c = this.ctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.host.querySelector(".titulo")!.textContent = "";
+    this.host.querySelector(".resumo")!.textContent = "";
   }
 }
 
