@@ -23,6 +23,10 @@ o que não deveria mudar mesmo.
 função: descreve(itens)
 o que faz: devolve uma tupla com (quantidade de itens, o terceiro item)
 
+### neutro
+Dada uma lista qualquer, devolva quantos itens ela tem e qual é o terceiro.
+Índice começa em zero — o terceiro item não é `itens[3]`.
+
 ### sequências
 Você recebeu a leitura de uma fita como lista de bases:
 `['A','C','G','T','A','A','C']`. Escreva `descreve(itens)` que devolva quantas
@@ -50,6 +54,10 @@ o terceiro valor. Índice começa em zero — o terceiro quadrante não é `iten
 função: conta(itens, alvo)
 o que faz: devolve quantas vezes `alvo` aparece em `itens`, usando `for` e um contador
 
+### neutro
+Conte quantas vezes um valor aparece na lista — sem usar `.count()`, que é o
+atalho. O objetivo aqui é o laço: percorra, compare, some.
+
 ### sequências
 Conte quantas vezes uma base aparece na fita — sem usar `.count()`, que é o
 atalho. Aqui o objetivo é o laço: percorra a lista, compare, some.
@@ -69,6 +77,10 @@ Aqui o objetivo é o laço: percorra a lista, compare, some.
 ## exercício inverte
 função: inverte(itens)
 o que faz: devolve uma nova lista com os itens na ordem contrária, sem alterar a original
+
+### neutro
+Devolva uma lista nova com os itens na ordem contrária. A original tem de
+continuar como estava — função que altera o que recebeu é armadilha.
 
 ### sequências
 O reverso de uma fita é o primeiro passo do complemento reverso, que você vai

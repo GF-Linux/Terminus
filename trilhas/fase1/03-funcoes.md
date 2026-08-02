@@ -23,6 +23,10 @@ custa caro para quem está começando — o que a função `print`a some; o que 
 função: proporcao(itens, alvos)
 o que faz: devolve a porcentagem (0 a 100) de itens que estão em `alvos`; lista vazia devolve 0.0
 
+### neutro
+Devolva a porcentagem (0 a 100) de itens que estão no conjunto de alvos. Lista
+vazia devolve 0.0. Devolva o número — quem quiser imprimir que imprima.
+
 ### sequências
 Esta é a conta do **conteúdo GC**, que você vai usar de verdade: a porcentagem
 de bases que são G ou C. Escreva genérica — recebe a sequência e o conjunto de
@@ -49,6 +53,10 @@ que imprima.
 função: troca(itens, mapa)
 o que faz: devolve uma lista nova com cada item trocado pelo valor em `mapa`; o que não estiver no mapa fica como está
 
+### neutro
+Devolva uma lista nova com cada item trocado pelo valor no mapa. O que não
+estiver no mapa fica como está — não pode virar `None`.
+
 ### sequências
 Este é o **complemento** da fita: `{'A':'T','T':'A','C':'G','G':'C'}`. Escreva a
 função genérica — ela recebe o mapa — e o complemento vira uma chamada. O que
@@ -73,6 +81,10 @@ estiver no mapa tem de sobreviver intacto, não virar `None`.
 ## exercício resumo
 função: resumo(itens, rotulo="itens")
 o que faz: devolve a string "N rotulo", usando o valor padrão quando o rótulo não é passado
+
+### neutro
+Devolva a string `"N rotulo"`, com `rotulo` valendo `"itens"` quando não for
+passado. A função tem de funcionar chamada dos dois jeitos.
 
 ### sequências
 Uma linha de resumo para imprimir depois: `resumo(['A','C','G'])` devolve

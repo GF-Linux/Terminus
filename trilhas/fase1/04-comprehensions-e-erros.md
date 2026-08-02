@@ -21,6 +21,10 @@ o que impede o seu programa de morrer quando alguém abre um arquivo torto — q
 função: padroniza(texto)
 o que faz: devolve uma lista com os caracteres em maiúsculas, sem espaços, usando uma comprehension
 
+### neutro
+Devolva uma lista com os caracteres do texto em maiúsculas, sem espaços, numa
+comprehension só.
+
 ### sequências
 Sequência copiada de e-mail vem torta: `"acgt "` com minúscula e espaço no fim.
 Devolva `['A','C','G','T']`. Numa comprehension só — é para praticar a forma
@@ -45,6 +49,10 @@ forma curta, não o `for` de três linhas.
 função: so_de(itens, alvos)
 o que faz: devolve uma lista nova só com os itens que estão em `alvos`, com comprehension e filtro
 
+### neutro
+Devolva uma lista nova só com os itens que estão nos alvos, com comprehension e
+filtro. A lista original fica intacta.
+
 ### sequências
 Filtre da sequência só as bases G e C — é o mesmo filtro que existe dentro do
 cálculo de GC, agora isolado. Uma comprehension com `if`, e a lista original
@@ -65,6 +73,10 @@ com `if`, e a lista original intacta.
 ## exercício valida
 função: valida(itens, permitidos)
 o que faz: devolve True se está tudo certo; se houver item fora de `permitidos`, faz `raise ValueError` com uma mensagem que diz qual é
+
+### neutro
+Devolva `True` se está tudo certo. Se houver item fora dos permitidos, faça
+`raise ValueError` com uma mensagem que diga qual é.
 
 ### sequências
 Antes de rodar qualquer análise, valide: se aparecer letra fora de ACGT, levante

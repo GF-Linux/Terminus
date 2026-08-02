@@ -20,6 +20,19 @@ frágil. Se algum tópico não colou, é agora — e o projeto vai mostrar qual 
 função: ler_registros(caminho)
 o que faz: lê o arquivo e devolve um dicionário {nome do registro: conteúdo emendado numa string}
 
+### neutro
+**Projeto final.** O arquivo é texto puro: uma linha de cabeçalho começando com
+`>` e uma ou mais linhas de conteúdo embaixo, com vários registros empilhados.
+
+    >primeiro registro
+    conteudo em duas
+    linhas
+    >segundo registro
+    outro conteudo
+
+O nome é o que vem depois do `>` (sem o `>`, sem espaços nas pontas). O conteúdo
+são as linhas seguintes emendadas numa string só.
+
 ### sequências
 **Projeto final — leitor de FASTA.** O formato é texto puro: uma linha de
 cabeçalho começando com `>` seguida de uma ou mais linhas de sequência, e vários

@@ -88,9 +88,9 @@ function lerProgresso(): Progresso {
       feito[chave] =
         typeof valor === "string" ? { vezes: 1, ultima: valor, roupas: [] } : valor;
     }
-    return { feito, vestimenta: bruto.vestimenta ?? "sequências" };
+    return { feito, vestimenta: bruto.vestimenta ?? "neutro" };
   } catch {
-    return { feito: {}, vestimenta: "sequências" };
+    return { feito: {}, vestimenta: "neutro" };
   }
 }
 
