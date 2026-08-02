@@ -3,3 +3,16 @@ out/
 *.vsix
 __pycache__/
 *.pyc
+
+# Dado de corrida real nunca entra no repositorio. Os .ab1 do LHV sao material
+# nao publicado, e um arquivo desses commitado por engano so sai reescrevendo o
+# historico inteiro. A excecao e o exemplo sintetico, que o make_ab1.py gera e
+# que precisa estar versionado para o visualizador ter o que abrir.
+*.ab1
+!exemplos/sintetico_*.ab1
+*.fsa
+*.scf
+*.phd.1
+
+# Relatorios da varredura de seguranca: ficam na maquina, nao no repositorio.
+CLAUDE-SECURITY-*/
