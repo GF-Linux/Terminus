@@ -30,8 +30,18 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
+/** As aspas contam tanto quanto os sinais de maior e menor: o nome do arquivo
+ *  entra dentro de `data-arquivo="..."`, e aspa dupla é nome POSIX legal que
+ *  sobrevive a `unzip` e a `git checkout`. Sem escapá-la, um nome fecha o
+ *  atributo cedo e acrescenta os que quiser — e o despachante de clique decide
+ *  o que fazer olhando só para os `data-*` que encontra. */
 const esc = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 /** Desembrulha um Resultado, mostrando o erro no terminal em vez de sumir com ele. */
 function ou<T>(r: Resultado<T>, aoFalhar: T): T {

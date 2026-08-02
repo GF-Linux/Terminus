@@ -32,9 +32,29 @@ export function acharPython(): string {
   return "python3";
 }
 
+/**
+ * Onde a sonda de versão roda. Nunca o diretório de trabalho herdado: o modo
+ * `-c` do Python põe o diretório atual no começo do `sys.path`, então abrir a
+ * Bancada com `cd <pasta> && bancada .` faria um `Bio.py` plantado ali executar
+ * **na inicialização**, antes de qualquer clique. `~/.config/bancada` é criada
+ * pela própria Bancada em 0700 e não guarda `.py`; a casa é o reserva para
+ * quando ela ainda não existe.
+ */
+function pastaNeutra(): string {
+  const config = path.join(os.homedir(), ".config", "bancada");
+  return fs.existsSync(config) ? config : os.homedir();
+}
+
 async function saidaDe(cmd: string, args: string[]): Promise<string> {
   try {
-    const { stdout, stderr } = await executar(cmd, args, { timeout: 30_000 });
+    const { stdout, stderr } = await executar(cmd, args, {
+      timeout: 30_000,
+      cwd: pastaNeutra(),
+      // Do Python 3.11 em diante isto tira o diretório atual do `sys.path` de
+      // vez, em vez de só apontá-lo para outro lugar. Versão mais antiga ignora
+      // a variável, e aí quem protege é o `cwd` acima.
+      env: { ...process.env, PYTHONSAFEPATH: "1" },
+    });
     return (stdout ?? "") + (stderr ?? "");
   } catch {
     return "";

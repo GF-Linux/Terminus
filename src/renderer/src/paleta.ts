@@ -63,7 +63,12 @@ export function casar(busca: string, alvo: string): { pontos: number; marcas: nu
 }
 
 const esc = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 /** Reescreve o texto com os caracteres casados destacados. */
 function destacar(texto: string, marcas: number[]): string {
