@@ -329,7 +329,9 @@ export class Mascote {
             `<div class="fala ${f.quem === "autor" ? "autor" : "resposta"}"><span>${f.texto
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")}</span></div>`,
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")}</span></div>`,
         )
         .join("") + (this.esperando ? `<div class="fala resposta pensando"><span>…</span></div>` : "");
     this.lista.scrollTop = this.lista.scrollHeight;
