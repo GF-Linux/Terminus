@@ -122,6 +122,24 @@ E a indentação ganha do fantasma: com o cursor no branco do começo da linha,
 `Tab` indenta — sempre. Indentação errada quebra o Python; sugestão recusada só
 custa um `Esc`.
 
+## Instalar o lançador (Linux/KDE)
+
+A marca vira o ícone da barra de tarefas por meio do arquivo `.desktop` — no
+Plasma, janela XWayland pega o ícone do lançador, não da própria janela (a
+propriedade `_NET_WM_ICON` fica vazia).
+
+```bash
+install -Dm644 media/bancada.desktop ~/.local/share/applications/bancada.desktop
+for t in 512 256 128 64 48 32; do
+  ffmpeg -y -i media/icon.png -vf scale=$t:$t /tmp/b.png
+  install -Dm644 /tmp/b.png ~/.local/share/icons/hicolor/${t}x${t}/apps/bancada.png
+done
+```
+
+O `Exec=bancada` espera um comando `bancada` no `PATH`. Enquanto não há pacote,
+um script em `~/.local/bin/bancada` que faz `cd` no repositório e chama
+`./node_modules/.bin/electron .` resolve.
+
 ## A trilha de estudo
 
 Painel próprio na barra de atividades: seis tópicos, cada um com abertura,
