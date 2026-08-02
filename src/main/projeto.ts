@@ -83,7 +83,26 @@ export function ehTexto(arquivo: string): boolean {
   return TEXTO.has(path.extname(arquivo).toLowerCase());
 }
 
+/** Teto do que o editor aceita abrir. Script de laboratório não chega perto
+ *  disso; um `.csv` de saída bruta chega, e aí a recusa é a resposta certa. */
+const TETO_LEITURA = 32 * 1024 * 1024;
+
 export async function lerArquivo(arquivo: string): Promise<string> {
+  // A extensão diz o que o nome promete, não o que o arquivo é. Sem esta
+  // conferência, um `notas.txt` que seja atalho para `/dev/zero` — ou para um
+  // cano — nunca chega ao fim: o `readFile` acumula até estourar a memória e
+  // derruba o aplicativo inteiro, não a aba. Numa pasta de corrida que veio de
+  // fora, quem escolhe o nome não é quem abre.
+  const info = await fs.stat(arquivo);
+  if (!info.isFile()) {
+    throw new Error(`${path.basename(arquivo)} não é um arquivo comum — a Bancada não abre.`);
+  }
+  if (info.size > TETO_LEITURA) {
+    const mb = (info.size / 1024 / 1024).toFixed(1);
+    throw new Error(
+      `${path.basename(arquivo)} tem ${mb} MB e passa do teto de 32 MB — a Bancada não abre.`,
+    );
+  }
   return fs.readFile(arquivo, "utf8");
 }
 
