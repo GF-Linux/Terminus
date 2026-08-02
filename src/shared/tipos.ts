@@ -140,7 +140,6 @@ export interface ConfigFantasma {
   ligado: boolean;
 }
 
-/** O que a tela de configurações mostra. Nunca inclui a chave. */
 /* -------------------------------- trilha ---------------------------------- */
 
 /** A roupa do enunciado. O conceito é o mesmo em todas (ADR 0015). */
@@ -167,10 +166,21 @@ export interface TopicoTrilha {
   exercicios: ExercicioTrilha[];
 }
 
+/**
+ * Quantas vezes o exercício foi feito, quando foi a última e em que roupas.
+ *
+ * Não é "concluído": repetir é o método, não fracasso (ADR 0016).
+ */
+export interface RegistroTrilha {
+  vezes: number;
+  ultima: string;
+  roupas: string[];
+}
+
 export interface EstadoTrilha {
   topicos: TopicoTrilha[];
-  /** Chave `topico/exercicio` → data ISO em que passou. */
-  feito: Record<string, string>;
+  /** Chave `topico/exercicio` → registro das passagens. */
+  feito: Record<string, RegistroTrilha>;
   vestimenta: Vestimenta;
 }
 
@@ -236,6 +246,7 @@ export interface EstadoDoMascote {
   quadros: EstadoMascote[];
 }
 
+/** O que a tela de configurações mostra. Nunca inclui a chave. */
 export interface EstadoFantasma {
   configurado: boolean;
   ligado: boolean;
