@@ -27,6 +27,10 @@ export function estaRodando(): boolean {
 export function rodarScript(
   arquivo: string,
   emitir: (evento: EventoExecucao) => void,
+  /** Argumentos extras. Usado pela trilha, que roda o verificador passando o
+   *  teste e o arquivo do aluno — e não pelo usuário, que não digita comando
+   *  aqui: continua não existindo caminho para executar linha arbitrária. */
+  extras: string[] = [],
 ): void {
   if (emAndamento) {
     emitir({ tipo: "falha", mensagem: "Já há um script em execução. Pare antes de rodar outro." });
@@ -36,7 +40,7 @@ export function rodarScript(
   const python = acharPython();
   let filho: ChildProcessWithoutNullStreams;
   try {
-    filho = spawn(python, ["-u", arquivo], {
+    filho = spawn(python, ["-u", arquivo, ...extras], {
       cwd: path.dirname(arquivo),
       // Sem shell: o caminho do arquivo vai como argumento, não interpolado em
       // linha de comando. Nome de arquivo com espaço ou aspas não vira comando.

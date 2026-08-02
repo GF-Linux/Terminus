@@ -141,6 +141,39 @@ export interface ConfigFantasma {
 }
 
 /** O que a tela de configurações mostra. Nunca inclui a chave. */
+/* -------------------------------- trilha ---------------------------------- */
+
+/** A roupa do enunciado. O conceito é o mesmo em todas (ADR 0015). */
+export type Vestimenta = "sequências" | "clínica" | "campo" | "laboratório";
+
+export interface ExercicioTrilha {
+  id: string;
+  /** Assinatura que a correção vai chamar, ex. `conta(itens, alvo)`. */
+  funcao: string;
+  /** O contrato em uma frase. */
+  contrato: string;
+  /** Enunciado por vestimenta. */
+  enunciados: Record<string, string>;
+}
+
+export interface TopicoTrilha {
+  id: string;
+  titulo: string;
+  semana: number;
+  entrega: string;
+  abertura: string;
+  conceitos: string[];
+  recursos: { nome: string; url: string }[];
+  exercicios: ExercicioTrilha[];
+}
+
+export interface EstadoTrilha {
+  topicos: TopicoTrilha[];
+  /** Chave `topico/exercicio` → data ISO em que passou. */
+  feito: Record<string, string>;
+  vestimenta: Vestimenta;
+}
+
 /* ------------------------------ aparência --------------------------------- */
 
 /** Wallpaper e tema (ADR 0010). `imagem` é `data:` URL, ou null. */

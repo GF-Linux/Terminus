@@ -22,6 +22,9 @@ import type { ConfigFantasma, EstadoFantasma } from "../shared/tipos.js";
 const PASTA = path.join(os.homedir(), ".config", "bancada");
 const ARQUIVO = path.join(PASTA, "config.json");
 
+/** A pasta do usuário, para quem precisa guardar coisa dele ao lado da config. */
+export const PASTA_BANCADA = PASTA;
+
 interface ConfigGravada {
   fantasma?: {
     endpoint: string;

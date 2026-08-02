@@ -116,6 +116,31 @@ do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
 O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
 fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
 
+## A trilha de estudo
+
+Painel próprio na barra de atividades: seis tópicos, cada um com abertura,
+conceitos, recursos e exercícios com correção automática.
+
+**Um exercício é conceito + contrato + vestimenta.** O conceito é o que se
+aprende; o contrato é a função a escrever (`conta(itens, alvo)`); a vestimenta é
+a roupa do enunciado — sequências, clínica, campo ou laboratório. O mesmo
+`conta()` conta bases, atendimentos, avistamentos ou quadrantes, e **o
+verificador é um só**, porque o contrato não muda. O progresso é por conceito:
+trocar de vestimenta no meio não perde nada.
+
+Isso não é enfeite. Conceito que só aparece numa roupa vira receita — quem só viu
+dicionário contando bases aprendeu a contar bases, não aprendeu dicionário.
+
+**A correção roda o seu código.** `praticar` cria o arquivo em `trilha/` dentro
+da pasta da corrida, com o enunciado no topo e a assinatura pronta; `corrigir`
+importa a sua função e chama com entradas conhecidas, no Python do laboratório,
+com a saída no terminal de sempre. Nunca varre o código atrás de palavra-chave:
+há muitos jeitos certos de escrever a mesma função, e corretor que exige um jeito
+ensina a adivinhar gabarito.
+
+Conteúdo em `trilhas/fase1/*.md` (versionado, editável por você); progresso em
+`~/.config/bancada/trilha.json`, que é seu.
+
 ## O mascote
 
 Companhia de bancada, **explicitamente pessoal**: não analisa nada, não abre

@@ -4,9 +4,11 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   EventoExecucao,
+  ExercicioTrilha,
   FalaMascote,
   ProjetoAberto,
   Resultado,
+  Vestimenta,
 } from "../shared/tipos.js";
 import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
@@ -38,6 +40,14 @@ import {
   lerQuadros,
 } from "./mascote.js";
 import { apagarDaMemoria, listarMemoria } from "./memoria.js";
+import {
+  caminhoDoTeste,
+  caminhoDoVerificador,
+  definirVestimenta,
+  lerTrilha,
+  marcarFeito,
+  prepararExercicio,
+} from "./trilha.js";
 import { estaRodando, pararScript, rodarScript } from "./execucao.js";
 import { ServidorPython } from "./lsp.js";
 import {
@@ -453,13 +463,53 @@ function registrarPonte(): void {
     seguro(() => ({ ...tirarWallpaper(), imagem: null })),
   );
 
+  // Trilha de estudo (ADR 0015).
+  ipcMain.handle("trilha:ler", seguro(() => lerTrilha(RAIZ_APP)));
+  ipcMain.handle(
+    "trilha:vestimenta",
+    seguro((_e, v: Vestimenta) => {
+      definirVestimenta(v);
+      return lerTrilha(RAIZ_APP);
+    }),
+  );
+  ipcMain.handle(
+    "trilha:marcar",
+    seguro((_e, chave: string, feito: boolean) => {
+      marcarFeito(chave, feito);
+      return lerTrilha(RAIZ_APP);
+    }),
+  );
+  ipcMain.handle(
+    "trilha:praticar",
+    seguro(
+      (
+        _e,
+        entrada: {
+          raizProjeto: string;
+          topico: string;
+          exercicio: ExercicioTrilha;
+          vestimenta: string;
+          enunciado: string;
+        },
+      ) => prepararExercicio(entrada),
+    ),
+  );
+  ipcMain.handle(
+    "trilha:verificar",
+    seguro((_e, exercicio: string, arquivo: string) => {
+      const teste = caminhoDoTeste(RAIZ_APP, exercicio);
+      if (!teste) throw new Error(`o exercício "${exercicio}" ainda não tem correção escrita`);
+      return { verificador: caminhoDoVerificador(RAIZ_APP), teste, arquivo };
+    }),
+  );
+
   ipcMain.handle("memoria:listar", seguro(() => listarMemoria()));
   ipcMain.handle("memoria:apagar", seguro((_e, caminho: string) => apagarDaMemoria(caminho)));
   ipcMain.handle("memoria:destilar", seguro((_e, falas: FalaMascote[]) => destilar(falas)));
 
   ipcMain.handle("exec:rodando", () => estaRodando());
-  ipcMain.on("exec:rodar", (e, arquivo: string) => {
-    rodarScript(arquivo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento));
+  ipcMain.on("exec:rodar", (e, arquivo: string, extras: string[] = []) => {
+    rodarScript(arquivo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento), extras);
   });
   ipcMain.on("exec:parar", () => pararScript());
 
