@@ -162,9 +162,18 @@ function analisar(texto: string, id: string): TopicoTrilha {
         if (par[1] === "função") exercicio.funcao = par[2]!;
         else exercicio.contrato = par[2]!;
       } else if (vestimenta) {
-        // Junta as linhas do enunciado preservando o parágrafo.
         const atual = exercicio.enunciados[vestimenta] ?? "";
-        exercicio.enunciados[vestimenta] = t ? `${atual} ${t}`.trim() : `${atual}\n`;
+        // Linha indentada é bloco de exemplo — o formato de um arquivo, uma
+        // saída esperada — e nele a quebra de linha É a informação. Juntar tudo
+        // com espaço transformava o exemplo de FASTA numa frase só.
+        if (/^ {4,}\S/.test(linha)) {
+          exercicio.enunciados[vestimenta] = `${atual}\n${linha.replace(/^ {4}/, "")}`;
+        } else if (t) {
+          const emenda = atual.endsWith("\n") || atual === "" ? "" : " ";
+          exercicio.enunciados[vestimenta] = `${atual}${emenda}${t}`;
+        } else {
+          exercicio.enunciados[vestimenta] = `${atual}\n`;
+        }
       }
     }
   }
@@ -221,20 +230,35 @@ export function prepararExercicio(entrada: {
   const nome = assinatura.replace(/\(.*/, "");
   const parametros = /\((.*)\)/.exec(assinatura)?.[1] ?? "";
 
+  /**
+   * Quebra o enunciado para caber em comentário, **preservando os blocos de
+   * exemplo**. Parágrafo é redobrado na largura; linha que já vinha indentada
+   * (o formato de um arquivo, por exemplo) passa intacta — redobrar ali
+   * destruiria a informação, que é a própria disposição das linhas.
+   */
   const quebrar = (texto: string, largura = 74): string[] => {
-    const palavras = texto.split(/\s+/);
-    const linhas: string[] = [];
-    let atual = "";
-    for (const p of palavras) {
-      if ((atual + " " + p).trim().length > largura) {
-        linhas.push(atual.trim());
-        atual = p;
-      } else {
-        atual += ` ${p}`;
+    const saida: string[] = [];
+    for (const paragrafo of texto.split("\n")) {
+      if (/^\s{2,}\S/.test(paragrafo) || paragrafo.startsWith(">")) {
+        saida.push(paragrafo);
+        continue;
       }
+      if (!paragrafo.trim()) {
+        saida.push("");
+        continue;
+      }
+      let atual = "";
+      for (const palavra of paragrafo.trim().split(/\s+/)) {
+        if ((atual + " " + palavra).trim().length > largura) {
+          saida.push(atual.trim());
+          atual = palavra;
+        } else {
+          atual += ` ${palavra}`;
+        }
+      }
+      if (atual.trim()) saida.push(atual.trim());
     }
-    if (atual.trim()) linhas.push(atual.trim());
-    return linhas;
+    return saida;
   };
 
   const corpo = [

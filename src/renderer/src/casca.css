@@ -146,7 +146,9 @@ button:disabled{opacity:.35; cursor:default}
 .degrau .ex{padding:9px 0; border-top:1px solid var(--line)}
 .degrau .ex:first-of-type{border-top:0}
 .degrau .ex .assinatura{font-family:var(--mono); font-size:11.5px; color:var(--fn)}
-.degrau .ex p{margin:5px 0 7px; color:var(--fg60)}
+/* `pre-wrap`: o enunciado pode trazer bloco de exemplo, e ali a quebra de linha
+   é a informação — é o formato do arquivo que se está mostrando. */
+.degrau .ex p{margin:5px 0 7px; color:var(--fg60); white-space:pre-wrap}
 .degrau .ex .acoes{display:flex; gap:14px}
 .degrau .ex .acoes button{font-size:11.5px; color:var(--btn)}
 .degrau .ex .acoes button:hover{text-decoration:underline}
