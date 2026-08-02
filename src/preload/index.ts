@@ -78,6 +78,11 @@ const api = {
     return () => ipcRenderer.off("exec:evento", wrap);
   },
 
+  copilot: {
+    /** Se o Copilot esta autenticado, e com qual conta. */
+    estado: (): Promise<Resultado<{ entrou: boolean; usuario: string | null }>> =>
+      ipcRenderer.invoke("copilot:estado"),
+  },
   lsp: {
     abrir: (arquivo: string, texto: string): void => ipcRenderer.send("lsp:abrir", arquivo, texto),
     mudar: (arquivo: string, versao: number, texto: string): void =>

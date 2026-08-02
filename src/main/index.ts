@@ -14,6 +14,7 @@ import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
 import { lerCromatograma } from "./cromatograma.js";
 import {
+  configDoFantasma,
   esquecerFantasma,
   esquecerPasta,
   gravarAparencia,
@@ -32,7 +33,8 @@ import {
   salvarFantasma,
   ultimaPasta,
 } from "./config.js";
-import { cancelarFantasma, sugerir } from "./fantasma.js";
+import { cancelarFantasma, definirArquivoDoFantasma, sugerir } from "./fantasma.js";
+import { estadoCopilot, iniciarCopilot } from "./copilot.js";
 import {
   cancelarConversa,
   conversar,
@@ -468,7 +470,13 @@ function registrarPonte(): void {
     }),
   );
 
-  ipcMain.on("lsp:abrir", (_e, arquivo: string, texto: string) => servidor?.abrir(arquivo, texto));
+  ipcMain.on("lsp:abrir", (_e, arquivo: string, texto: string) => {
+    // O Copilot precisa de um caminho para saber a linguagem e o contexto; o
+    // fantasma FIM nunca precisou. Aproveita-se o aviso que o editor já manda
+    // ao language server, em vez de alargar a ponte só para isto.
+    definirArquivoDoFantasma(typeof arquivo === "string" ? arquivo : null);
+    servidor?.abrir(arquivo, texto);
+  });
   ipcMain.on("lsp:mudar", (_e, arquivo: string, versao: number, texto: string) =>
     servidor?.mudar(arquivo, versao, texto),
   );
@@ -653,6 +661,8 @@ function registrarPonte(): void {
   ipcMain.handle("memoria:apagar", seguro((_e, caminho: string) => apagarDaMemoria(caminho)));
   ipcMain.handle("memoria:destilar", seguro((_e, falas: FalaMascote[]) => destilar(falas)));
 
+  ipcMain.handle("copilot:estado", seguro(() => estadoCopilot()));
+
   ipcMain.handle("exec:rodando", () => estaRodando());
   ipcMain.on("exec:rodar", (e, arquivo: string, extras: string[] = []) => {
     // O `arquivo` vira o `argv[1]` do interpretador, então um valor como `-c`
@@ -690,6 +700,13 @@ function registrarPonte(): void {
 void app.whenReady().then(() => {
   registrarPonte();
   criarJanela();
+  // O servidor do Copilot só sobe quando ele é o motor escolhido: sao 111 MB e
+  // um processo a mais, e quem usa a DeepSeek nao paga por isso.
+  if (configDoFantasma()?.motor === "copilot") {
+    void iniciarCopilot(RAIZ_APP).catch(() => {
+      janela?.webContents.send("lsp:falhou", "O servidor do Copilot nao subiu.");
+    });
+  }
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
   });
