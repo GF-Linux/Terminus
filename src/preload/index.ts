@@ -1,13 +1,19 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  ArquivoDeMemoria,
   AvisoDeArquivo,
   Catalogo,
   Cromatograma,
+  EstadoAparencia,
+  EstadoDoMascote,
   EstadoFantasma,
+  EstadoMascote,
   EventoExecucao,
+  FalaMascote,
   LugarNoCodigo,
   NoArquivo,
   ProjetoAberto,
+  RespostaMascote,
   Resultado,
   SugestaoLsp,
   Versoes,
@@ -29,7 +35,14 @@ const api = {
     ipcRenderer.invoke("projeto:escolher"),
   abrirProjeto: (raiz: string): Promise<Resultado<ProjetoAberto>> =>
     ipcRenderer.invoke("projeto:abrir", raiz),
-  /** Pasta passada na linha de comando, se houver. */
+  /** Abre uma pasta já conhecida (um recente), sem passar pelo diálogo. */
+  entrarNaPasta: (raiz: string): Promise<Resultado<ProjetoAberto>> =>
+    ipcRenderer.invoke("projeto:entrar", raiz),
+  /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
+  pastasRecentes: (): Promise<Resultado<string[]>> => ipcRenderer.invoke("projeto:recentes"),
+  esquecerPasta: (raiz: string): Promise<Resultado<string[]>> =>
+    ipcRenderer.invoke("projeto:esquecer", raiz),
+  /** Pasta da linha de comando ou, na falta dela, a última que ficou aberta. */
   projetoInicial: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:inicial"),
   listar: (dir: string): Promise<Resultado<NoArquivo[]>> => ipcRenderer.invoke("projeto:listar", dir),
@@ -93,6 +106,43 @@ const api = {
     sugerir: (texto: string, cursor: number): Promise<Resultado<string | null>> =>
       ipcRenderer.invoke("fantasma:sugerir", texto, cursor),
     cancelar: (): void => ipcRenderer.send("fantasma:cancelar"),
+  },
+
+  /**
+   * O mascote (ADR 0008). Note o que **não** está aqui: nada que leve arquivo,
+   * caminho ou código para a conversa. A interface manda as falas e recebe a
+   * resposta; o miniMD que serve de contexto é lido no processo principal e
+   * nunca passa por esta ponte.
+   */
+  mascote: {
+    estado: (): Promise<Resultado<EstadoDoMascote>> => ipcRenderer.invoke("mascote:estado"),
+    quadros: (): Promise<Resultado<Partial<Record<EstadoMascote, string>>>> =>
+      ipcRenderer.invoke("mascote:quadros"),
+    ligar: (ligado: boolean): Promise<Resultado<EstadoDoMascote>> =>
+      ipcRenderer.invoke("mascote:ligar", ligado),
+    nomear: (nome: string): Promise<Resultado<EstadoDoMascote>> =>
+      ipcRenderer.invoke("mascote:nomear", nome),
+    conversar: (falas: FalaMascote[]): Promise<Resultado<RespostaMascote>> =>
+      ipcRenderer.invoke("mascote:conversar", falas),
+    cancelar: (): void => ipcRenderer.send("mascote:cancelar"),
+    /** A memória dela: listar para auditar, apagar o que não deveria estar lá. */
+    memoria: (): Promise<Resultado<{ pasta: string; arquivos: ArquivoDeMemoria[] }>> =>
+      ipcRenderer.invoke("memoria:listar"),
+    esquecerArquivo: (caminho: string): Promise<Resultado<void>> =>
+      ipcRenderer.invoke("memoria:apagar", caminho),
+    /** Fecha o laço: destila a conversa no perfil. */
+    destilar: (falas: FalaMascote[]): Promise<Resultado<boolean>> =>
+      ipcRenderer.invoke("memoria:destilar", falas),
+  },
+
+  /** Wallpaper e tema (ADR 0010). A imagem chega em `data:` URL. */
+  aparencia: {
+    estado: (): Promise<Resultado<EstadoAparencia>> => ipcRenderer.invoke("aparencia:estado"),
+    definir: (parcial: Partial<EstadoAparencia>): Promise<Resultado<EstadoAparencia>> =>
+      ipcRenderer.invoke("aparencia:definir", parcial),
+    escolher: (): Promise<Resultado<EstadoAparencia | null>> =>
+      ipcRenderer.invoke("aparencia:escolher"),
+    tirar: (): Promise<Resultado<EstadoAparencia>> => ipcRenderer.invoke("aparencia:tirar"),
   },
 
   janela: {

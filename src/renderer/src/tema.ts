@@ -50,9 +50,11 @@ export const temaCursor: Extension = EditorView.theme(
       color: FG74,
     },
     ".cm-tooltip-autocomplete ul li[aria-selected]": { backgroundColor: SEL, color: FG },
-    ".cm-scroller::-webkit-scrollbar": { width: "10px", height: "10px" },
-    ".cm-scroller::-webkit-scrollbar-thumb": { backgroundColor: "#f0f0f026", borderRadius: "5px" },
-    ".cm-scroller::-webkit-scrollbar-track": { backgroundColor: "transparent" },
+    // Sem barra desenhada, aqui como no resto da casca: o CodeMirror injeta o
+    // estilo dele num `style` próprio, então a regra geral do casca.css não
+    // bastava — a barra precisa sumir também por aqui.
+    ".cm-scroller": { scrollbarWidth: "none" },
+    ".cm-scroller::-webkit-scrollbar": { width: "0", height: "0", display: "none" },
   },
   { dark: true },
 );

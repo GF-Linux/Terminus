@@ -32,6 +32,29 @@ interface ConfigGravada {
     chaveAberta?: string;
     ligado: boolean;
   };
+  /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
+  pastas?: string[];
+  aparencia?: {
+    /** Arquivo copiado para dentro de ~/.config/bancada, ou null. */
+    wallpaper?: string | null;
+    /** 0–0.95: quanto do preto entra por cima da imagem. */
+    escurecer?: number;
+    /** Desfoque em pixels. */
+    desfoque?: number;
+    /** Como esconder a volta do loop num papel de parede animado (ADR 0011). */
+    junta?: string;
+    /** Nome do tema, ou "gerado". */
+    tema?: string;
+    /** A paleta extraída da imagem, quando o tema é "gerado". */
+    gerado?: Record<string, string> | null;
+  };
+  mascote?: {
+    /** Endpoint de conversa. Vazio = derivado do endpoint do fantasma. */
+    endpoint?: string;
+    modelo?: string;
+    nome?: string;
+    ligado: boolean;
+  };
 }
 
 function ler(): ConfigGravada {
@@ -112,6 +135,199 @@ export function esquecerFantasma(): EstadoFantasma {
   delete c.fantasma;
   gravar(c);
   return estadoDoFantasma();
+}
+
+/* -------------------------------- aparência -------------------------------- */
+
+/**
+ * Wallpaper e tema (ADR 0010).
+ *
+ * A imagem é **copiada** para cá em vez de referenciada onde estava: quem
+ * escolhe um papel de parede em `~/Downloads` acaba limpando a pasta um dia, e
+ * a Bancada não pode nascer quebrada por causa disso.
+ */
+const APARENCIA_PADRAO = {
+  wallpaper: null as string | null,
+  // Escuro por padrão, e isto é regra da ADR 0005 virando número: a casca não
+  // pode competir com as quatro bases do cromatograma. Dá para clarear, mas o
+  // ponto de partida protege o dado.
+  escurecer: 0.82,
+  desfoque: 3,
+  // Padrão do papel de parede animado: dissolver a volta. Ver ADR 0011 — a
+  // emenda mora no arquivo, e mascarar é o que dá para fazer.
+  junta: "crossfade",
+  tema: "cursor-dark",
+  gerado: null as Record<string, string> | null,
+};
+
+export type Aparencia = typeof APARENCIA_PADRAO;
+
+export function lerAparencia(): Aparencia {
+  const a = ler().aparencia ?? {};
+  return {
+    wallpaper: a.wallpaper ?? APARENCIA_PADRAO.wallpaper,
+    escurecer: Math.min(0.95, Math.max(0, a.escurecer ?? APARENCIA_PADRAO.escurecer)),
+    desfoque: Math.min(24, Math.max(0, a.desfoque ?? APARENCIA_PADRAO.desfoque)),
+    junta: a.junta ?? APARENCIA_PADRAO.junta,
+    tema: a.tema ?? APARENCIA_PADRAO.tema,
+    gerado: a.gerado ?? null,
+  };
+}
+
+export function gravarAparencia(parcial: Partial<Aparencia>): Aparencia {
+  const c = ler();
+  c.aparencia = { ...lerAparencia(), ...parcial };
+  gravar(c);
+  return lerAparencia();
+}
+
+/** A imagem em `data:` URL — o renderizador não tem acesso ao disco. */
+export function lerWallpaper(): string | null {
+  const caminho = lerAparencia().wallpaper;
+  if (!caminho) return null;
+  try {
+    const ext = path.extname(caminho).slice(1).toLowerCase() || "png";
+    const tipo = ext === "jpg" ? "jpeg" : ext;
+    return `data:image/${tipo};base64,${fs.readFileSync(caminho).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+export function guardarWallpaper(origem: string): Aparencia {
+  fs.mkdirSync(PASTA, { recursive: true, mode: 0o700 });
+  const destino = path.join(PASTA, `fundo${path.extname(origem).toLowerCase()}`);
+  // Limpa cópias antigas de outra extensão, senão sobra lixo a cada troca.
+  for (const f of fs.readdirSync(PASTA)) {
+    if (f.startsWith("fundo.")) fs.rmSync(path.join(PASTA, f), { force: true });
+  }
+  fs.copyFileSync(origem, destino);
+  return gravarAparencia({ wallpaper: destino });
+}
+
+export function tirarWallpaper(): Aparencia {
+  const atual = lerAparencia().wallpaper;
+  if (atual) fs.rmSync(atual, { force: true });
+  // O tema gerado morre com a imagem: paleta tirada de uma foto que não está
+  // mais na tela é paleta órfã.
+  return gravarAparencia({ wallpaper: null, gerado: null, tema: "cursor-dark" });
+}
+
+/* --------------------------------- mascote --------------------------------- */
+
+/**
+ * O mascote (ADR 0008).
+ *
+ * Reusa a chave do texto fantasma — é a mesma conta e o mesmo dono —, mas o
+ * endereço é outro: o fantasma fala com um endpoint de **completamento** (FIM),
+ * e conversa é `/chat/completions`. Por padrão o endereço é derivado do que já
+ * está configurado; quem quiser outro provedor escreve no arquivo.
+ */
+export const PASTA_SPRITE = path.join(PASTA, "mascote");
+export const ARQUIVO_CONTEXTO = path.join(PASTA, "contexto.md");
+/** Onde vive a memória que o próprio mascote escreve (ADR 0009). */
+export const PASTA_FERN = path.join(PASTA, "fern");
+
+const MODELO_CONVERSA_PADRAO = "deepseek-chat";
+
+/** Deriva o endereço de conversa a partir do endereço de completamento. */
+function endpointDerivado(): string {
+  const f = ler().fantasma;
+  if (!f?.endpoint) return "https://api.deepseek.com/chat/completions";
+  try {
+    const u = new URL(f.endpoint);
+    return `${u.origin}/chat/completions`;
+  } catch {
+    return "https://api.deepseek.com/chat/completions";
+  }
+}
+
+export function configDoMascote(): {
+  endpoint: string;
+  modelo: string;
+  nome: string;
+  ligado: boolean;
+} {
+  const m = ler().mascote;
+  return {
+    endpoint: m?.endpoint || endpointDerivado(),
+    modelo: m?.modelo || MODELO_CONVERSA_PADRAO,
+    nome: m?.nome || "Mascote",
+    // Vem **desligado**: conversa sai da máquina, e isso não se liga sozinho.
+    ligado: m?.ligado ?? false,
+  };
+}
+
+export function ligarMascote(ligado: boolean): void {
+  const c = ler();
+  c.mascote = { ...(c.mascote ?? {}), ligado };
+  gravar(c);
+}
+
+export function nomearMascote(nome: string): void {
+  const c = ler();
+  c.mascote = { ...(c.mascote ?? {}), ligado: c.mascote?.ligado ?? false, nome };
+  gravar(c);
+}
+
+/**
+ * O miniMD — o **único** arquivo que o mascote lê.
+ *
+ * Fica no processo principal de propósito: a interface nunca vê este texto, e
+ * ele não atravessa a ponte de IPC. Vai direto daqui para o modelo, quando há
+ * conversa, e para mais lugar nenhum.
+ */
+export function lerContexto(): string | null {
+  try {
+    return fs.readFileSync(ARQUIVO_CONTEXTO, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/* ----------------------------- pastas de corrida --------------------------- */
+
+/**
+ * As pastas já abertas, da mais recente para a mais antiga.
+ *
+ * Guardar isto no lugar do segredo é de propósito: é a mesma configuração do
+ * usuário, no mesmo arquivo `0600`. **Caminho de pasta de corrida é dado
+ * sensível por si só** — diz em que máquina e sob que nome o laboratório guarda
+ * material não publicado —, então não vai para `localStorage` nem para lugar
+ * nenhum que saia daqui.
+ *
+ * A lista é filtrada na leitura: pasta apagada, renomeada ou em pendrive que
+ * saiu simplesmente deixa de aparecer, sem erro na cara de quem abriu o app.
+ */
+const MAX_RECENTES = 8;
+
+export function pastasRecentes(): string[] {
+  return (ler().pastas ?? []).filter((p) => {
+    try {
+      return fs.statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** A pasta a reabrir sozinha: a última que foi aberta e ainda existe. */
+export function ultimaPasta(): string | null {
+  return pastasRecentes()[0] ?? null;
+}
+
+export function registrarPasta(raiz: string): void {
+  const c = ler();
+  const antes = (c.pastas ?? []).filter((p) => p !== raiz);
+  c.pastas = [raiz, ...antes].slice(0, MAX_RECENTES);
+  gravar(c);
+}
+
+/** Tira uma pasta da lista — o "esquecer" do menu de contexto do recente. */
+export function esquecerPasta(raiz: string): void {
+  const c = ler();
+  c.pastas = (c.pastas ?? []).filter((p) => p !== raiz);
+  gravar(c);
 }
 
 /* --------------------------- importar do Twinny --------------------------- */

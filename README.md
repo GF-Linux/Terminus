@@ -19,7 +19,20 @@ renomear e excluir na árvore, **`Ctrl+P`** para abrir arquivo por nome, e
 **traceback clicável** — o quadro de erro no terminal leva à linha do arquivo.
 
 O **cromatograma de `.ab1`** existe: clicar num arquivo `.ab1` abre os quatro
-traços com as letras alinhadas aos picos, barras de Phred, zoom e rolagem.
+traços com as letras alinhadas aos picos, barras de Phred, zoom e rolagem. Ele
+abre numa **faixa embaixo do editor**, com uma aba por arquivo, e o **terminal
+fica em pé à direita** — os dois de altura e largura arrastáveis (ADR 0006).
+Escrever o script e olhar o traço acontecem na mesma tela, porque acontecem na
+mesma corrida.
+
+A **lateral abre e fecha** (`Ctrl+B`, ou clique no ícone já selecionado) e tem
+largura arrastável — fechada, a área de escrita recebe os 250 px de volta. A
+Bancada também **volta sozinha na última pasta aberta**, e as anteriores ficam
+listadas na tela vazia do Explorer.
+
+**Nenhuma barra de rolagem é desenhada** em lugar nenhum da casca. A rolagem
+continua inteira: roda, trackpad, toque, teclado — e, no cromatograma, arrastar
+o traço com o mouse.
 
 O que ainda não existe: o painel da Bancada (pausado a pedido) e busca em
 arquivos. O esqueleto da extensão do VSCodium está preservado em
@@ -36,8 +49,9 @@ arquivos. O esqueleto da extensão do VSCodium está preservado em
 | `Ctrl+N` | novo arquivo, já com `.py` preenchido |
 | `Ctrl+S` | gravar |
 | `Ctrl+Enter` | grava e executa o script aberto |
-| `Ctrl+W` | fechar aba |
-| ``Ctrl+` `` | abrir/fechar o terminal |
+| `Ctrl+W` | fechar aba (a do cromatograma quando a mão está no painel de baixo) |
+| ``Ctrl+` `` | abrir/fechar o terminal (coluna da direita) |
+| `Ctrl+B` | abrir/fechar a lateral — clicar no ícone já selecionado faz o mesmo |
 | `F2` / `Delete` | renomear / excluir a linha em foco na árvore |
 
 Clicar num `File "...", line N` do traceback abre o arquivo naquela linha —
@@ -102,12 +116,120 @@ do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
 O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
 fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
 
+## O mascote
+
+Companhia de bancada, **explicitamente pessoal**: não analisa nada, não abre
+arquivo e não opina sobre o código. Flutua num canto da área de escrita,
+arrastável, e sai da frente no `✕` — volta pelo botão *Mascote* na barra de
+estado.
+
+Ele tem **dois canais, e a separação entre eles é a regra**:
+
+- **Reação — local, sem rede.** Rodou, deu certo, deu erro, gravou, abriu
+  cromatograma: troca de cara e solta uma frase curta. O widget recebe só o
+  **tipo** do evento, nunca o nome do arquivo, o caminho ou a mensagem de erro —
+  nome de arquivo numa pasta de corrida costuma ser identificação de amostra.
+- **Conversa — sai da máquina, e só quando ligada.** Vai o que você escreve e o
+  resumo em `~/.config/bancada/contexto.md`, escrito à mão e fora de qualquer
+  repositório. **Nada da sessão.** Vem desligada; o painel diz o que sai.
+
+Usa a mesma chave do texto fantasma, num endereço de conversa
+(`/chat/completions`) derivado do que já está configurado.
+
+### A memória dela
+
+Ela guarda o que aprende sobre você em `~/.config/bancada/fern/`:
+
+| arquivo | o que é |
+|---|---|
+| `perfil.md` | o que não muda toda semana. **Reescrito ao fim de cada conversa** |
+| `diario/<data>.md` | o que aconteceu naquele dia, cru |
+| `notas/<nome>.md` | o que você mandou guardar: datas, listas, ideias |
+
+Ela escreve sozinha, com quatro ferramentas (`lembrar`, `anotar`, `ler_nota`,
+`listar_notas`). **Não existe ferramenta que leia arquivo do computador, liste
+pasta ou rode comando** — ela escreve na memória dela e lê a memória dela, e
+nada mais alcança o disco.
+
+O botão *memória* na conversa lista tudo, e clicar **abre o Markdown no editor da
+Bancada**: você corrige e grava com `Ctrl+S` como em qualquer arquivo. É isso que
+torna "ela decide o que guardar" aceitável.
+
+**O que ela guarda volta para a API a cada conversa** — é assim que a memória
+serve para alguma coisa, e é por isso que o perfil tem teto de 25 linhas, o
+diário entra só dos últimos quatro dias e a instrução dela proíbe guardar dado de
+laboratório.
+
+O sprite mora em `~/.config/bancada/mascote/*.png` (`parado`, `piscando`,
+`feliz`, `preocupado`, `pensando`), **fora do repositório**: o personagem é de
+gosto pessoal e pode ser de outra pessoa, e versionar o desenho junto do código
+faria a licença dele decidir a da Bancada. Sem sprite, a Bancada desenha um
+erlenmeyer de reserva.
+
+Para trocar de personagem basta um quadro parado; as outras quatro expressões
+saem dele:
+
+```bash
+python3 tools/expressoes_mascote.py parado.png --mapa       # ler onde estão os olhos
+python3 tools/expressoes_mascote.py parado.png 37,42,27,34 50,56,27,34
+```
+
+As expressões são **editadas no pixel, não geradas**: gerar variação de um rosto
+de 96 px devolve o mesmo desenho (com força alta) ou outro personagem (com força
+baixa) — foi medido. Mexer nos olhos mantém a identidade por construção. Só os
+olhos mudam: boca de chibi tem dois pixels e não sustenta expressão.
+
+## Papel de parede e temas
+
+Em *Configurações → Aparência*: uma imagem atrás do editor, com escurecimento e
+desfoque no deslizador, e temas de cor — incluindo **um gerado a partir da sua
+imagem** (ele tira a cor escura mais frequente para o fundo e a mais saturada
+para o acento).
+
+**Papel de parede animado (GIF/WebP):** GIF de wallpaper quase nunca é um loop
+fechado — o último quadro não casa com o primeiro e a volta dá um tranco. A
+Bancada decodifica os quadros e desenha ela mesma, com três modos de volta:
+*dissolver* (padrão — o fim entra por cima do começo), *vai-e-vem* (toca de trás
+para a frente, sem volta para esconder) e *corte seco*. Medido num GIF real, o
+salto da volta cai de **9,8 para 2,8** — o nível do movimento normal da animação.
+
+Três limites, que são a decisão e não detalhe:
+
+- o papel de parede aparece **só atrás da área de escrita** — nunca atrás do
+  cromatograma, da árvore, do terminal ou das abas;
+- nasce escurecido em 82 %, porque a casca existe para as quatro bases serem a
+  cor mais forte da tela;
+- o tema gerado tem o fundo **preso no escuro** e não toca nas cores das bases.
+
+## A pasta da corrida fica lembrada
+
+Sem argumento na linha de comando, a Bancada reabre **a última pasta que ficou
+aberta**; as anteriores (até oito) aparecem na tela vazia do Explorer, com um
+`✕` para tirar da lista. Pasta que sumiu do disco some da lista sozinha, e uma
+que existe mas não abre — permissão, disco removido — diz o porquê no terminal
+em vez de deixar a tela vazia sem explicação.
+
+A lista mora no mesmo `~/.config/bancada/config.json` do segredo, com o arquivo
+em `0600`, e **não** em armazenamento do navegador: caminho de pasta de corrida
+já é dado sensível — diz sob que nome o laboratório guarda material não
+publicado. Medida de painel é preferência de tela e essa sim fica no
+`localStorage`.
+
+`bancada ~/corridas/18S` continua ganhando da memória: quem digitou a pasta
+disse o que quer agora.
+
 ## Cromatograma
 
-Clicar num `.ab1` abre o visualizador. **É o único lugar do aplicativo com cor
-saturada** — a casca é monocromática justamente para que as quatro bases
-(A `#3fc46b`, C `#4d96ff`, G `#e9b949`, T `#f0574f`) sejam as cores mais fortes
-da tela. `Ctrl`+roda amplia; a roda sozinha rola.
+Clicar num `.ab1` abre o visualizador **na faixa de baixo**, com uma aba por
+arquivo — o editor continua na tela inteira acima dele. **É o único lugar do
+aplicativo com cor saturada** — a casca é monocromática justamente para que as
+quatro bases (A `#3fc46b`, C `#4d96ff`, G `#e9b949`, T `#f0574f`) sejam as cores
+mais fortes da tela. `Ctrl`+roda amplia; a roda sozinha rola.
+
+A altura da faixa é arrastável e fica guardada entre sessões; o duplo clique no
+divisor volta ao padrão. O mínimo (260px) não é gosto: abaixo dele o desenho só
+caberia com barra de rolagem **vertical**, e a leitura de um cromatograma é para
+o lado.
 
 A leitura é feita por `tools/ler_ab1.py`, com o Biopython do laboratório —
 conforme a ADR 0003, quem entende de dado biológico é o Python, não a casca. O
