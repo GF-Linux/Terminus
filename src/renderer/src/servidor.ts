@@ -2,7 +2,8 @@ import type { Diagnostic } from "@codemirror/lint";
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { StateEffect, type EditorState } from "@codemirror/state";
 import type { EditorView, Tooltip, ViewUpdate } from "@codemirror/view";
-import type { Diagnostico } from "../../shared/tipos.js";
+import { lugarDeSugerir } from "./completar.js";
+import type { Diagnostico, SugestaoLsp } from "../../shared/tipos.js";
 
 /**
  * O lado da interface do language server.
@@ -100,6 +101,65 @@ export function precisaRelintar(u: ViewUpdate): boolean {
 /* ----------------------------- autocomplete ----------------------------- */
 
 /**
+ * Aceita a sugestão do pyright **e** acrescenta o `import` que falta.
+ *
+ * O catálogo já fazia isso; o pyright não fazia, e era a diferença que deixava a
+ * sugestão do servidor "não conversando" com o código — aceitava-se `gc_fraction`
+ * e o arquivo continuava quebrado, com o mesmo erro na tela.
+ *
+ * O `import` chega no `additionalTextEdits` do LSP, que o pyright só calcula
+ * quando perguntado (`completionItem/resolve`). Perguntar na hora de aceitar, e
+ * não ao listar, evita 200 perguntas para uma resposta usada.
+ *
+ * O texto é inserido primeiro e o import depois, num segundo `dispatch`: o
+ * `resolve` é assíncrono, e prender a digitação esperando a rede faria a
+ * aceitação engasgar. O import entra acima do cursor, então nada do que a pessoa
+ * escreveu se desloca sob os dedos dela.
+ */
+function aplicarDoServidor(s: SugestaoLsp) {
+  return (view: EditorView, _c: Completion, from: number, to: number): void => {
+    view.dispatch({
+      changes: { from, to, insert: s.inserir },
+      selection: { anchor: from + s.inserir.length },
+      scrollIntoView: true,
+      userEvent: "input.complete",
+    });
+
+    void (async () => {
+      let edicoes = s.edicoesExtras;
+      if (edicoes.length === 0) {
+        const r = await api.lsp.resolver(s.indice);
+        if (!r.ok) return;
+        edicoes = r.valor;
+      }
+      if (edicoes.length === 0) return;
+
+      const doc = view.state.doc;
+      const mudancas = edicoes
+        .filter((e) => e.linhaInicio < doc.lines && e.linhaFim < doc.lines)
+        .map((e) => ({
+          from: doc.line(e.linhaInicio + 1).from + e.colunaInicio,
+          to: doc.line(e.linhaFim + 1).from + e.colunaFim,
+          insert: e.texto,
+        }))
+        // Já existe no arquivo? Então não é falta, é repetição.
+        .filter((m) => !doc.toString().includes(m.insert.trim()) || m.insert.trim() === "");
+      if (mudancas.length === 0) return;
+
+      view.dispatch({ changes: mudancas, userEvent: "input.complete" });
+      avisarImport?.(mudancas.map((m) => m.insert.trim()).filter(Boolean));
+    })();
+  };
+}
+
+/** Quem conta na barra de estado que um import entrou sozinho. */
+let avisarImport: ((linhas: string[]) => void) | null = null;
+
+export function aoImportarDoServidor(f: (linhas: string[]) => void): void {
+  avisarImport = f;
+}
+
+/**
  * Sugestões do pyright, para somar às do catálogo.
  *
  * Recebem `boost` negativo de propósito: quando as duas fontes conhecem
@@ -112,7 +172,21 @@ export function fonteDoServidor() {
     if (!arquivoAtual) return null;
     const antes = ctx.matchBefore(/[A-Za-z_]\w*$/);
     const de = antes?.from ?? ctx.pos;
-    if (!antes && !ctx.explicit) return null;
+    // O ponto é o gatilho mais importante que existe: `seq.` é justamente
+    // quando não se sabe o que vem depois. `matchBefore` devolve **nulo** logo
+    // após o ponto, porque não há palavra iniciada — e a regra antiga
+    // (`if (!antes && !ctx.explicit) return null`) fazia a fonte desistir aí.
+    // O efeito é que `os.`, `record.` e `seq.` nunca sugeriam nada ao digitar,
+    // só com Ctrl+Espaço. É o buraco maior do autocomplete, e é anterior a
+    // qualquer coisa desta rodada.
+    const temPonto = ctx.state.doc.sliceString(Math.max(0, de - 1), de) === ".";
+    if (!antes && !temPonto && !ctx.explicit) return null;
+    // Mesma regra do catálogo: dentro de texto entre aspas, de comentário, ou
+    // batizando um `def`, a caixa atrapalha. Calar uma fonte e deixar a outra
+    // falar não resolveria nada.
+    if (!ctx.explicit && !lugarDeSugerir(ctx)) return null;
+    // Sem ponto, uma letra só devolve o módulo inteiro do pyright.
+    if (!ctx.explicit && !temPonto && (antes?.text.length ?? 0) < 2) return null;
 
     const { linha, coluna } = paraLinhaColuna(ctx.state, ctx.pos);
     const r = await api.lsp.completar(arquivoAtual, linha, coluna);
@@ -126,7 +200,7 @@ export function fonteDoServidor() {
         label: s.rotulo,
         detail: s.detalhe ?? undefined,
         type: s.tipo,
-        apply: s.inserir,
+        apply: aplicarDoServidor(s),
         boost: -20,
         ...(s.documentacao ? { info: () => painelSimples(s.documentacao!) } : {}),
       }));

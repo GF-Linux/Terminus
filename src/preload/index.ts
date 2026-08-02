@@ -7,6 +7,7 @@ import type {
   EstadoAparencia,
   EstadoDoMascote,
   EstadoFantasma,
+  EdicaoExtra,
   EstadoMascote,
   EstadoTrilha,
   ExercicioTrilha,
@@ -84,6 +85,9 @@ const api = {
     fechar: (arquivo: string): void => ipcRenderer.send("lsp:fechar", arquivo),
     completar: (a: string, l: number, c: number): Promise<Resultado<SugestaoLsp[]>> =>
       ipcRenderer.invoke("lsp:completar", a, l, c),
+    /** O `import` que falta para a sugestão de índice `i`, perguntado na aceitação. */
+    resolver: (i: number): Promise<Resultado<EdicaoExtra[]>> =>
+      ipcRenderer.invoke("lsp:resolver", i),
     hover: (a: string, l: number, c: number): Promise<Resultado<string | null>> =>
       ipcRenderer.invoke("lsp:hover", a, l, c),
     definicao: (a: string, l: number, c: number): Promise<Resultado<LugarNoCodigo | null>> =>
