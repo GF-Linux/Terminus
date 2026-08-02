@@ -1,5 +1,8 @@
 import type {
   Catalogo,
+  EstadoTrilha,
+  TopicoTrilha,
+  Vestimenta,
   NoArquivo,
   ProjetoAberto,
   Resultado,
@@ -417,9 +420,13 @@ const ACOES_EXPLORER = `
 
 function definirLateral(painel: string): void {
   $("sideT").textContent =
-    { explorer: "Explorer", extensions: "Extensions", bancada: "Bancada", config: "Configurações" }[
-      painel
-    ] ?? painel;
+    {
+      explorer: "Explorer",
+      extensions: "Extensions",
+      bancada: "Bancada",
+      trilha: "Trilha",
+      config: "Configurações",
+    }[painel] ?? painel;
 
   const acoes = $("sideAcoes");
   const corpo = $("lateral");
@@ -436,6 +443,8 @@ function definirLateral(painel: string): void {
       A Bancada não usa a casca do VSCodium, então não há extensões de terceiros
       para instalar. O que seria extensão aqui é o próprio catálogo do Biopython,
       que vive na barra de atividades como item de primeira classe.</div>`;
+  } else if (painel === "trilha") {
+    void desenharTrilha();
   } else if (painel === "bancada") {
     if (BANCADA_PAUSADA) {
       const c = catalogo;
@@ -532,6 +541,175 @@ async function desenharConfiguracoes(): Promise<void> {
     await api.fantasma.esquecer();
     void desenharConfiguracoes();
   });
+}
+
+/* ============================ trilha ============================ */
+
+/**
+ * O painel da trilha (ADR 0015).
+ *
+ * A regra do desenho: **um exercício de cada vez na tela**. Lista de degraus
+ * fechada, o tópico aberto mostra abertura, conceitos, recursos e exercícios.
+ * Roadmap que mostra tudo aberto vira parede de texto, e parede de texto é onde
+ * trilha de estudo morre.
+ */
+let trilha: EstadoTrilha | null = null;
+let topicoAberto: string | null = null;
+
+const VESTIMENTAS: Vestimenta[] = ["sequências", "clínica", "campo", "laboratório"];
+
+async function desenharTrilha(): Promise<void> {
+  if (!trilha) {
+    const r = await api.trilha.ler();
+    if (!r.ok) {
+      $("lateral").innerHTML = `<div class="aviso"><b>Trilha indisponível</b>${esc(r.erro)}</div>`;
+      return;
+    }
+    trilha = r.valor;
+  }
+  pintarTrilha();
+}
+
+function pintarTrilha(): void {
+  const t = trilha;
+  if (!t) return;
+
+  const seletor = `<div class="vestimentas">
+      <span class="rot">Contexto dos enunciados</span>
+      <div class="opcoes">${VESTIMENTAS.map(
+        (v) =>
+          `<button class="tema${v === t.vestimenta ? " on" : ""}" data-vest="${v}">${v}</button>`,
+      ).join("")}</div>
+      <p class="dim">O conceito é o mesmo em todas — muda a roupa do enunciado, e o
+         seu progresso não se perde ao trocar.</p>
+    </div>`;
+
+  const degraus = t.topicos
+    .map((topico) => {
+      const total = topico.exercicios.length;
+      const feitos = topico.exercicios.filter((e) => t.feito[`${topico.id}/${e.id}`]).length;
+      const aberto = topicoAberto === topico.id;
+      const estado = total === 0 ? "em preparo" : `${feitos}/${total}`;
+
+      return `<div class="degrau${aberto ? " aberto" : ""}">
+        <button class="cab" data-topico="${esc(topico.id)}">
+          <span class="sem">${topico.semana}</span>
+          <span class="tit">${esc(topico.titulo)}</span>
+          <span class="cont${feitos && feitos === total ? " ok" : ""}">${estado}</span>
+        </button>
+        ${aberto ? corpoDoTopico(topico, t) : ""}
+      </div>`;
+    })
+    .join("");
+
+  $("lateral").innerHTML = `<div class="trilha">${seletor}${degraus}</div>`;
+}
+
+function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
+  const exercicios = topico.exercicios.length
+    ? topico.exercicios
+        .map((e) => {
+          const chave = `${topico.id}/${e.id}`;
+          const feito = Boolean(t.feito[chave]);
+          const enunciado = e.enunciados[t.vestimenta] ?? Object.values(e.enunciados)[0] ?? "";
+          return `<div class="ex${feito ? " feito" : ""}">
+            <div class="assinatura">${esc(e.funcao || e.id)}</div>
+            <p>${esc(enunciado)}</p>
+            <div class="acoes">
+              <button data-praticar="${esc(topico.id)}|${esc(e.id)}">${feito ? "abrir" : "praticar"}</button>
+              <button data-verificar="${esc(topico.id)}|${esc(e.id)}">corrigir</button>
+            </div>
+          </div>`;
+        })
+        .join("")
+    : `<p class="preparo">Os exercícios deste tópico ainda não foram escritos.
+         Os conceitos e os recursos já valem — o resto vem.</p>`;
+
+  return `<div class="corpo">
+      <p class="abertura">${esc(topico.abertura)}</p>
+      <span class="rot">Conceitos</span>
+      <ul class="conceitos">${topico.conceitos.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+      <span class="rot">Recursos</span>
+      <ul class="recursos">${topico.recursos
+        .map((r) => `<li><a href="${esc(r.url)}" target="_blank">${esc(r.nome)}</a></li>`)
+        .join("")}</ul>
+      <span class="rot">Exercícios</span>
+      ${exercicios}
+      <p class="entrega">Entrega da semana: ${esc(topico.entrega)}</p>
+    </div>`;
+}
+
+/** Cria (ou reabre) o arquivo do exercício na pasta da corrida e abre no editor. */
+async function praticar(topicoId: string, exercicioId: string): Promise<void> {
+  const t = trilha;
+  const raiz = projeto?.raiz;
+  if (!t) return;
+  if (!raiz) {
+    avisar("abra a pasta da corrida antes — o exercício nasce dentro dela");
+    return;
+  }
+  const topico = t.topicos.find((x) => x.id === topicoId);
+  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
+  if (!topico || !exercicio) return;
+
+  const enunciado = exercicio.enunciados[t.vestimenta] ?? Object.values(exercicio.enunciados)[0] ?? "";
+  const r = await api.trilha.praticar({
+    raizProjeto: raiz,
+    topico: topico.id,
+    exercicio,
+    vestimenta: t.vestimenta,
+    enunciado,
+  });
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  await atualizarArvore();
+  await abrirArquivo(r.valor.caminho);
+  avisar(r.valor.novo ? "exercício criado na pasta da corrida" : "exercício reaberto");
+}
+
+/**
+ * Roda o verificador do exercício.
+ *
+ * Usa o mesmo motor de execução do `Ctrl+Enter` — o resultado aparece no
+ * terminal de sempre, no Python do laboratório. A correção não é uma tela
+ * especial: é o seu código rodando.
+ */
+async function corrigir(topicoId: string, exercicioId: string): Promise<void> {
+  const raiz = projeto?.raiz;
+  if (!raiz) {
+    avisar("abra a pasta da corrida antes");
+    return;
+  }
+  const arquivo = `${raiz}/trilha/${topicoId}_${exercicioId}.py`;
+  const r = await api.trilha.verificar(exercicioId, arquivo);
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+
+  abrirPainel();
+  terminal.comando(projeto?.nome ?? "", `corrigir ${topicoId}/${exercicioId}`);
+  definirRodando(true);
+  mascote.reagir("rodando");
+  corrigindo = `${topicoId}/${exercicioId}`;
+  api.rodar(r.valor.verificador, [r.valor.teste, r.valor.arquivo]);
+}
+
+/** Qual exercício está sendo corrigido agora — para marcar quando passar. */
+let corrigindo: string | null = null;
+
+async function concluirCorrecao(passou: boolean): Promise<void> {
+  const chave = corrigindo;
+  corrigindo = null;
+  if (!chave || !passou) return;
+  const r = await api.trilha.marcar(chave, true);
+  if (r.ok) trilha = r.valor;
+  if (painelLateral === "trilha" && lateralAberta) pintarTrilha();
+  avisar(`exercício ${chave} passou`);
 }
 
 /**
@@ -748,6 +926,11 @@ function desenharCatalogo(): void {
 }
 
 function desenharArvore(): void {
+  // Só pinta se o Explorer for o painel visível. Sem isto, qualquer coisa que
+  // abrisse arquivo — o traceback clicável, o Ctrl+P, o "praticar" da trilha —
+  // jogava a árvore por cima do painel que estava na tela. Apareceu na trilha
+  // porque lá praticar e corrigir são dois cliques seguidos no mesmo painel.
+  if (painelLateral !== "explorer") return;
   const corpo = $("lateral");
   // Sem pasta aberta não há o que criar nem atualizar: o cabeçalho fica vazio.
   $("sideAcoes").innerHTML = projeto ? ACOES_EXPLORER : "";
@@ -1366,6 +1549,8 @@ api.aoExecutar((e) => {
             : `\r\nsaiu com código ${e.codigo}`,
       );
       mascote.reagir(e.codigo === 0 && !e.sinal ? "ok" : "erro");
+      // Se o que rodou era uma correção da trilha, o código de saída é a nota.
+      void concluirCorrecao(e.codigo === 0 && !e.sinal);
       break;
     case "falha":
       definirRodando(false);
@@ -1414,6 +1599,32 @@ $("sideAcoes").addEventListener("click", (ev) => {
 
 $("lateral").addEventListener("click", (ev) => {
   const alvo = ev.target as HTMLElement;
+
+  // trilha (ADR 0015)
+  const vest = alvo.closest<HTMLElement>("[data-vest]");
+  if (vest) {
+    return void api.trilha.vestimenta(vest.dataset["vest"] as Vestimenta).then((r) => {
+      if (r.ok) trilha = r.valor;
+      pintarTrilha();
+    });
+  }
+  const cabecalho = alvo.closest<HTMLElement>("[data-topico]");
+  if (cabecalho) {
+    const id = cabecalho.dataset["topico"]!;
+    topicoAberto = topicoAberto === id ? null : id;
+    pintarTrilha();
+    return;
+  }
+  const pratica = alvo.closest<HTMLElement>("[data-praticar]");
+  if (pratica) {
+    const [t, e] = pratica.dataset["praticar"]!.split("|");
+    return void praticar(t!, e!);
+  }
+  const corrige = alvo.closest<HTMLElement>("[data-verificar]");
+  if (corrige) {
+    const [t, e] = corrige.dataset["verificar"]!.split("|");
+    return void corrigir(t!, e!);
+  }
 
   const recente = alvo.closest<HTMLElement>("[data-recente]");
   if (recente) return void abrirRecente(recente.dataset["recente"]!);

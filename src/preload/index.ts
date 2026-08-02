@@ -8,6 +8,8 @@ import type {
   EstadoDoMascote,
   EstadoFantasma,
   EstadoMascote,
+  EstadoTrilha,
+  ExercicioTrilha,
   EventoExecucao,
   FalaMascote,
   LugarNoCodigo,
@@ -15,6 +17,7 @@ import type {
   ProjetoAberto,
   RespostaMascote,
   Resultado,
+  Vestimenta,
   SugestaoLsp,
   Versoes,
 } from "../shared/tipos.js";
@@ -64,7 +67,8 @@ const api = {
   excluir: (alvo: string): Promise<Resultado<boolean>> =>
     ipcRenderer.invoke("caminho:excluir", alvo),
 
-  rodar: (arquivo: string): void => ipcRenderer.send("exec:rodar", arquivo),
+  rodar: (arquivo: string, extras: string[] = []): void =>
+    ipcRenderer.send("exec:rodar", arquivo, extras),
   parar: (): void => ipcRenderer.send("exec:parar"),
   rodando: (): Promise<boolean> => ipcRenderer.invoke("exec:rodando"),
   aoExecutar: (ouvinte: (e: EventoExecucao) => void): (() => void) => {
@@ -133,6 +137,28 @@ const api = {
     /** Fecha o laço: destila a conversa no perfil. */
     destilar: (falas: FalaMascote[]): Promise<Resultado<boolean>> =>
       ipcRenderer.invoke("memoria:destilar", falas),
+  },
+
+  /** A trilha de estudo (ADR 0015). */
+  trilha: {
+    ler: (): Promise<Resultado<EstadoTrilha>> => ipcRenderer.invoke("trilha:ler"),
+    vestimenta: (v: Vestimenta): Promise<Resultado<EstadoTrilha>> =>
+      ipcRenderer.invoke("trilha:vestimenta", v),
+    marcar: (chave: string, feito: boolean): Promise<Resultado<EstadoTrilha>> =>
+      ipcRenderer.invoke("trilha:marcar", chave, feito),
+    praticar: (entrada: {
+      raizProjeto: string;
+      topico: string;
+      exercicio: ExercicioTrilha;
+      vestimenta: string;
+      enunciado: string;
+    }): Promise<Resultado<{ caminho: string; novo: boolean }>> =>
+      ipcRenderer.invoke("trilha:praticar", entrada),
+    verificar: (
+      exercicio: string,
+      arquivo: string,
+    ): Promise<Resultado<{ verificador: string; teste: string; arquivo: string }>> =>
+      ipcRenderer.invoke("trilha:verificar", exercicio, arquivo),
   },
 
   /** Wallpaper e tema (ADR 0010). A imagem chega em `data:` URL. */
