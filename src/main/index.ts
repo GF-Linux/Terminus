@@ -481,6 +481,15 @@ function registrarPonte(): void {
     ),
   );
   ipcMain.handle(
+    "lsp:resolver",
+    seguro((_e, indice: number) => {
+      if (typeof indice !== "number" || !Number.isInteger(indice) || indice < 0) {
+        throw new Error("Índice de sugestão inválido.");
+      }
+      return servidor?.resolverSugestao(indice) ?? [];
+    }),
+  );
+  ipcMain.handle(
     "lsp:hover",
     seguro((_e, arquivo: string, linha: number, coluna: number) =>
       servidor?.hover(arquivo, linha, coluna) ?? null,

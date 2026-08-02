@@ -92,12 +92,35 @@ export interface AvisoDeArquivo {
   diagnosticos: Diagnostico[];
 }
 
+/** Uma edição fora do ponto do cursor. Linha e coluna 0-based, como no LSP. */
+export interface EdicaoExtra {
+  linhaInicio: number;
+  colunaInicio: number;
+  linhaFim: number;
+  colunaFim: number;
+  texto: string;
+}
+
 export interface SugestaoLsp {
   rotulo: string;
   detalhe: string | null;
   tipo: string;
   documentacao: string | null;
   inserir: string;
+  /**
+   * O `import` que falta, quando a sugestão vem de um módulo ainda não
+   * importado. É o `additionalTextEdits` do LSP.
+   *
+   * Sem aplicar isto, aceitar `gc_fraction` escreve o nome e deixa o arquivo
+   * quebrado — o erro que a pessoa foi resolver continua na tela. O catálogo já
+   * acrescentava o import; o pyright não, e essa era a diferença que fazia a
+   * sugestão do servidor parecer que "não conversava" com o código.
+   */
+  edicoesExtras: EdicaoExtra[];
+  /** Opaco: o pyright devolve isto e pede de volta no `resolve`. */
+  dados: unknown;
+  /** Índice na lista, para pedir o `resolve` do item certo. */
+  indice: number;
 }
 
 /** Onde uma definição mora. Linha e coluna 0-based. */

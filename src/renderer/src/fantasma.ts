@@ -106,6 +106,14 @@ const pedirAoModelo = ViewPlugin.fromClass(
       // Entre o pedido e a resposta o usuário pode ter digitado.
       if (!r.ok || !r.valor || minha !== this.geracao) return;
       if (this.view.state.selection.main.head !== cursor.head) return;
+      // **Confere a caixa de novo, agora.** A conferência lá em cima acontece
+      // antes de perguntar ao modelo, e a resposta demora — nesse meio-tempo a
+      // caixa do pyright, que também é assíncrona, pode ter começado. O
+      // `dispatch` daqui abortava a consulta dela, e o efeito era a caixa
+      // simplesmente **nunca abrir** para o que só o pyright conhece, enquanto
+      // abria normalmente para o catálogo, que responde na hora. Levou a
+      // parecer autocomplete "incompleto"; era corrida.
+      if (completionStatus(this.view.state) !== null) return;
 
       this.view.dispatch({ effects: mostrar.of({ texto: r.valor, em: cursor.head }) });
     }

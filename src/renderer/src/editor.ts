@@ -259,7 +259,19 @@ export class Editor {
           // branco do começo da linha não tem ambiguidade nenhuma: ganha sempre.
           { key: "Tab", run: indentarComoOPythonPede },
           { key: "Tab", run: acceptCompletion },
-          { key: "Tab", run: aceitarFantasma },
+          // **O fantasma saiu do Tab (02/08).** Ele ficava por último na
+          // cascata, o que na teoria era inofensivo. Na prática, sempre que a
+          // caixa não estava aberta — que é a maioria do tempo — o Tab caía
+          // nele. Visto acontecendo: num arquivo `.py`, com `get_cache_to`
+          // escrito, um Tab inseriu uma função inteira em **bash**, e noutra
+          // tentativa uma em **R**.
+          //
+          // O catálogo é verificado e a pessoa escolheu de uma lista; o
+          // fantasma é adivinhado e ninguém pediu. Aceitar coisa adivinhada não
+          // pode morar na mesma tecla que indentar, que é o gesto mais repetido
+          // de quem escreve Python. Agora ele tem tecla própria.
+          { key: "Alt-Enter", run: aceitarFantasma },
+          { key: "Mod-ArrowRight", run: aceitarFantasma },
           // Antes do defaultKeymap, que traz o Enter comum.
           { key: "Enter", run: quebrarLinhaIndentando },
           { key: "Escape", run: dispensarFantasma },

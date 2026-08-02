@@ -13,7 +13,13 @@ import { Aparencia, TEMAS } from "./aparencia.js";
 import { Editor } from "./editor.js";
 import { Mascote } from "./mascote.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
-import { definicaoEm, definirArquivoAtual, iniciarServidor, limparArquivo } from "./servidor.js";
+import {
+  aoImportarDoServidor,
+  definicaoEm,
+  definirArquivoAtual,
+  iniciarServidor,
+  limparArquivo,
+} from "./servidor.js";
 import { TerminalSaida } from "./terminal.js";
 
 /* -------------------------------------------------------------------------
@@ -1999,6 +2005,10 @@ async function iniciar(): Promise<void> {
       $("ambiente").textContent = "sem análise de tipos";
     },
   );
+
+  // O import que o pyright acrescenta é anunciado igual ao do catálogo: nenhuma
+  // edição fora da vista do cursor acontece calada.
+  aoImportarDoServidor((linhas) => avisar(`import acrescentado: ${linhas.join(" · ")}`));
 
   // `bancada ~/corridas/18S` já abre a pasta; sem argumento, volta a última
   // pasta aberta. Os recentes vêm junto para a tela vazia não nascer sem eles.

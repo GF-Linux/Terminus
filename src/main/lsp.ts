@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Diagnostico, LugarNoCodigo, SugestaoLsp } from "../shared/tipos.js";
+import type { Diagnostico, EdicaoExtra, LugarNoCodigo, SugestaoLsp } from "../shared/tipos.js";
 import { acharPython } from "./ambiente.js";
 
 /**
@@ -39,6 +39,8 @@ export class ServidorPython {
   private proximoId = 0;
   private readonly pendentes = new Map<number, Manipulador>();
   private pronto = false;
+  /** A última lista devolvida, guardada inteira para o `completionItem/resolve`. */
+  private ultimaLista: RespostaItem[] = [];
 
   constructor(private readonly op: OpcoesServidor) {}
 
@@ -224,14 +226,40 @@ export class ServidorPython {
     const itens = (Array.isArray(r) ? r : ((r["items"] as unknown[]) ?? [])) as RespostaItem[];
     // Teto de 200: o pyright devolve o módulo inteiro em contextos amplos, e a
     // caixa de sugestão não é lugar para milhares de linhas.
-    return itens.slice(0, 200).map((i) => ({
+    const recorte = itens.slice(0, 200);
+    // Guardado para o `resolve`: o pyright só calcula o `additionalTextEdits`
+    // quando perguntado, e perguntar por 200 itens de uma vez seria trabalho
+    // jogado fora — quase todos nunca serão aceitos.
+    this.ultimaLista = recorte;
+    return recorte.map((i, indice) => ({
       rotulo: i.label,
       detalhe: i.detail ?? null,
       tipo: TIPOS[i.kind ?? 0] ?? "variable",
       documentacao:
         typeof i.documentation === "string" ? i.documentation : (i.documentation?.value ?? null),
       inserir: i.insertText ?? i.textEdit?.newText ?? i.label,
+      edicoesExtras: converterEdicoes(i.additionalTextEdits),
+      dados: i.data ?? null,
+      indice,
     }));
+  }
+
+  /**
+   * Pergunta ao pyright o que falta para esta sugestão específica.
+   *
+   * O protocolo permite devolver a lista sem `additionalTextEdits` e só
+   * calculá-los no `resolve`. É o que o pyright faz com o import automático —
+   * por isso a lista inicial quase sempre vem sem ele, e só perguntar de novo,
+   * na hora de aceitar, traz a linha do `import`.
+   */
+  async resolverSugestao(indice: number): Promise<EdicaoExtra[]> {
+    if (!this.pronto) return [];
+    const original = this.ultimaLista[indice];
+    if (!original) return [];
+    const r = await this.pedir("completionItem/resolve", original);
+    if (!r) return converterEdicoes(original.additionalTextEdits);
+    const resolvido = r as unknown as RespostaItem;
+    return converterEdicoes(resolvido.additionalTextEdits ?? original.additionalTextEdits);
   }
 
   async hover(arquivo: string, linha: number, coluna: number): Promise<string | null> {
@@ -280,6 +308,11 @@ interface RespostaDiagnostico {
   code?: string | number;
 }
 
+interface FaixaLsp {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+}
+
 interface RespostaItem {
   label: string;
   kind?: number;
@@ -287,6 +320,22 @@ interface RespostaItem {
   documentation?: string | { value: string };
   insertText?: string;
   textEdit?: { newText: string };
+  /** Onde o pyright põe o `import` que falta. */
+  additionalTextEdits?: { range: FaixaLsp; newText: string }[];
+  /** Opaco: volta inalterado no `completionItem/resolve`. */
+  data?: unknown;
+}
+
+function converterEdicoes(
+  edicoes: { range: FaixaLsp; newText: string }[] | undefined,
+): EdicaoExtra[] {
+  return (edicoes ?? []).map((e) => ({
+    linhaInicio: e.range.start.line,
+    colunaInicio: e.range.start.character,
+    linhaFim: e.range.end.line,
+    colunaFim: e.range.end.character,
+    texto: e.newText,
+  }));
 }
 
 const GRAVIDADE = ["error", "error", "warning", "info", "hint"] as const;

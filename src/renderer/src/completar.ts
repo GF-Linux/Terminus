@@ -186,10 +186,49 @@ function aplicar(p: Preparada, aoImportar: (linhas: string[]) => void) {
 /** Identificador com pontos imediatamente antes do cursor. */
 const ALVO = /[A-Za-z_][\w.]*$/;
 
+/** Mínimo de letras antes de a caixa aparecer sozinha. */
+const MINIMO = 2;
+
+/**
+ * Onde sugerir é atrapalhar.
+ *
+ * Dentro de texto entre aspas e de comentário não se escreve código, e a caixa
+ * ali só rouba o `Tab` e cobre o que a pessoa está lendo. Depois de `def` ou
+ * `class` quem escreve está **batizando** algo — nenhuma sugestão pode saber o
+ * nome que ela escolheu, e oferecer lista nesse ponto é o caso mais puro de
+ * "sugestão que não conversa com o código".
+ */
+export function lugarDeSugerir(ctx: CompletionContext): boolean {
+  const linha = ctx.state.doc.lineAt(ctx.pos);
+  const ate = linha.text.slice(0, ctx.pos - linha.from);
+
+  // Batizando um `def`/`class`: nenhuma lista sabe o nome que a pessoa escolheu.
+  if (/\b(def|class)\s+\w*$/.test(ate)) return false;
+
+  // Comentário e texto entre aspas, medidos **na linha**, sem consultar a
+  // árvore sintática. Enquanto se digita, a árvore vem incompleta e chegou a
+  // responder "estou numa string" para código comum — o que calava a caixa a
+  // esmo e foi visto acontecendo com `get_cache_to`. Varrer a linha é bobo,
+  // mas é determinístico, e o caso que interessa (`#` e aspas) é local.
+  let aspa: string | null = null;
+  for (let i = 0; i < ate.length; i++) {
+    const ch = ate[i]!;
+    if (aspa) {
+      if (ch === "\\") i++;
+      else if (ch === aspa) aspa = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") aspa = ch;
+    else if (ch === "#") return false;
+  }
+  return aspa === null;
+}
+
 export function fonteDoCatalogo(aoImportar: (linhas: string[]) => void) {
   return (ctx: CompletionContext): CompletionResult | null => {
     const antes = ctx.matchBefore(ALVO);
     if (!antes || (antes.from === antes.to && !ctx.explicit)) return null;
+    if (!ctx.explicit && !lugarDeSugerir(ctx)) return null;
 
     const digitado = antes.text;
     const itens = preparar();
@@ -197,12 +236,24 @@ export function fonteDoCatalogo(aoImportar: (linhas: string[]) => void) {
 
     const ponto = digitado.lastIndexOf(".");
     const prefixo = ponto >= 0 ? digitado.slice(0, ponto) : null;
+    const parcial = (ponto >= 0 ? digitado.slice(ponto + 1) : digitado).toLowerCase();
+
+    // Uma letra só casa com meio catálogo, e a caixa vira ruído em cima de quem
+    // ainda está formando a palavra. Com `Ctrl+Espaço` a lista aparece assim
+    // mesmo — pedir explicitamente é outra intenção.
+    if (prefixo === null && parcial.length < MINIMO && !ctx.explicit) return null;
 
     const opcoes: Completion[] = [];
     for (const p of itens) {
       // Depois de um ponto, só interessa o que pertence àquele objeto —
       // `SeqIO.` não deve oferecer `gc_fraction`.
       if (prefixo !== null && !p.chamada.startsWith(`${prefixo}.`)) continue;
+
+      // **Começa com**, e não casamento difuso. O filtro difuso do CodeMirror
+      // aceita letras salteadas, e era ele que trazia entrada do catálogo para
+      // cima de coisa que nada tinha a ver com o que estava escrito. O catálogo
+      // é curadoria: quando ele aparece, tem de ser porque casa de verdade.
+      if (parcial && !p.folha.toLowerCase().startsWith(parcial)) continue;
 
       opcoes.push({
         label: prefixo !== null ? p.chamada : p.folha,
