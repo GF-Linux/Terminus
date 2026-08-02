@@ -22,6 +22,10 @@ Conjunto responde outra pergunta, a de "quais são os diferentes aqui".
 função: contar(itens)
 o que faz: devolve um dicionário com quantas vezes cada item aparece
 
+### neutro
+Devolva um dicionário com quantas vezes cada item aparece. Use `.get(item, 0)`
+para somar sem precisar saber de antemão o que vai aparecer.
+
 ### sequências
 Dada uma sequência como lista de bases, devolva `{'A': 3, 'C': 2, ...}`. Use
 `.get(base, 0)` para somar sem precisar saber de antemão quais bases existem — é
@@ -47,6 +51,10 @@ contagem.
 função: tamanhos(registros)
 o que faz: recebe um dicionário {nome: lista} e devolve {nome: quantidade de itens}
 
+### neutro
+Recebe `{nome: lista}` e devolve `{nome: quantos itens}`. Percorra com
+`.items()` e monte um dicionário novo, sem alterar o que entrou.
+
 ### sequências
 Você tem `{'BR-01': ['A','C','G'], 'BR-02': [...]}` e quer o comprimento de cada
 sequência sem imprimir uma por uma. Percorra com `.items()` e monte um
@@ -70,6 +78,10 @@ monte um dicionário novo.
 ## exercício fora_da_lista
 função: fora_da_lista(itens, permitidos)
 o que faz: devolve um conjunto (set) com os itens que não estão em `permitidos`
+
+### neutro
+Devolva um conjunto com os itens que não estão na lista de permitidos.
+Conjunto, e não lista: o mesmo item errado dez vezes é um problema só.
 
 ### sequências
 Antes de analisar, confira: a sequência tem alguma letra que não seja A, C, G ou

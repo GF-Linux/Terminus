@@ -563,12 +563,30 @@ let topicoAberto: string | null = null;
  * último degrau em vez de escondido (ADR 0017).
  */
 const FASES = [
-  { id: "fase1", nome: "Python" },
-  { id: "fase2", nome: "Backend" },
+  {
+    id: "fase1",
+    nome: "Python",
+    // O que fazer nesta fase, escrito no painel. Sem isto a tela oferece botões
+    // sem dizer qual é o gesto — foi o que confundiu o autor no primeiro uso.
+    comoUsar:
+      "Abra um tópico, clique em <b>praticar</b> (cria o arquivo na pasta da corrida " +
+      "e abre no editor), escreva a função e clique em <b>corrigir</b> — a Bancada roda " +
+      "o seu código e diz o que falta.",
+  },
+  {
+    id: "fase2",
+    nome: "Backend",
+    comoUsar:
+      "Esta fase é <b>mapa, não exercício</b>: cada semana traz os conceitos e os links " +
+      "para estudar. Não há o que executar aqui ainda — os exercícios da Fase 2 são de " +
+      "outra natureza (buscar numa API de verdade, consultar um banco) e estão por escrever.",
+  },
 ] as const;
 let faseAtual = "fase1";
 
-const VESTIMENTAS: Vestimenta[] = ["sequências", "clínica", "campo", "laboratório"];
+/** "neutro" primeiro e como padrão: é a resposta para quem só quer o exercício,
+ *  sem história nenhuma em volta. As outras quatro são a mesma coisa vestida. */
+const VESTIMENTAS: Vestimenta[] = ["neutro", "sequências", "clínica", "campo", "laboratório"];
 
 /** "hoje", "ontem", "há 12 dias" — a distância que importa é a do calendário. */
 function desdeQuando(iso: string): string {
@@ -626,10 +644,12 @@ function pintarTrilha(): void {
   const t = trilha;
   if (!t) return;
 
-  const fases = `<div class="fases">${FASES.map(
-    (f) =>
-      `<button class="tema${f.id === faseAtual ? " on" : ""}" data-fase="${f.id}">${f.nome}</button>`,
-  ).join("")}</div>`;
+  const fase = FASES.find((f) => f.id === faseAtual) ?? FASES[0];
+  const fases =
+    `<div class="fases">${FASES.map(
+      (f) =>
+        `<button class="tema${f.id === faseAtual ? " on" : ""}" data-fase="${f.id}">${f.nome}</button>`,
+    ).join("")}</div>` + `<p class="comoUsar">${fase.comoUsar}</p>`;
 
   const seletor = `<div class="vestimentas">
       <span class="rot">Contexto dos enunciados</span>
@@ -637,8 +657,10 @@ function pintarTrilha(): void {
         (v) =>
           `<button class="tema${v === t.vestimenta ? " on" : ""}" data-vest="${v}">${v}</button>`,
       ).join("")}</div>
-      <p class="dim">O conceito é o mesmo em todas — muda a roupa do enunciado, e o
-         seu progresso não se perde ao trocar.</p>
+      <p class="dim"><b>Tanto faz qual.</b> O exercício, a correção e o seu progresso
+         são os mesmos nas cinco — muda só a história do enunciado. Em dúvida, fique
+         no <b>neutro</b>. Trocar depois é de graça, e refazer numa roupa nova é o
+         jeito de repetir sem repetir.</p>
     </div>`;
 
   const degraus = t.topicos
@@ -646,7 +668,7 @@ function pintarTrilha(): void {
       const total = topico.exercicios.length;
       const feitos = topico.exercicios.filter((e) => t.feito[`${topico.id}/${e.id}`]).length;
       const aberto = topicoAberto === topico.id;
-      const estado = total === 0 ? "em preparo" : `${feitos}/${total}`;
+      const estado = total === 0 ? (faseAtual === "fase2" ? "ler" : "em preparo") : `${feitos}/${total}`;
 
       return `<div class="degrau${aberto ? " aberto" : ""}">
         <button class="cab" data-topico="${esc(topico.id)}">
@@ -659,7 +681,11 @@ function pintarTrilha(): void {
     })
     .join("");
 
-  $("lateral").innerHTML = `<div class="trilha">${fases}${seletor}${sugestaoDeRevisita(t)}${degraus}</div>`;
+  // O seletor de roupa some onde não há enunciado para vestir.
+  const temExercicio = t.topicos.some((x) => x.exercicios.length > 0);
+  $("lateral").innerHTML =
+    `<div class="trilha">${fases}${temExercicio ? seletor : ""}` +
+    `${sugestaoDeRevisita(t)}${degraus}</div>`;
 }
 
 function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
@@ -685,8 +711,11 @@ function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
           </div>`;
         })
         .join("")
-    : `<p class="preparo">Os exercícios deste tópico ainda não foram escritos.
-         Os conceitos e os recursos já valem — o resto vem.</p>`;
+    : faseAtual === "fase2"
+      ? `<p class="preparo">Semana de leitura: siga os links dos recursos. Quando um
+           projeto seu esbarrar nestes conceitos, eles deixam de ser teoria.</p>`
+      : `<p class="preparo">Os exercícios deste tópico ainda não foram escritos.
+           Os conceitos e os recursos já valem — o resto vem.</p>`;
 
   return `<div class="corpo">
       <p class="abertura">${esc(topico.abertura)}</p>

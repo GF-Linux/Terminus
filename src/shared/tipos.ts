@@ -143,7 +143,7 @@ export interface ConfigFantasma {
 /* -------------------------------- trilha ---------------------------------- */
 
 /** A roupa do enunciado. O conceito é o mesmo em todas (ADR 0015). */
-export type Vestimenta = "sequências" | "clínica" | "campo" | "laboratório";
+export type Vestimenta = "neutro" | "sequências" | "clínica" | "campo" | "laboratório";
 
 export interface ExercicioTrilha {
   id: string;

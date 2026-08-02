@@ -22,6 +22,10 @@ equipamento.
 função: ler_limpo(caminho)
 o que faz: abre o arquivo, devolve o conteúdo como texto sem espaços nem quebras de linha nas pontas
 
+### neutro
+Abra o arquivo e devolva o conteúdo como texto, sem espaços nem quebra de linha
+nas pontas. Use `with open(...)`, que fecha mesmo se der erro no meio.
+
 ### sequências
 Abra um arquivo com uma sequência dentro e devolva o texto limpo. A quebra de
 linha do fim do arquivo é invisível na tela e estraga qualquer comparação
@@ -49,6 +53,10 @@ meio.
 função: contar_rapido(itens)
 o que faz: devolve um dicionário com a contagem de cada item, usando `Counter` de `collections`
 
+### neutro
+Refaça o contador do Tópico 2 em uma linha, com `Counter` de `collections`.
+Devolva um dicionário de verdade: `dict(Counter(itens))`.
+
 ### sequências
 Refaça o contador do Tópico 2 em uma linha, com `from collections import
 Counter`. Compare com o seu: o resultado é o mesmo, e a biblioteca padrão já
@@ -72,6 +80,10 @@ o resultado é o mesmo, e a biblioteca padrão já tinha isso pronto. Devolva um
 ## exercício juntar
 função: juntar(caminho)
 o que faz: lê o arquivo e devolve uma string com todas as linhas emendadas, ignorando as vazias
+
+### neutro
+Leia o arquivo e devolva uma string com todas as linhas emendadas, ignorando as
+vazias.
 
 ### sequências
 Sequência em arquivo vem quebrada em várias linhas de 60 ou 70 caracteres — é o
