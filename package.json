@@ -3,7 +3,7 @@
   "productName": "Bancada",
   "description": "Ambiente de análise para quem é alfabetizado em Python e trabalha com dado biológico.",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "author": "Gustavo Freitas",
   "main": "./out/main/index.js",
