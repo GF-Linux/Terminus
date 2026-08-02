@@ -442,10 +442,9 @@ Corrigir de fato exige trazer os `.woff2` reais dos pesos 500 e 600.
   `resultado.xml`, `amostra.ab1`) que não existem no repo, então não rodam como
   estão. Ficheiros FASTA/XML sintéticos resolveriam a maioria. Para `.ab1`,
   **não usar** os 36 arquivos reais do LHV — são dados não publicados.
-- **Licença e nome não decididos.** `package.json` está como `UNLICENSED` por ora;
-  "Bancada" segue sendo sugestão. Distribuição por Open VSX **deixou de se aplicar**
-  com a virada para aplicação própria (ADR 0003) — não há mais marketplace no
-  caminho, e como distribuir passou a ser pergunta aberta.
+- **Como distribuir segue em aberto.** Open VSX **deixou de se aplicar** com a
+  virada para aplicação própria (ADR 0003) — não há mais marketplace no caminho.
+  A licença, essa sim, está decidida: ver abaixo.
 - **Sem empacotamento.** Não há `electron-builder` nem AppImage: hoje só roda a
   partir do repo.
 - **Sem testes automatizados do lado TypeScript.** A fatia atual foi verificada
@@ -511,3 +510,18 @@ Em `legado-extensao/`: o `package.json` de extensão e o `extension.ts` de antes
 mudança de rumo. Não compilam mais e não fazem parte do build — ficam como
 registro. O que sobreviveu sem alteração é o que importa: o catálogo gerado e as
 duas ferramentas de verificação, que nunca dependeram da casca.
+
+## Licença
+
+**PolyForm Noncommercial 1.0.0** — texto integral em [`LICENSE`](LICENSE).
+
+Uso não comercial é livre: universidade, instituto de pesquisa, órgão público,
+ensino, estudo pessoal, projeto de hobby. **Uso comercial exige licença
+separada** — contato em `LICENSE`.
+
+É a mesma escolha feita no DNA Contingency, e pelo mesmo motivo: a ferramenta
+nasceu para o laboratório público e deve continuar chegando de graça a quem
+trabalha como ele, sem virar insumo gratuito de produto pago.
+
+As bibliotecas de terceiros (Electron, CodeMirror 6, xterm.js, pyright) mantêm
+cada uma a sua licença própria; esta cobre apenas o código da Bancada.
