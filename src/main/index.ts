@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
-import { rmSync, statSync } from "node:fs";
+import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -27,6 +27,7 @@ import {
   ligarMascote,
   nomearMascote,
   pastasRecentes,
+  PASTA_FERN,
   registrarPasta,
   salvarFantasma,
   ultimaPasta,
@@ -250,6 +251,77 @@ function criarJanela(): void {
   }
 }
 
+/**
+ * As raízes que o processo principal aceita **escrever**: a pasta que o usuário
+ * abriu e a memória do mascote, que a ADR 0009 manda ser editável no editor de
+ * sempre, com `Ctrl+S` valendo como em qualquer arquivo.
+ *
+ * A instalação da Bancada fica de fora — o app não edita o próprio código.
+ *
+ * Todas são registradas **aqui**, nunca recebidas de quem chama. É essa a
+ * diferença para o `dentroDe` de `projeto.ts`, que confia na raiz que o
+ * chamador passa junto — quem controla o argumento controla a checagem.
+ */
+function raizesDeEscrita(): string[] {
+  const raizes = [path.resolve(PASTA_FERN)];
+  if (raizAberta) raizes.push(path.resolve(raizAberta));
+  return raizes;
+}
+
+/**
+ * As raízes de onde se pode **executar**: a pasta aberta e a instalação da
+ * Bancada, de onde saem o `verificar.py` e os testes da trilha.
+ */
+function raizesDeExecucao(): string[] {
+  const raizes = [path.resolve(RAIZ_APP)];
+  if (raizAberta) raizes.push(path.resolve(raizAberta));
+  return raizes;
+}
+
+/**
+ * O arquivo que guarda a chave da DeepSeek. Nunca abre no editor: é o único
+ * segredo que a Bancada tem, e `.json` está na lista de extensões de texto.
+ * A tela de Configurações continua sendo o caminho para mexer nele.
+ */
+const SEGREDO = path.join(PASTA_FERN, "..", "config.json");
+
+/**
+ * Resolve o caminho e exige que ele caia dentro de uma das raízes dadas.
+ * Devolve o caminho já resolvido — use o retorno, não o argumento original, ou
+ * a checagem não serve de nada.
+ *
+ * Os links simbólicos são resolvidos de propósito: sem isso, uma pasta de
+ * corrida que traga `resultados.csv` apontando para `~/.bashrc` passaria na
+ * comparação de texto e escreveria fora do projeto. Quando o arquivo ainda não
+ * existe — gravar cria — resolve-se o diretório pai, que tem de existir.
+ */
+function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
+  if (typeof alvo !== "string" || alvo.length === 0 || alvo.includes("\0")) {
+    throw new Error(`O ${oQue} não é válido.`);
+  }
+  // Recusado antes de resolver, e não depois: `path.resolve("-c")` devolve
+  // `<pasta atual>/-c`, que cai dentro de uma raiz permitida e passaria na
+  // conferência. Um caminho que comece com traço vira opção do programa que o
+  // recebe — a Bancada não precisa de nenhum e não abre essa porta.
+  if (alvo.startsWith("-")) throw new Error(`O ${oQue} não pode começar com "-".`);
+  const abs = path.resolve(alvo);
+  let real: string;
+  try {
+    real = existsSync(abs)
+      ? realpathSync(abs)
+      : path.join(realpathSync(path.dirname(abs)), path.basename(abs));
+  } catch {
+    throw new Error(`${path.basename(abs)}: a pasta de destino não existe.`);
+  }
+  for (const raiz of raizes) {
+    const rel = path.relative(raiz, real);
+    if (rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel))) return real;
+  }
+  throw new Error(
+    `"${path.basename(abs)}" está fora da pasta aberta — a Bancada não mexe em arquivo de fora.`,
+  );
+}
+
 /** Embrulha um handler para que uma exceção vire erro exibível, não uma
  *  promessa rejeitada silenciosa do outro lado da ponte. */
 function seguro<A extends unknown[], T>(
@@ -314,12 +386,25 @@ function registrarPonte(): void {
   ipcMain.handle(
     "arquivo:ler",
     seguro((_e, arquivo: string) => {
-      if (!ehTexto(arquivo)) {
+      // Ler **não** é confinado à pasta aberta, e é de propósito: o traceback
+      // clicável abre o quadro dentro da biblioteca, o `F12` vai à definição no
+      // site-packages e a auditoria da memória do mascote abre o `.md` em
+      // `~/.config/bancada/fern` (ADR 0009). Fechar aqui quebraria os três.
+      // O que se protege é o único segredo que existe.
+      if (typeof arquivo !== "string" || arquivo.length === 0 || arquivo.includes("\0")) {
+        throw new Error("O arquivo não é válido.");
+      }
+      const abs = path.resolve(arquivo);
+      const alvo = existsSync(abs) ? realpathSync(abs) : abs;
+      if (alvo === path.resolve(SEGREDO)) {
         throw new Error(
-          `${path.basename(arquivo)} não é arquivo de texto — a Bancada não sabe abrir.`,
+          "config.json guarda a chave da API — use a tela de Configurações, não o editor.",
         );
       }
-      return lerArquivo(arquivo);
+      if (!ehTexto(alvo)) {
+        throw new Error(`${path.basename(alvo)} não é arquivo de texto — a Bancada não sabe abrir.`);
+      }
+      return lerArquivo(alvo);
     }),
   );
 
@@ -330,7 +415,10 @@ function registrarPonte(): void {
 
   ipcMain.handle(
     "arquivo:gravar",
-    seguro((_e, arquivo: string, conteudo: string) => gravarArquivo(arquivo, conteudo)),
+    seguro((_e, arquivo: string, conteudo: string) => {
+      if (typeof conteudo !== "string") throw new Error("Conteúdo inválido.");
+      return gravarArquivo(confinado(arquivo, raizesDeEscrita(), "arquivo"), conteudo);
+    }),
   );
 
   ipcMain.handle(
@@ -558,7 +646,28 @@ function registrarPonte(): void {
 
   ipcMain.handle("exec:rodando", () => estaRodando());
   ipcMain.on("exec:rodar", (e, arquivo: string, extras: string[] = []) => {
-    rodarScript(arquivo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento), extras);
+    // O `arquivo` vira o `argv[1]` do interpretador, então um valor como `-c`
+    // deixa de ser caminho e vira opção: `python -u -c <extras[0]>` executa a
+    // linha que vier. `shell: false` não protege disto — a injeção é no
+    // interpretador, não no shell. Daí a checagem ser aqui e não só no spawn.
+    try {
+      const alvo = confinado(arquivo, raizesDeExecucao(), "script");
+      if (path.extname(alvo).toLowerCase() !== ".py") {
+        throw new Error(`${path.basename(alvo)} não é um script Python.`);
+      }
+      if (!Array.isArray(extras)) throw new Error("Argumentos inválidos.");
+      // Hoje os únicos `extras` legítimos são os dois caminhos que a trilha
+      // passa ao verificador. Confinar cada um mantém a porta do tamanho do que
+      // realmente passa por ela.
+      const args = extras.map((x) => confinado(x, raizesDeExecucao(), "argumento"));
+      rodarScript(alvo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento), args);
+    } catch (err) {
+      const evento: EventoExecucao = {
+        tipo: "falha",
+        mensagem: err instanceof Error ? err.message : String(err),
+      };
+      e.sender.send("exec:evento", evento);
+    }
   });
   ipcMain.on("exec:parar", () => pararScript());
 
