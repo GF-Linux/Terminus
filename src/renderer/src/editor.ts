@@ -27,6 +27,7 @@ import {
 } from "@codemirror/view";
 import { comentariosMarcados } from "./comentarios.js";
 import { fonteDoCatalogo } from "./completar.js";
+import { guiasDeIndentacao } from "./guias.js";
 import { aceitarFantasma, dispensarFantasma, textoFantasma } from "./fantasma.js";
 import {
   diagnosticosDoArquivo,
@@ -75,6 +76,76 @@ export interface OpcoesEditor {
  * da cascata assume. Tab apertado de novo numa linha já correta soma um nível,
  * para continuar sendo possível aninhar de propósito.
  */
+/**
+ * A coluna que o Python espera para a linha `numero`.
+ *
+ * Duas fontes, e fica a maior. O `getIndentation` do CodeMirror sabe o bloco,
+ * mas numa linha ainda vazia ele devolve o nível do bloco que ABRE, não o do
+ * corpo: depois de `if False:` indentado em 4, ele responde 4, e o certo é 8.
+ * Os dois pontos no fim da linha anterior são o sinal mais forte que o Python
+ * tem, e resolvem esse caso em um toque só.
+ *
+ * As palavras que encerram o fluxo — `return`, `pass`, `raise`, `break`,
+ * `continue` — puxam um nível **para trás**: depois delas o bloco acabou, e
+ * quem escreve quase nunca quer continuar dentro dele. É o que o VS Code faz, e
+ * é o tipo de coisa que quem não é da área não deveria precisar saber.
+ */
+const ENCERRA = /^\s*(return\b|pass\b|raise\b|break\b|continue\b)/;
+
+function nivelQueOPythonPede(state: EditorState, numero: number, largura: number): number {
+  const linha = state.doc.line(numero);
+  const doBloco = getIndentation(state, linha.from) ?? 0;
+  let doDoisPontos = 0;
+  for (let n = numero - 1; n >= 1; n--) {
+    const anterior = state.doc.line(n);
+    if (!anterior.text.trim()) continue;
+    const recuo = (/^[ \t]*/.exec(anterior.text)?.[0] ?? "").length;
+    if (anterior.text.trimEnd().endsWith(":")) doDoisPontos = recuo + largura;
+    else if (ENCERRA.test(anterior.text)) doDoisPontos = Math.max(0, recuo - largura);
+    else doDoisPontos = recuo;
+    break;
+  }
+  return Math.max(doBloco, doDoisPontos);
+}
+
+/**
+ * `Enter` que já entrega a linha nova no lugar certo.
+ *
+ * Sem isto, escrever `def f():` e apertar Enter deixa o cursor na coluna 1 e a
+ * pessoa tem de saber que agora precisa indentar. Esse é exatamente o
+ * conhecimento que a ferramenta existe para não exigir.
+ *
+ * Fica **fora** da caixa de sugestões de propósito: Enter aqui é sempre quebrar
+ * linha, nunca aceitar (quem aceita é o Tab).
+ */
+function quebrarLinhaIndentando(view: EditorView): boolean {
+  const { state } = view;
+  const cursor = state.selection.main;
+  if (!cursor.empty) return false;
+
+  const linha = state.doc.lineAt(cursor.head);
+  // No meio do texto o Enter parte a linha; recuar o pedaço da direita seria
+  // reescrever o que a pessoa não mandou mexer.
+  if (cursor.head < linha.to) return false;
+
+  const largura = state.facet(indentUnit).length || 4;
+  const atual = (/^[ \t]*/.exec(linha.text)?.[0] ?? "").length;
+  const texto = linha.text.trimEnd();
+
+  let alvo = atual;
+  if (texto.endsWith(":")) alvo = atual + largura;
+  else if (ENCERRA.test(linha.text)) alvo = Math.max(0, atual - largura);
+
+  const recuo = indentString(state, alvo);
+  view.dispatch({
+    changes: { from: cursor.head, to: cursor.head, insert: `\n${recuo}` },
+    selection: { anchor: cursor.head + 1 + recuo.length },
+    scrollIntoView: true,
+    userEvent: "input",
+  });
+  return true;
+}
+
 function indentarComoOPythonPede(view: EditorView): boolean {
   const { state } = view;
   const cursor = state.selection.main;
@@ -86,23 +157,7 @@ function indentarComoOPythonPede(view: EditorView): boolean {
   if (cursor.head > linha.from + branco.length) return false;
 
   const largura = state.facet(indentUnit).length || 4;
-
-  // Duas fontes, e fica a maior. O `getIndentation` do CodeMirror sabe o bloco,
-  // mas numa linha ainda vazia ele devolve o nível do bloco que ABRE, não o do
-  // corpo: depois de `if False:` indentado em 4, ele responde 4, e o certo é 8.
-  // Os dois pontos no fim da linha anterior são o sinal mais forte que o Python
-  // tem, e resolvem esse caso em um toque só.
-  const doBloco = getIndentation(state, linha.from) ?? 0;
-  let doDoisPontos = 0;
-  for (let n = linha.number - 1; n >= 1; n--) {
-    const anterior = state.doc.line(n);
-    if (!anterior.text.trim()) continue;
-    const recuo = (/^[ \t]*/.exec(anterior.text)?.[0] ?? "").length;
-    doDoisPontos = anterior.text.trimEnd().endsWith(":") ? recuo + largura : recuo;
-    break;
-  }
-
-  const certo = Math.max(doBloco, doDoisPontos);
+  const certo = nivelQueOPythonPede(state, linha.number, largura);
   // Já está no nível certo? Então o Tab é para aninhar de propósito.
   const alvo = certo > branco.length ? certo : branco.length + largura;
   const texto = indentString(state, alvo);
@@ -140,6 +195,8 @@ export class Editor {
         // a barra de estado anuncia.
         indentUnit.of("    "),
         EditorState.tabSize.of(4),
+        // No Python a indentação é sintaxe, não estilo — e espaço não se vê.
+        guiasDeIndentacao(),
         linguagem.of(python()),
         temaCursor,
         realceCursor,
@@ -188,13 +245,23 @@ export class Editor {
           //  3. texto fantasma na tela — sugestão adivinhada, aceita por Tab;
           //  4. o resto: indentar/desindentar como em qualquer editor.
           //
-          // A regra 2 nasceu de um relato: com o fantasma na tela, apertar Tab
+          // A regra 1 nasceu de um relato: com o fantasma na tela, apertar Tab
           // para indentar inseria a sugestão do modelo. Indentação quebra
           // Python; sugestão errada só atrapalha. Quem está no branco do começo
           // da linha está indentando.
-          { key: "Tab", run: acceptCompletion },
+          //
+          // **A indentação vem primeiro de tudo, e isso é correção de 02/08.**
+          // A ADR 0018 escreveu essa regra mas só a aplicou ao fantasma: a caixa
+          // do catálogo continuava na frente, então com ela aberta o Tab no
+          // começo da linha aceitava a sugestão em vez de indentar. Quem usou
+          // relatou como "o Tab parou de funcionar e voltou o problema antigo",
+          // e reiniciar "consertava" — porque fechava a caixa. Indentar no
+          // branco do começo da linha não tem ambiguidade nenhuma: ganha sempre.
           { key: "Tab", run: indentarComoOPythonPede },
+          { key: "Tab", run: acceptCompletion },
           { key: "Tab", run: aceitarFantasma },
+          // Antes do defaultKeymap, que traz o Enter comum.
+          { key: "Enter", run: quebrarLinhaIndentando },
           { key: "Escape", run: dispensarFantasma },
           { key: "ArrowDown", run: moveCompletionSelection(true) },
           { key: "ArrowUp", run: moveCompletionSelection(false) },
