@@ -40,7 +40,12 @@ export function rodarScript(
   const python = acharPython();
   let filho: ChildProcessWithoutNullStreams;
   try {
-    filho = spawn(python, ["-u", arquivo, ...extras], {
+    // O `--` fecha a lista de opções do interpretador: o que vier depois é
+    // caminho de script, nunca opção. Sem ele, um `arquivo` valendo `-c` faria
+    // `python -u -c <extras[0]>` executar a linha recebida. O chamador já
+    // confina e recusa traço (`confinado`, em index.ts); isto é a segunda
+    // tranca, na porta onde o processo é de fato criado.
+    filho = spawn(python, ["-u", "--", arquivo, ...extras], {
       cwd: path.dirname(arquivo),
       // Sem shell: o caminho do arquivo vai como argumento, não interpolado em
       // linha de comando. Nome de arquivo com espaço ou aspas não vira comando.
