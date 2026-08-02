@@ -44,12 +44,13 @@ arquivos. O esqueleto da extensão do VSCodium está preservado em
 |---|---|
 | `Ctrl+P` | abrir arquivo por nome (casa por subsequência: `mgc` → `medir_gc.py`) |
 | `Ctrl+Espaço` | sugerir (catálogo do Biopython + pyright) |
-| `Tab` | **indentar** quando o cursor está no branco do começo da linha; aceitar a sugestão quando não está |
+| `Tab` | **indentar** quando o cursor está no branco do começo da linha; aceitar a sugestão da caixa quando não está |
 | `Shift+Tab` | tirar um nível de indentação |
 | `F12` | ir para a definição |
 | `Ctrl+N` | novo arquivo, já com `.py` preenchido |
 | `Ctrl+S` | gravar |
 | `Ctrl+Enter` | grava e executa o script aberto |
+| `Alt+Enter` ou `Ctrl+→` | aceitar a sugestão do texto fantasma (IA) |
 | `Ctrl+W` | fechar aba (a do cromatograma quando a mão está no painel de baixo) |
 | ``Ctrl+` `` | abrir/fechar o terminal (coluna da direita) |
 | `Ctrl+B` | abrir/fechar a lateral — clicar no ícone já selecionado faz o mesmo |
@@ -96,11 +97,11 @@ Sem o servidor o editor continua inteiro; só perde os avisos.
 
 ## Texto fantasma (opcional, e sai da máquina)
 
-Sugestão de código por IA em cinza à frente do cursor; `Tab` aceita **quando o
-cursor não está na indentação** (ver a tabela de atalhos), `Esc`
-dispensa. Usa **FIM** (fill-in-the-middle) — manda o que vem antes e o que vem
-depois do cursor —, então a sugestão encaixa no meio de uma linha em vez de só
-continuar o arquivo.
+Sugestão de código por IA em cinza à frente do cursor; **`Alt+Enter`** (ou
+`Ctrl+→`) aceita, `Esc` dispensa. Dois motores possíveis: a **DeepSeek** por
+**FIM** (fill-in-the-middle) — manda o que vem antes e o que vem depois do
+cursor, então a sugestão encaixa no meio de uma linha — ou o **GitHub Copilot**,
+descrito no fim desta seção.
 
 **Este é o único recurso que envia código para fora.** O trecho em volta do
 cursor vai para o modelo. O painel *Configurações* diz isso na cara, tem
@@ -116,11 +117,43 @@ Bancada passa a ter cópia própria: desinstalar o Twinny não a quebra. A leitu
 do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
 
 O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
-fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
+fantasma é adivinhado, e as duas coisas não podem disputar a mesma tecla.
 
-E a indentação ganha do fantasma: com o cursor no branco do começo da linha,
-`Tab` indenta — sempre. Indentação errada quebra o Python; sugestão recusada só
-custa um `Esc`.
+**O fantasma tem tecla própria: `Alt+Enter` (ou `Ctrl+→`).** Ele já morou no
+`Tab`, por último numa cascata, o que parecia inofensivo — mas sempre que a caixa
+não estava aberta, que é a maioria do tempo, o `Tab` caía nele. Num arquivo `.py`
+isso chegou a inserir uma função inteira em **bash**. O `Tab` ficou com o que não
+é adivinhado: indentar, e aceitar a sugestão da caixa.
+
+E a indentação ganha de tudo: com o cursor no branco do começo da linha, `Tab`
+indenta — sempre. Indentação errada quebra o Python; sugestão recusada só custa
+um `Esc`.
+
+### Trocar o motor: DeepSeek ou GitHub Copilot
+
+Quem tem assinatura do **Copilot** pode usá-lo no lugar da DeepSeek. Em
+`~/.config/bancada/config.json`, dentro de `fantasma`:
+
+```json
+{ "fantasma": { "motor": "copilot", "ligado": true } }
+```
+
+O pacote é uma **dependência opcional** — clonar a Bancada não baixa os 111 MB
+dele. Para usar:
+
+```bash
+npm install @github/copilot-language-server
+```
+
+Na primeira vez é preciso autorizar pelo GitHub (fluxo de código de dispositivo);
+a Bancada nunca vê senha nem token, e o `checkStatus` diz com qual conta entrou.
+Sem o pacote instalado, ou sem assinatura, a Bancada **abre e funciona igual** —
+só o fantasma fica quieto; catálogo, pyright e o resto seguem inteiros.
+
+O que muda de verdade: o Copilot enxerga o arquivo aberto e o projeto, então
+sugere o corpo de uma função a partir do nome e do docstring, e não só o miolo da
+linha. Em compensação, ele é o único caminho que exige conta paga de terceiro —
+a DeepSeek continua sendo o motor padrão.
 
 ## Instalar o lançador (Linux/KDE)
 

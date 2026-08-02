@@ -1,4 +1,5 @@
 import { chaveDoFantasma, configDoFantasma } from "./config.js";
+import { sugerirComCopilot } from "./copilot.js";
 
 /**
  * Texto fantasma — completamento por IA, no formato FIM (fill-in-the-middle).
@@ -28,6 +29,17 @@ export interface PedidoFantasma {
   texto: string;
   /** Deslocamento do cursor. */
   cursor: number;
+}
+
+/**
+ * Qual arquivo está aberto. O FIM nunca precisou saber — manda prefixo e sufixo
+ * e pronto. O Copilot precisa: o caminho é o que lhe diz a linguagem e ancora o
+ * contexto do projeto.
+ */
+let arquivoAtual: string | null = null;
+
+export function definirArquivoDoFantasma(arquivo: string | null): void {
+  arquivoAtual = arquivo;
 }
 
 export function cancelarFantasma(): void {
@@ -68,8 +80,17 @@ function acertarAQuebra(sugestao: string, documento: string, cursor: number): st
 
 export async function sugerir(pedido: PedidoFantasma): Promise<string | null> {
   const cfg = configDoFantasma();
+  if (!cfg || !cfg.ligado) return null;
+
+  // O Copilot autentica sozinho, com a conta do GitHub — não usa a chave da
+  // DeepSeek. Por isso a exigência de chave vem depois da bifurcação.
+  if (cfg.motor === "copilot") {
+    if (!arquivoAtual) return null;
+    return sugerirComCopilot(arquivoAtual, pedido.texto, pedido.cursor);
+  }
+
   const chave = chaveDoFantasma();
-  if (!cfg || !cfg.ligado || !chave) return null;
+  if (!chave) return null;
 
   cancelarFantasma();
   const controle = new AbortController();

@@ -161,6 +161,12 @@ export interface ConfigFantasma {
   endpoint: string;
   modelo: string;
   ligado: boolean;
+  /**
+   * Quem gera a sugestão. `deepseek` fala FIM direto com a API que o autor já
+   * usa no Twinny; `copilot` usa o servidor LSP do GitHub, que exige assinatura
+   * própria. A caixa do catálogo e a do pyright não mudam com isto.
+   */
+  motor?: "deepseek" | "copilot";
 }
 
 /* -------------------------------- trilha ---------------------------------- */

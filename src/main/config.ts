@@ -34,6 +34,7 @@ interface ConfigGravada {
     /** Chave em texto puro — só quando não há chaveiro. */
     chaveAberta?: string;
     ligado: boolean;
+    motor?: "deepseek" | "copilot";
   };
   /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
   pastas?: string[];
@@ -91,7 +92,7 @@ export function chaveDoFantasma(): string | null {
 export function configDoFantasma(): ConfigFantasma | null {
   const f = ler().fantasma;
   if (!f) return null;
-  return { endpoint: f.endpoint, modelo: f.modelo, ligado: f.ligado };
+  return { endpoint: f.endpoint, modelo: f.modelo, ligado: f.ligado, motor: f.motor ?? "deepseek" };
 }
 
 export function estadoDoFantasma(): EstadoFantasma {
