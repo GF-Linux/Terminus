@@ -44,7 +44,8 @@ arquivos. O esqueleto da extensão do VSCodium está preservado em
 |---|---|
 | `Ctrl+P` | abrir arquivo por nome (casa por subsequência: `mgc` → `medir_gc.py`) |
 | `Ctrl+Espaço` | sugerir (catálogo do Biopython + pyright) |
-| `Tab` | aceitar a sugestão (o `Enter` **não** aceita — quebra linha) |
+| `Tab` | **indentar** quando o cursor está no branco do começo da linha; aceitar a sugestão quando não está |
+| `Shift+Tab` | tirar um nível de indentação |
 | `F12` | ir para a definição |
 | `Ctrl+N` | novo arquivo, já com `.py` preenchido |
 | `Ctrl+S` | gravar |
@@ -95,7 +96,8 @@ Sem o servidor o editor continua inteiro; só perde os avisos.
 
 ## Texto fantasma (opcional, e sai da máquina)
 
-Sugestão de código por IA em cinza à frente do cursor; `Tab` aceita, `Esc`
+Sugestão de código por IA em cinza à frente do cursor; `Tab` aceita **quando o
+cursor não está na indentação** (ver a tabela de atalhos), `Esc`
 dispensa. Usa **FIM** (fill-in-the-middle) — manda o que vem antes e o que vem
 depois do cursor —, então a sugestão encaixa no meio de uma linha em vez de só
 continuar o arquivo.
@@ -115,6 +117,10 @@ do `state.vscdb` acontece **só** nesse clique, nunca em tempo de execução.
 
 O fantasma nunca aparece junto da caixa do catálogo: o catálogo é verificado, o
 fantasma é adivinhado, e o `Tab` não pode ficar ambíguo.
+
+E a indentação ganha do fantasma: com o cursor no branco do começo da linha,
+`Tab` indenta — sempre. Indentação errada quebra o Python; sugestão recusada só
+custa um `Esc`.
 
 ## A trilha de estudo
 
