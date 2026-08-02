@@ -41,8 +41,8 @@ const CORES = ["#4ec9b0", "#c586c0", "#dcdcaa", "#9cdcfe", "#ce9178", "#b5cea8"]
  * A faixa é fraca de propósito. Ela passa **atrás** do código, e o texto tem de
  * continuar sendo a coisa mais legível da tela.
  */
-const BORDA = "8c";
-const FAIXA = "16";
+const BORDA = "e0";
+const FAIXA = "30";
 
 /**
  * A decoração de uma profundidade, montada uma vez e reusada.
