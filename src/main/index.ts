@@ -41,9 +41,11 @@ import {
 } from "./mascote.js";
 import { apagarDaMemoria, listarMemoria } from "./memoria.js";
 import {
+  arquivarTentativa,
   caminhoDoTeste,
   caminhoDoVerificador,
   definirVestimenta,
+  esquecerExercicio,
   lerTrilha,
   marcarFeito,
   prepararExercicio,
@@ -463,21 +465,57 @@ function registrarPonte(): void {
     seguro(() => ({ ...tirarWallpaper(), imagem: null })),
   );
 
-  // Trilha de estudo (ADR 0015).
-  ipcMain.handle("trilha:ler", seguro(() => lerTrilha(RAIZ_APP)));
+  // Trilha de estudo (ADR 0015). A fase pedida vira a corrente, para as
+  // gravações seguintes devolverem a mesma lista sem a interface repetir.
+  let faseAtual = "fase1";
+  ipcMain.handle("trilha:ler", seguro((_e, fase?: string) => {
+      if (fase) faseAtual = fase;
+      return lerTrilha(RAIZ_APP, faseAtual);
+    }));
   ipcMain.handle(
     "trilha:vestimenta",
     seguro((_e, v: Vestimenta) => {
       definirVestimenta(v);
-      return lerTrilha(RAIZ_APP);
+      return lerTrilha(RAIZ_APP, faseAtual);
     }),
   );
   ipcMain.handle(
     "trilha:marcar",
-    seguro((_e, chave: string, feito: boolean) => {
-      marcarFeito(chave, feito);
-      return lerTrilha(RAIZ_APP);
+    seguro((_e, chave: string, vestimenta: string) => {
+      marcarFeito(chave, vestimenta);
+      return lerTrilha(RAIZ_APP, faseAtual);
     }),
+  );
+  ipcMain.handle(
+    "trilha:esquecer",
+    seguro((_e, chave: string) => {
+      esquecerExercicio(chave);
+      return lerTrilha(RAIZ_APP, faseAtual);
+    }),
+  );
+  // Refazer do zero: arquiva a tentativa anterior e devolve o arquivo limpo.
+  ipcMain.handle(
+    "trilha:refazer",
+    seguro(
+      (
+        _e,
+        entrada: {
+          raizProjeto: string;
+          topico: string;
+          exercicio: ExercicioTrilha;
+          vestimenta: string;
+          enunciado: string;
+        },
+      ) => {
+        const alvo = path.join(
+          entrada.raizProjeto,
+          "trilha",
+          `${entrada.topico}_${entrada.exercicio.id}.py`,
+        );
+        const guardado = arquivarTentativa(alvo);
+        return { ...prepararExercicio(entrada), guardado };
+      },
+    ),
   );
   ipcMain.handle(
     "trilha:praticar",

@@ -51,16 +51,44 @@ const PASTA_TRILHAS = "trilhas";
 /** Progresso é dado pessoal: fica com o resto do que é do usuário, fora do repo. */
 const ARQUIVO_PROGRESSO = path.join(PASTA_BANCADA, "trilha.json");
 
+/**
+ * O progresso guarda **quantas vezes**, não apenas "feito".
+ *
+ * O autor descreveu como aprende: *"consigo aprender tão rápido quanto consigo
+ * esquecer na mesma velocidade, o que me obriga a constantemente reescrever a
+ * mesma coisa para desenvolver memórias musculares."* Numa trilha desenhada com
+ * caixinha de "concluído", isso vira sensação de retrocesso — o exercício some
+ * da tela justamente quando ele mais precisa dele de volta.
+ *
+ * Então repetição é registrada como progresso: quantas vezes, quando foi a
+ * última, e em que roupas. Refazer some do vocabulário de fracasso.
+ */
+interface Registro {
+  vezes: number;
+  /** ISO da última vez que passou. */
+  ultima: string;
+  /** Vestimentas em que já foi feito — para sugerir uma diferente. */
+  roupas: string[];
+}
+
 interface Progresso {
-  /** `feito["t1/conta"] = "2026-08-01T…"` */
-  feito: Record<string, string>;
+  feito: Record<string, Registro>;
   vestimenta: Vestimenta;
 }
 
 function lerProgresso(): Progresso {
   try {
-    const bruto = JSON.parse(fs.readFileSync(ARQUIVO_PROGRESSO, "utf8")) as Partial<Progresso>;
-    return { feito: bruto.feito ?? {}, vestimenta: bruto.vestimenta ?? "sequências" };
+    const bruto = JSON.parse(fs.readFileSync(ARQUIVO_PROGRESSO, "utf8")) as {
+      feito?: Record<string, Registro | string>;
+      vestimenta?: Vestimenta;
+    };
+    const feito: Record<string, Registro> = {};
+    for (const [chave, valor] of Object.entries(bruto.feito ?? {})) {
+      // Formato antigo guardava só a data. Vira uma passagem.
+      feito[chave] =
+        typeof valor === "string" ? { vezes: 1, ultima: valor, roupas: [] } : valor;
+    }
+    return { feito, vestimenta: bruto.vestimenta ?? "sequências" };
   } catch {
     return { feito: {}, vestimenta: "sequências" };
   }
@@ -78,10 +106,25 @@ export function definirVestimenta(v: Vestimenta): Progresso {
   return p;
 }
 
-export function marcarFeito(chave: string, feito: boolean): Progresso {
+/** Registra mais uma passagem pelo exercício. Nunca zera nada. */
+export function marcarFeito(chave: string, vestimenta: string): Progresso {
   const p = lerProgresso();
-  if (feito) p.feito[chave] = new Date().toISOString();
-  else delete p.feito[chave];
+  const antes = p.feito[chave];
+  const roupas = new Set(antes?.roupas ?? []);
+  if (vestimenta) roupas.add(vestimenta);
+  p.feito[chave] = {
+    vezes: (antes?.vezes ?? 0) + 1,
+    ultima: new Date().toISOString(),
+    roupas: [...roupas],
+  };
+  gravarProgresso(p);
+  return p;
+}
+
+/** Apaga o registro de um exercício — para quem quer recomeçar do zero mesmo. */
+export function esquecerExercicio(chave: string): Progresso {
+  const p = lerProgresso();
+  delete p.feito[chave];
   gravarProgresso(p);
   return p;
 }
@@ -182,12 +225,12 @@ function analisar(texto: string, id: string): TopicoTrilha {
   return topico;
 }
 
-export function lerTrilha(raizApp: string): {
+export function lerTrilha(raizApp: string, fase = "fase1"): {
   topicos: TopicoTrilha[];
-  feito: Record<string, string>;
+  feito: Record<string, Registro>;
   vestimenta: Vestimenta;
 } {
-  const dir = path.join(raizApp, PASTA_TRILHAS, "fase1");
+  const dir = path.join(raizApp, PASTA_TRILHAS, fase);
   let arquivos: string[] = [];
   try {
     arquivos = fs.readdirSync(dir).filter((f) => f.endsWith(".md")).sort();
@@ -214,6 +257,23 @@ export function lerTrilha(raizApp: string): {
  * **Nunca sobrescreve**: se o arquivo existe, devolve o caminho e pronto. O
  * trabalho de quem está aprendendo é a última coisa que se pode perder.
  */
+/**
+ * Arquiva a tentativa anterior e devolve o caminho livre para uma nova.
+ *
+ * Refazer aqui é **escrever de novo do zero**, não editar o que já estava —
+ * é assim que a memória muscular se forma. A tentativa antiga vira
+ * `<nome>_1.py`, `<nome>_2.py`: fica para comparar, e nada se perde.
+ */
+export function arquivarTentativa(caminho: string): string | null {
+  if (!fs.existsSync(caminho)) return null;
+  const sem = caminho.replace(/\.py$/, "");
+  let n = 1;
+  while (fs.existsSync(`${sem}_${n}.py`)) n++;
+  const destino = `${sem}_${n}.py`;
+  fs.renameSync(caminho, destino);
+  return destino;
+}
+
 export function prepararExercicio(entrada: {
   raizProjeto: string;
   topico: string;

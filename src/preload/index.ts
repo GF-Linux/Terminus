@@ -141,11 +141,22 @@ const api = {
 
   /** A trilha de estudo (ADR 0015). */
   trilha: {
-    ler: (): Promise<Resultado<EstadoTrilha>> => ipcRenderer.invoke("trilha:ler"),
+    ler: (fase?: string): Promise<Resultado<EstadoTrilha>> =>
+      ipcRenderer.invoke("trilha:ler", fase),
     vestimenta: (v: Vestimenta): Promise<Resultado<EstadoTrilha>> =>
       ipcRenderer.invoke("trilha:vestimenta", v),
-    marcar: (chave: string, feito: boolean): Promise<Resultado<EstadoTrilha>> =>
-      ipcRenderer.invoke("trilha:marcar", chave, feito),
+    marcar: (chave: string, vestimenta: string): Promise<Resultado<EstadoTrilha>> =>
+      ipcRenderer.invoke("trilha:marcar", chave, vestimenta),
+    esquecer: (chave: string): Promise<Resultado<EstadoTrilha>> =>
+      ipcRenderer.invoke("trilha:esquecer", chave),
+    refazer: (entrada: {
+      raizProjeto: string;
+      topico: string;
+      exercicio: ExercicioTrilha;
+      vestimenta: string;
+      enunciado: string;
+    }): Promise<Resultado<{ caminho: string; novo: boolean; guardado: string | null }>> =>
+      ipcRenderer.invoke("trilha:refazer", entrada),
     praticar: (entrada: {
       raizProjeto: string;
       topico: string;

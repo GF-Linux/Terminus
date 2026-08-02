@@ -556,11 +556,63 @@ async function desenharConfiguracoes(): Promise<void> {
 let trilha: EstadoTrilha | null = null;
 let topicoAberto: string | null = null;
 
+/**
+ * As fases. A 1 é o núcleo de Python, escrita a partir do caderno do autor; a 2
+ * é a trilha de backend do roadmap.sh **reordenada pelo que serve ao trabalho
+ * dele** — automação e análise de dados —, com o resto do mapa presente no
+ * último degrau em vez de escondido (ADR 0017).
+ */
+const FASES = [
+  { id: "fase1", nome: "Python" },
+  { id: "fase2", nome: "Backend" },
+] as const;
+let faseAtual = "fase1";
+
 const VESTIMENTAS: Vestimenta[] = ["sequências", "clínica", "campo", "laboratório"];
+
+/** "hoje", "ontem", "há 12 dias" — a distância que importa é a do calendário. */
+function desdeQuando(iso: string): string {
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (dias <= 0) return "hoje";
+  if (dias === 1) return "ontem";
+  return `há ${dias} dias`;
+}
+
+/**
+ * O convite para revisitar.
+ *
+ * Procura o exercício feito há mais tempo (pelo menos uma semana) e sugere
+ * refazê-lo **numa roupa que ele ainda não usou** — a mesma ideia numa história
+ * diferente é reescrever sem ser repetitivo. É a repetição espaçada saindo de
+ * graça das vestimentas (ADR 0016).
+ */
+function sugestaoDeRevisita(t: EstadoTrilha): string {
+  const candidatos = Object.entries(t.feito)
+    .map(([chave, reg]) => ({ chave, reg, dias: (Date.now() - new Date(reg.ultima).getTime()) / 86_400_000 }))
+    .filter((c) => c.dias >= 7)
+    .sort((a, b) => b.dias - a.dias);
+
+  const alvo = candidatos[0];
+  if (!alvo) return "";
+
+  const [topicoId, exercicioId] = alvo.chave.split("/");
+  const topico = t.topicos.find((x) => x.id === topicoId);
+  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
+  if (!topico || !exercicio) return "";
+
+  const nova = VESTIMENTAS.find((v) => !alvo.reg.roupas.includes(v) && exercicio.enunciados[v]);
+  return `<div class="revisita">
+      <span class="rot">Que tal revisitar</span>
+      <p><b>${esc(exercicio.funcao || exercicio.id)}</b> — ${desdeQuando(alvo.reg.ultima)}${
+        nova ? `, e ainda não na roupa de <b>${nova}</b>` : ""
+      }.</p>
+      <button data-revisitar="${esc(topicoId!)}|${esc(exercicioId!)}|${esc(nova ?? "")}">refazer do zero</button>
+    </div>`;
+}
 
 async function desenharTrilha(): Promise<void> {
   if (!trilha) {
-    const r = await api.trilha.ler();
+    const r = await api.trilha.ler(faseAtual);
     if (!r.ok) {
       $("lateral").innerHTML = `<div class="aviso"><b>Trilha indisponível</b>${esc(r.erro)}</div>`;
       return;
@@ -573,6 +625,11 @@ async function desenharTrilha(): Promise<void> {
 function pintarTrilha(): void {
   const t = trilha;
   if (!t) return;
+
+  const fases = `<div class="fases">${FASES.map(
+    (f) =>
+      `<button class="tema${f.id === faseAtual ? " on" : ""}" data-fase="${f.id}">${f.nome}</button>`,
+  ).join("")}</div>`;
 
   const seletor = `<div class="vestimentas">
       <span class="rot">Contexto dos enunciados</span>
@@ -602,7 +659,7 @@ function pintarTrilha(): void {
     })
     .join("");
 
-  $("lateral").innerHTML = `<div class="trilha">${seletor}${degraus}</div>`;
+  $("lateral").innerHTML = `<div class="trilha">${fases}${seletor}${sugestaoDeRevisita(t)}${degraus}</div>`;
 }
 
 function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
@@ -610,13 +667,19 @@ function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
     ? topico.exercicios
         .map((e) => {
           const chave = `${topico.id}/${e.id}`;
-          const feito = Boolean(t.feito[chave]);
+          const reg = t.feito[chave];
           const enunciado = e.enunciados[t.vestimenta] ?? Object.values(e.enunciados)[0] ?? "";
-          return `<div class="ex${feito ? " feito" : ""}">
-            <div class="assinatura">${esc(e.funcao || e.id)}</div>
+          // "3× · há 12 dias" em vez de um ✓. Quantas vezes e quando importam
+          // mais que "concluído" para quem aprende reescrevendo (ADR 0016).
+          const selo = reg
+            ? `<span class="selo">${reg.vezes}× · ${desdeQuando(reg.ultima)}</span>`
+            : "";
+          return `<div class="ex${reg ? " feito" : ""}">
+            <div class="assinatura">${esc(e.funcao || e.id)}${selo}</div>
             <p>${esc(enunciado)}</p>
             <div class="acoes">
-              <button data-praticar="${esc(topico.id)}|${esc(e.id)}">${feito ? "abrir" : "praticar"}</button>
+              <button data-praticar="${esc(topico.id)}|${esc(e.id)}">${reg ? "abrir" : "praticar"}</button>
+              ${reg ? `<button data-refazer="${esc(topico.id)}|${esc(e.id)}">refazer do zero</button>` : ""}
               <button data-verificar="${esc(topico.id)}|${esc(e.id)}">corrigir</button>
             </div>
           </div>`;
@@ -671,6 +734,47 @@ async function praticar(topicoId: string, exercicioId: string): Promise<void> {
 }
 
 /**
+ * Refazer do zero: arquiva a tentativa anterior e abre um arquivo limpo.
+ *
+ * Existe porque o autor aprende reescrevendo — editar o que já está pronto não
+ * forma a memória muscular que ele descreveu, e apagar sem guardar tiraria a
+ * chance de comparar as duas versões (ADR 0016).
+ */
+async function refazer(topicoId: string, exercicioId: string): Promise<void> {
+  const t = trilha;
+  const raiz = projeto?.raiz;
+  if (!t || !raiz) {
+    avisar("abra a pasta da corrida antes");
+    return;
+  }
+  const topico = t.topicos.find((x) => x.id === topicoId);
+  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
+  if (!topico || !exercicio) return;
+
+  const enunciado =
+    exercicio.enunciados[t.vestimenta] ?? Object.values(exercicio.enunciados)[0] ?? "";
+  const r = await api.trilha.refazer({
+    raizProjeto: raiz,
+    topico: topico.id,
+    exercicio,
+    vestimenta: t.vestimenta,
+    enunciado,
+  });
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  await atualizarArvore();
+  await abrirArquivo(r.valor.caminho);
+  avisar(
+    r.valor.guardado
+      ? `folha em branco — a anterior virou ${r.valor.guardado.split("/").pop()}`
+      : "folha em branco",
+  );
+}
+
+/**
  * Roda o verificador do exercício.
  *
  * Usa o mesmo motor de execução do `Ctrl+Enter` — o resultado aparece no
@@ -706,10 +810,11 @@ async function concluirCorrecao(passou: boolean): Promise<void> {
   const chave = corrigindo;
   corrigindo = null;
   if (!chave || !passou) return;
-  const r = await api.trilha.marcar(chave, true);
+  const r = await api.trilha.marcar(chave, trilha?.vestimenta ?? "");
   if (r.ok) trilha = r.valor;
   if (painelLateral === "trilha" && lateralAberta) pintarTrilha();
-  avisar(`exercício ${chave} passou`);
+  const vezes = trilha?.feito[chave]?.vezes ?? 1;
+  avisar(vezes > 1 ? `${chave}: ${vezes}ª vez` : `exercício ${chave} passou`);
 }
 
 /**
@@ -1601,6 +1706,13 @@ $("lateral").addEventListener("click", (ev) => {
   const alvo = ev.target as HTMLElement;
 
   // trilha (ADR 0015)
+  const fase = alvo.closest<HTMLElement>("[data-fase]");
+  if (fase) {
+    faseAtual = fase.dataset["fase"]!;
+    topicoAberto = null;
+    trilha = null;
+    return void desenharTrilha();
+  }
   const vest = alvo.closest<HTMLElement>("[data-vest]");
   if (vest) {
     return void api.trilha.vestimenta(vest.dataset["vest"] as Vestimenta).then((r) => {
@@ -1619,6 +1731,24 @@ $("lateral").addEventListener("click", (ev) => {
   if (pratica) {
     const [t, e] = pratica.dataset["praticar"]!.split("|");
     return void praticar(t!, e!);
+  }
+  const refaz = alvo.closest<HTMLElement>("[data-refazer]");
+  if (refaz) {
+    const [t, e] = refaz.dataset["refazer"]!.split("|");
+    return void refazer(t!, e!);
+  }
+  const revisita = alvo.closest<HTMLElement>("[data-revisitar]");
+  if (revisita) {
+    const [t, e, roupa] = revisita.dataset["revisitar"]!.split("|");
+    return void (async () => {
+      if (roupa) {
+        const r = await api.trilha.vestimenta(roupa as Vestimenta);
+        if (r.ok) trilha = r.valor;
+      }
+      topicoAberto = t!;
+      pintarTrilha();
+      await refazer(t!, e!);
+    })();
   }
   const corrige = alvo.closest<HTMLElement>("[data-verificar]");
   if (corrige) {
