@@ -129,16 +129,30 @@ Plasma, janela XWayland pega o ícone do lançador, não da própria janela (a
 propriedade `_NET_WM_ICON` fica vazia).
 
 ```bash
-install -Dm644 media/bancada.desktop ~/.local/share/applications/bancada.desktop
+# 1. o lançador: um script que chama o Electron do repositório
+install -Dm755 /dev/stdin ~/.local/bin/bancada <<'EOF'
+#!/usr/bin/env bash
+cd ~/projetos/bancada || exit 1
+exec ./node_modules/.bin/electron . "$@"
+EOF
+
+# 2. os ícones, em vários tamanhos
 for t in 512 256 128 64 48 32; do
   ffmpeg -y -i media/icon.png -vf scale=$t:$t /tmp/b.png
   install -Dm644 /tmp/b.png ~/.local/share/icons/hicolor/${t}x${t}/apps/bancada.png
 done
+
+# 3. o .desktop, com CAMINHO ABSOLUTO no Exec
+sed "s|^Exec=bancada|Exec=$HOME/.local/bin/bancada|" media/bancada.desktop \
+  > ~/.local/share/applications/bancada.desktop
+update-desktop-database ~/.local/share/applications
 ```
 
-O `Exec=bancada` espera um comando `bancada` no `PATH`. Enquanto não há pacote,
-um script em `~/.local/bin/bancada` que faz `cd` no repositório e chama
-`./node_modules/.bin/electron .` resolve.
+**O caminho absoluto no `Exec` não é preciosismo.** A sessão do Plasma não tem
+`~/.local/bin` no `PATH` — quem coloca isso é o perfil do shell, que um lançador
+gráfico não lê. Com `Exec=bancada`, o menu responde *"could not find program
+'bancada'"*. Num pacote de verdade o binário vai para um diretório do `PATH` e
+aí o nome simples volta a funcionar.
 
 ## A trilha de estudo
 
