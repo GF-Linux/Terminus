@@ -35,6 +35,37 @@ export function cancelarFantasma(): void {
   emVoo = null;
 }
 
+/**
+ * Impede que a sugestão vire erro de sintaxe grudando na linha anterior.
+ *
+ * A correção do sufixo já tira a maior parte disto, mas ela depende de o modelo
+ * cooperar. Esta aqui não depende de ninguém: em Python, uma letra **não pode**
+ * vir logo depois de `)`, `]`, `}` ou de aspas fechadas — `print(a)print(b)` não
+ * é código, é erro. Quando o cursor está no fim da linha e a sugestão começaria
+ * assim, ela só pode ser um comando novo, e comando novo mora na linha de baixo,
+ * na mesma indentação.
+ *
+ * Continuar a expressão segue possível: aí a linha termina em operador ou em
+ * espaço, e nada disto se aplica.
+ */
+function acertarAQuebra(sugestao: string, documento: string, cursor: number): string {
+  if (/^[\s\n]/.test(sugestao)) return sugestao;
+
+  const inicioDaLinha = documento.lastIndexOf("\n", cursor - 1) + 1;
+  const ate = documento.slice(inicioDaLinha, cursor);
+  const depois = documento.slice(cursor);
+  // Só quando o cursor está mesmo no fim da linha.
+  if (depois !== "" && !depois.startsWith("\n")) return sugestao;
+  if (!ate.trim()) return sugestao;
+
+  const fecha = /[)\]}"']$/.test(ate.trimEnd());
+  const comeca = /^[A-Za-z_]/.test(sugestao);
+  if (!fecha || !comeca) return sugestao;
+
+  const recuo = /^[ \t]*/.exec(ate)?.[0] ?? "";
+  return `\n${recuo}${sugestao}`;
+}
+
 export async function sugerir(pedido: PedidoFantasma): Promise<string | null> {
   const cfg = configDoFantasma();
   const chave = chaveDoFantasma();
@@ -45,7 +76,14 @@ export async function sugerir(pedido: PedidoFantasma): Promise<string | null> {
   emVoo = controle;
 
   const prefixo = pedido.texto.slice(Math.max(0, pedido.cursor - ANTES), pedido.cursor);
-  const sufixo = pedido.texto.slice(pedido.cursor, pedido.cursor + DEPOIS);
+  const cru = pedido.texto.slice(pedido.cursor, pedido.cursor + DEPOIS);
+  // **Sufixo vazio engana o modelo.** Com o cursor no fim do arquivo o `suffix`
+  // ia em branco, e em FIM isso quer dizer "preencha até o fim" — o modelo
+  // perde o sinal de que a linha acabou e cola a sugestão na mesma linha.
+  // Relatado: com `print(quadrado.perimetro())` escrito, a sugestão vinha
+  // `print(quadrado.area())` grudada, sem quebra. Uma quebra de linha basta
+  // para dizer "a linha termina aqui".
+  const sufixo = cru === "" ? "\n" : cru;
 
   try {
     const resposta = await fetch(cfg.endpoint, {
@@ -72,7 +110,8 @@ export async function sugerir(pedido: PedidoFantasma): Promise<string | null> {
     const dados = (await resposta.json()) as { choices?: { text?: string }[] };
     const texto = dados.choices?.[0]?.text ?? "";
     // Sugestão só de espaço em branco não é sugestão.
-    return texto.trim() ? texto : null;
+    if (!texto.trim()) return null;
+    return acertarAQuebra(texto, pedido.texto, pedido.cursor);
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") return null;
     throw err;
