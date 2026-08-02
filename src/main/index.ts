@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
 import { rmSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,6 +202,9 @@ function criarJanela(): void {
     minWidth: 1000,
     minHeight: 620,
     show: false,
+    // O ícone da janela (e, no X11, o da barra de tarefas). PNG e não SVG: o
+    // Electron não lê SVG aqui. Gerado da marca em `media/icon.svg` (ADR 0014).
+    icon: path.join(RAIZ_APP, "media", "icon.png"),
     // Casca própria: a barra de título é desenhada pela Bancada (ADR 0003).
     frame: false,
     // #141414 é o fundo da casca no Cursor Dark — evita o flash branco antes
@@ -216,6 +219,14 @@ function criarJanela(): void {
       sandbox: false,
     },
   });
+
+  // A opção `icon:` do construtor não bastou nesta máquina (a propriedade
+  // _NET_WM_ICON ficava vazia). Setar explicitamente resolve, e o aviso no
+  // console diz se o arquivo sumiu — ícone faltando é o tipo de coisa que se
+  // descobre tarde, olhando a barra de tarefas.
+  const marca = nativeImage.createFromPath(path.join(RAIZ_APP, "media", "icon.png"));
+  if (marca.isEmpty()) console.warn("ícone não carregou: media/icon.png");
+  else janela.setIcon(marca);
 
   janela.once("ready-to-show", () => janela?.show());
 

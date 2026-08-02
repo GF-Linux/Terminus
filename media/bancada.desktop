@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Bancada
+GenericName=Ambiente de análise
+Comment=Editor para quem é alfabetizado em Python e trabalha com dado biológico
+Exec=bancada %f
+Icon=bancada
+Terminal=false
+Categories=Development;IDE;
+MimeType=text/x-python;
+# O Plasma casa a janela ao lançador por esta chave — sem ela, a barra de
+# tarefas mostra um ícone genérico mesmo com a janela tendo ícone próprio.
+StartupWMClass=Bancada
+Keywords=python;biopython;cromatograma;sequenciamento;ab1;
