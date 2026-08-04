@@ -1,4 +1,3 @@
-import { completionStatus } from "@codemirror/autocomplete";
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type ViewUpdate } from "@codemirror/view";
 
@@ -7,14 +6,30 @@ import { Decoration, EditorView, ViewPlugin, WidgetType, type ViewUpdate } from 
  * vira código no `Tab`.
  *
  * O gesto é o do Copilot/Twinny. As regras aqui são todas sobre **não
- * atrapalhar**: a sugestão some a qualquer tecla, nunca aparece junto da caixa
- * do catálogo, e o pedido em voo é cancelado assim que se digita.
+ * atrapalhar**: a sugestão some a qualquer tecla e o pedido em voo é cancelado
+ * assim que se digita.
+ *
+ * **Ela PODE aparecer junto da caixa do catálogo (mudou em 03/08).** A regra
+ * anterior a escondia sempre que a caixa estivesse aberta, e a razão escrita era
+ * uma só: "duas sugestões disputariam o Tab". Essa disputa acabou na ADR 0018 —
+ * o fantasma saiu do Tab e ganhou `Alt-Enter`. A trava virou herança, e cobrava
+ * caro: com `activateOnTyping` ligado, a caixa abre a cada identificador
+ * digitado, ou seja, na maior parte das vezes em que alguém para de digitar e
+ * espera. O sintoma relatado era "às vezes sugere, às vezes não". Não era o
+ * modelo; era esta linha. As duas superfícies não se atropelam: a caixa é um
+ * balão flutuante, o fantasma é texto na linha, e cada um tem tecla própria.
  */
 
 const api = window.bancada;
 
-/** Quanto tempo de silêncio antes de perguntar ao modelo. */
-const ESPERA = 450;
+/**
+ * Quanto tempo de silêncio antes de perguntar ao modelo.
+ *
+ * 450 ms era tempo suficiente para a pessoa concluir que "não veio nada" antes
+ * de vir. Como o motor pode ser o Copilot (assinatura, sem custo por chamada),
+ * o que se paga aqui é latência, não dinheiro.
+ */
+const ESPERA = 300;
 
 interface Sugestao {
   texto: string;
@@ -87,17 +102,17 @@ const pedirAoModelo = ViewPlugin.fromClass(
       this.geracao += 1;
       api.fantasma.cancelar();
 
-      if (!u.docChanged) return;
+      // Mover o cursor também agenda. Antes, só `docChanged` agendava: quem
+      // clicava no fim de uma linha e esperava não recebia nada, porque nada
+      // tinha sido digitado — e "parar e esperar" é justamente o gesto com que
+      // se espera uma sugestão. O contador de geração e o cancelamento acima
+      // seguram a enxurrada de pedidos que isso poderia gerar.
       this.temporizador = window.setTimeout(() => void this.perguntar(), ESPERA);
     }
 
     private async perguntar(): Promise<void> {
       const minha = this.geracao;
       const estado = this.view.state;
-
-      // Com a caixa do catálogo aberta, duas sugestões disputariam o Tab.
-      // A do catálogo é verificada; a do modelo, adivinhada. O catálogo ganha.
-      if (completionStatus(estado) !== null) return;
 
       const cursor = estado.selection.main;
       if (!cursor.empty) return;
@@ -106,15 +121,13 @@ const pedirAoModelo = ViewPlugin.fromClass(
       // Entre o pedido e a resposta o usuário pode ter digitado.
       if (!r.ok || !r.valor || minha !== this.geracao) return;
       if (this.view.state.selection.main.head !== cursor.head) return;
-      // **Confere a caixa de novo, agora.** A conferência lá em cima acontece
-      // antes de perguntar ao modelo, e a resposta demora — nesse meio-tempo a
-      // caixa do pyright, que também é assíncrona, pode ter começado. O
-      // `dispatch` daqui abortava a consulta dela, e o efeito era a caixa
-      // simplesmente **nunca abrir** para o que só o pyright conhece, enquanto
-      // abria normalmente para o catálogo, que responde na hora. Levou a
-      // parecer autocomplete "incompleto"; era corrida.
-      if (completionStatus(this.view.state) !== null) return;
 
+      // **Só o efeito, nunca uma transação que mexa no documento.** A caixa do
+      // pyright é assíncrona: um `dispatch` que altere doc ou seleção enquanto
+      // ela consulta aborta a consulta, e o efeito era a caixa **nunca abrir**
+      // para o que só o pyright conhece — parecia autocomplete incompleto, era
+      // corrida. Um `StateEffect` puro não toca no documento e a deixa em paz,
+      // que é o que permite as duas superfícies coexistirem.
       this.view.dispatch({ effects: mostrar.of({ texto: r.valor, em: cursor.head }) });
     }
 

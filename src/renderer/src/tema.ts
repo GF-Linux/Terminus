@@ -22,10 +22,19 @@ const FG36 = "#f0f0f05c";
 const FG74 = "#f0f0f0bd";
 const SEL = "#f0f0f01e";
 const LINE = "#f0f0f013";
+/**
+ * Cor do texto **do código** sem token de sintaxe (ADR 0023, alto contraste).
+ *
+ * Constante própria, e não um `FG74` levantado, porque os valores acima espelham
+ * `casca.css` por contrato — mexer neles aqui sem mexer lá quebra o combinado do
+ * comentário no topo e vaza para a casca inteira. O alto contraste é decisão
+ * sobre a **área de escrita**, então mora só nela. 8,95:1 → 13,71:1.
+ */
+const TEXTO_CODIGO = "#e2e2e2";
 
 export const temaCursor: Extension = EditorView.theme(
   {
-    "&": { color: FG74, backgroundColor: BG },
+    "&": { color: TEXTO_CODIGO, backgroundColor: BG },
     ".cm-content": { caretColor: FG, padding: "6px 0 14px" },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: FG, borderLeftWidth: "2px" },
     "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
@@ -59,18 +68,32 @@ export const temaCursor: Extension = EditorView.theme(
   { dark: true },
 );
 
-/** Cores de sintaxe do Cursor Dark, aplicadas às tags do Lezer. */
+/**
+ * Cores de sintaxe — Cursor Dark levantado para **alto contraste** (ADR 0023).
+ *
+ * Os matizes são os do Cursor Dark; o que mudou foi a luminosidade. Medido
+ * contra o fundo `#181818` (WCAG 2.1), o pior token sai de 6,31:1 para
+ * **10,18:1** — todos em AAA. A escolha é do autor, entre quatro paletas
+ * medidas, e foi feita sabendo do custo abaixo.
+ *
+ * **A tensão com a ADR 0005, dita e aceita.** A casca é monocromática para o
+ * cromatograma ser a cor mais forte da tela. Esta paleta é a que mais se
+ * aproxima de disputar isso — é a de maior piso (10,18) e, de propósito, a de
+ * **menor amplitude** (7,58 contra 13,39 da alternativa "hierarquia"): tudo
+ * forte junto separa menos os tokens entre si. Foi o preço escolhido em troca
+ * de legibilidade sob luz forte.
+ */
 const realce = HighlightStyle.define([
-  { tag: [t.comment, t.lineComment, t.blockComment], color: "#f0f0f099", fontStyle: "italic" },
-  { tag: [t.string, t.special(t.string)], color: "#e394dc" },
-  { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.operatorKeyword], color: "#82d2ce" },
-  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#efb080" },
-  { tag: [t.number, t.bool, t.null], color: "#ebc88d" },
-  { tag: [t.variableName, t.propertyName], color: "#d6d6dd" },
-  { tag: [t.typeName, t.className, t.definition(t.className)], color: "#efb080" },
-  { tag: [t.operator, t.punctuation, t.bracket], color: "#f0f0f0bd" },
-  { tag: t.self, color: "#82d2ce", fontStyle: "italic" },
-  { tag: t.invalid, color: "#f0574f" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "#c4c4c4", fontStyle: "italic" },
+  { tag: [t.string, t.special(t.string)], color: "#ffb3f2" },
+  { tag: [t.keyword, t.controlKeyword, t.moduleKeyword, t.operatorKeyword], color: "#9dfff8" },
+  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#ffcf9e" },
+  { tag: [t.number, t.bool, t.null], color: "#ffe6ab" },
+  { tag: [t.variableName, t.propertyName], color: "#ffffff" },
+  { tag: [t.typeName, t.className, t.definition(t.className)], color: "#ffcf9e" },
+  { tag: [t.operator, t.punctuation, t.bracket], color: "#e2e2e2" },
+  { tag: t.self, color: "#9dfff8", fontStyle: "italic" },
+  { tag: t.invalid, color: "#ff7b73" },
 ]);
 
 export const realceCursor: Extension = syntaxHighlighting(realce);
