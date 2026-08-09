@@ -28,7 +28,14 @@ import {
 import { comentariosMarcados } from "./comentarios.js";
 import { fonteDoCatalogo } from "./completar.js";
 import { guiasDeIndentacao } from "./guias.js";
+import {
+  aceitarCorrecao,
+  aceitarCorrecaoSeSozinha,
+  correcaoDoCodigo,
+  dispensarCorrecao,
+} from "./correcao.js";
 import { aceitarFantasma, dispensarFantasma, textoFantasma } from "./fantasma.js";
+import { recadosNaLinha } from "./recados.js";
 import {
   diagnosticosDoArquivo,
   efeitoDiagnostico,
@@ -207,6 +214,9 @@ export class Editor {
         // o sublinhado só apareceria na próxima tecla.
         linter(diagnosticosDoArquivo, { delay: 150, needsRefresh: precisaRelintar }),
         lintGutter(),
+        // A mensagem do pyright escrita na linha, e não só atrás do mouse.
+        // Vem depois do `linter` porque lê o que ele lê (ADR 0026).
+        recadosNaLinha,
         hoverTooltip((view, pos) => hoverDoServidor(view, pos), { hideOnChange: true }),
         autocompletion({
           override: [fonteDoCatalogo(this.op.aoImportar), fonteDoServidor()],
@@ -219,6 +229,7 @@ export class Editor {
           defaultKeymap: false,
         }),
         textoFantasma,
+        correcaoDoCodigo,
         keymap.of([
           {
             key: "Mod-s",
@@ -270,10 +281,31 @@ export class Editor {
           // fantasma é adivinhado e ninguém pediu. Aceitar coisa adivinhada não
           // pode morar na mesma tecla que indentar, que é o gesto mais repetido
           // de quem escreve Python. Agora ele tem tecla própria.
+          // **A correção divide o `Alt+Enter` com o fantasma, e pode (ADR
+          // 0025).** A primeira versão deu tecla própria a ela, `Ctrl+.`, e foi
+          // errado duas vezes: a tecla não funcionou no teclado do autor e, pior,
+          // ela nem precisava existir. Depois que a correção passou a se calar
+          // enquanto há fantasma na tela, as duas são **mutuamente exclusivas
+          // por construção** — e a cascata resolve sozinha: a correção devolve
+          // `false` quando não está visível, e o fantasma assume.
+          //
+          // Isto não contradiz a ADR 0018. Lá, catálogo e fantasma disputavam o
+          // `Tab` porque os dois se aplicavam ao mesmo tempo. Aqui, nunca.
+          // `Ctrl+.` é a tecla **própria** da correção, e a que a caixa mostra:
+          // ela alcança a proposta mesmo com fantasma na tela, que é o caso
+          // normal desde que a correção voltou a ser retroativa.
+          { key: "Mod-.", run: aceitarCorrecao },
+          // E o `Alt+Enter` continua servindo aos dois, com desempate pelo
+          // cursor: havendo fantasma, é dele; não havendo, aceita a correção
+          // sem exigir tecla nova de quem só quer aceitar o que está na tela.
+          { key: "Alt-Enter", run: aceitarCorrecaoSeSozinha },
           { key: "Alt-Enter", run: aceitarFantasma },
           { key: "Mod-ArrowRight", run: aceitarFantasma },
           // Antes do defaultKeymap, que traz o Enter comum.
           { key: "Enter", run: quebrarLinhaIndentando },
+          // Esc em cascata: primeiro a proposta de correção, que é a que ocupa
+          // espaço na tela; depois o fantasma; depois a caixa.
+          { key: "Escape", run: dispensarCorrecao },
           { key: "Escape", run: dispensarFantasma },
           { key: "ArrowDown", run: moveCompletionSelection(true) },
           { key: "ArrowUp", run: moveCompletionSelection(false) },

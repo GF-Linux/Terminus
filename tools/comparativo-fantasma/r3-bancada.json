@@ -1,0 +1,554 @@
+{
+  "perfil": "bancada",
+  "casos": [
+    {
+      "id": "1-corpo-de-def",
+      "descricao": "corpo vazio depois de def + docstring (o caso mais comum)",
+      "tentativas": [
+        {
+          "ms": 6564,
+          "itens": 1,
+          "cru": "    with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "fantasma": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 9,
+          "itens": 1,
+          "cru": "    with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "fantasma": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 8,
+          "itens": 1,
+          "cru": "    with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "fantasma": "with open(caminho, \"rb\") as arquivo:\n        registro = SeqIO.read(arquivo, \"abi\")\n        qualidades = registro.letter_annotations[\"phred_quality\"]\n        media = sum(qualidades) / len(qualidades)\n        return media",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "2-meio-de-linha",
+      "descricao": "cursor no meio de uma chamada, com ')' depois dele",
+      "tentativas": [
+        {
+          "ms": 1737,
+          "itens": 1,
+          "cru": "gc = gc_fraction(registro.seq)",
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 18
+            }
+          },
+          "resultado": "registro.seq)",
+          "fantasma": "registro.seq)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "gc = gc_fraction(registro.seq)",
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 18
+            }
+          },
+          "resultado": "registro.seq)",
+          "fantasma": "registro.seq)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 10,
+          "itens": 1,
+          "cru": "gc = gc_fraction(registro.seq)",
+          "range": {
+            "start": {
+              "line": 4,
+              "character": 0
+            },
+            "end": {
+              "line": 4,
+              "character": 18
+            }
+          },
+          "resultado": "registro.seq)",
+          "fantasma": "registro.seq)",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "3-comentario-guia",
+      "descricao": "comentario descrevendo o que fazer, linha seguinte vazia",
+      "tentativas": [
+        {
+          "ms": 556,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 703,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 680,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "4-vizinho-define",
+      "descricao": "usa funcao definida em OUTRO arquivo aberto (utilitarios.py)",
+      "tentativas": [
+        {
+          "ms": 594,
+          "itens": 1,
+          "cru": "aparado = cortar_por_qualidade(registro, 20)",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 10
+            }
+          },
+          "resultado": "cortar_por_qualidade(registro, 20)",
+          "fantasma": "cortar_por_qualidade(registro, 20)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 5,
+          "itens": 1,
+          "cru": "aparado = cortar_por_qualidade(registro, 20)",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 10
+            }
+          },
+          "resultado": "cortar_por_qualidade(registro, 20)",
+          "fantasma": "cortar_por_qualidade(registro, 20)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "aparado = cortar_por_qualidade(registro, 20)",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 10
+            }
+          },
+          "resultado": "cortar_por_qualidade(registro, 20)",
+          "fantasma": "cortar_por_qualidade(registro, 20)",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "5-padrao-repetido",
+      "descricao": "dicionario de primers pela metade (onde o Copilot brilha)",
+      "tentativas": [
+        {
+          "ms": 815,
+          "itens": 1,
+          "cru": "    \"BTF2\": \"TGCTGCCTCCCGTAGGAGT\",",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 12
+            }
+          },
+          "resultado": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "fantasma": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 5,
+          "itens": 1,
+          "cru": "    \"BTF2\": \"TGCTGCCTCCCGTAGGAGT\",",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 12
+            }
+          },
+          "resultado": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "fantasma": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "    \"BTF2\": \"TGCTGCCTCCCGTAGGAGT\",",
+          "range": {
+            "start": {
+              "line": 3,
+              "character": 0
+            },
+            "end": {
+              "line": 3,
+              "character": 12
+            }
+          },
+          "resultado": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "fantasma": "\"TGCTGCCTCCCGTAGGAGT\",",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "6-texto-depois-do-cursor",
+      "descricao": "cursor no meio da linha com codigo depois dele, na mesma linha",
+      "tentativas": [
+        {
+          "ms": 4,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 4,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 49,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "7-dentro-de-for",
+      "descricao": "corpo de for, dentro de bloco indentado",
+      "tentativas": [
+        {
+          "ms": 616,
+          "itens": 1,
+          "cru": "    qualidade = qualidade_media(registro)",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "qualidade = qualidade_media(registro)",
+          "fantasma": "qualidade = qualidade_media(registro)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "    qualidade = qualidade_media(registro)",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "qualidade = qualidade_media(registro)",
+          "fantasma": "qualidade = qualidade_media(registro)",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 6,
+          "itens": 1,
+          "cru": "    qualidade = qualidade_media(registro)",
+          "range": {
+            "start": {
+              "line": 5,
+              "character": 0
+            },
+            "end": {
+              "line": 5,
+              "character": 4
+            }
+          },
+          "resultado": "qualidade = qualidade_media(registro)",
+          "fantasma": "qualidade = qualidade_media(registro)",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "8-fim-de-arquivo",
+      "descricao": "cursor no fim do arquivo, logo depois de um print( ) fechado",
+      "tentativas": [
+        {
+          "ms": 736,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 505,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        },
+        {
+          "ms": 509,
+          "itens": 0,
+          "cru": null,
+          "range": null,
+          "resultado": null,
+          "fantasma": null,
+          "motivo": "servidor não devolveu item",
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "9-arquivo-longo",
+      "descricao": "definicao relevante 60 linhas acima do cursor",
+      "tentativas": [
+        {
+          "ms": 1829,
+          "itens": 1,
+          "cru": "    import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "range": {
+            "start": {
+              "line": 71,
+              "character": 0
+            },
+            "end": {
+              "line": 71,
+              "character": 4
+            }
+          },
+          "resultado": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "fantasma": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "    import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "range": {
+            "start": {
+              "line": 71,
+              "character": 0
+            },
+            "end": {
+              "line": 71,
+              "character": 4
+            }
+          },
+          "resultado": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "fantasma": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 7,
+          "itens": 1,
+          "cru": "    import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "range": {
+            "start": {
+              "line": 71,
+              "character": 0
+            },
+            "end": {
+              "line": 71,
+              "character": 4
+            }
+          },
+          "resultado": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "fantasma": "import os\n    import pandas as pd\n\n    arquivos = [f for f in os.listdir(pasta) if f.endswith(\".ab1\")]\n    dados = []\n    for arquivo in arquivos:\n        caminho = os.path.join(pasta, arquivo)\n        seq_record = ler(caminho)\n        nome = seq_record.name\n        tamanho = len(seq_record.seq)\n        phred_medio = sum(seq_record.letter_annotations[\"phred_quality\"]) / tamanho\n        dados.append([nome, tamanho, phred_medio])\n    df = pd.DataFrame(dados, columns=[\"Nome\", \"Tamanho\", \"Phred Médio\"])\n    return df",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    },
+    {
+      "id": "10-classe-metodo",
+      "descricao": "metodo novo dentro de uma classe ja escrita",
+      "tentativas": [
+        {
+          "ms": 795,
+          "itens": 1,
+          "cru": "    def get_arquivos(self):\n        return self.arquivos",
+          "range": {
+            "start": {
+              "line": 8,
+              "character": 0
+            },
+            "end": {
+              "line": 8,
+              "character": 8
+            }
+          },
+          "resultado": "get_arquivos(self):\n        return self.arquivos",
+          "fantasma": "get_arquivos(self):\n        return self.arquivos",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 5,
+          "itens": 1,
+          "cru": "    def get_arquivos(self):\n        return self.arquivos",
+          "range": {
+            "start": {
+              "line": 8,
+              "character": 0
+            },
+            "end": {
+              "line": 8,
+              "character": 8
+            }
+          },
+          "resultado": "get_arquivos(self):\n        return self.arquivos",
+          "fantasma": "get_arquivos(self):\n        return self.arquivos",
+          "motivo": null,
+          "timeout": false
+        },
+        {
+          "ms": 5,
+          "itens": 1,
+          "cru": "    def get_arquivos(self):\n        return self.arquivos",
+          "range": {
+            "start": {
+              "line": 8,
+              "character": 0
+            },
+            "end": {
+              "line": 8,
+              "character": 8
+            }
+          },
+          "resultado": "get_arquivos(self):\n        return self.arquivos",
+          "fantasma": "get_arquivos(self):\n        return self.arquivos",
+          "motivo": null,
+          "timeout": false
+        }
+      ]
+    }
+  ]
+}

@@ -342,6 +342,20 @@ button:disabled{opacity:.35; cursor:default}
 .ptabs .r button:hover:not(:disabled){color:var(--fg)}
 .term{flex:1; min-height:0; padding:8px 4px 8px 12px; user-select:text}
 
+/* linha de comando (ADR 0020) — encostada no fim da saída, sem borda por cima:
+   ela é a continuação do terminal, não outro painel. O ➜ repete o mesmo verde
+   do prompt que a saída já usa, para os dois lerem como a mesma coisa. */
+.linhaCmd{flex:none; display:flex; align-items:baseline; gap:8px; padding:4px 12px 10px;
+  font-family:var(--mono); font-size:12px; line-height:1.5}
+.promptCmd{flex:none; color:var(--kw); white-space:nowrap; max-width:55%;
+  overflow:hidden; text-overflow:ellipsis}
+.linhaCmd input{flex:1; min-width:0; background:none; border:none; outline:none; padding:0;
+  font:inherit; color:var(--fg); caret-color:var(--fg)}
+.linhaCmd input::placeholder{color:var(--fg36)}
+/* Enquanto algo roda o campo continua clicável (para o Ctrl+C funcionar nele),
+   mas apagado: quem olha vê que não é a vez dele. */
+.linhaCmd.ocupada .promptCmd, .linhaCmd.ocupada input{opacity:.45}
+
 /* abas do painel do cromatograma — um .ab1 por aba, no tom das abas do editor
    mas na altura do painel */
 .pabas{display:flex; align-items:center; min-width:0; overflow-x:auto; scrollbar-width:none}
@@ -501,8 +515,8 @@ button:disabled{opacity:.35; cursor:default}
 .mascote .dispensar:hover{color:var(--fg)}
 
 /* a conversa */
-.mascote .conversa{position:absolute; bottom:0; right:calc(100% + 10px); width:300px;
-  max-height:min(60vh,420px); display:flex; flex-direction:column;
+.mascote .conversa{position:absolute; bottom:0; right:calc(100% + 10px); width:340px;
+  max-height:min(72vh,560px); display:flex; flex-direction:column;
   background:var(--chrome); border:1px solid var(--line); border-radius:9px;
   box-shadow:0 22px 50px -22px #000; overflow:hidden}
 .mascote .conversa.oculto{display:none}
@@ -543,6 +557,30 @@ button:disabled{opacity:.35; cursor:default}
 .mascote .fala.resposta span{background:var(--input); color:var(--fg74)}
 .mascote .fala.pensando span{color:var(--fg36)}
 
+/* ---- terminal do chat (ADR 0022) ----
+   A saída não é balão: é terminal. Monoespaçada, largura inteira, sem canto
+   arredondado — a diferença tem que ser óbvia de relance, porque a janela
+   mistura duas coisas que não se falam. */
+.mascote .fala.cmd, .mascote .fala.saida, .mascote .fala.saidaErro{margin:0 -12px}
+.mascote .fala.cmd span, .mascote .fala.saida span, .mascote .fala.saidaErro span{
+  max-width:100%; width:100%; border-radius:0; padding:2px 12px; background:none;
+  font-family:var(--mono); font-size:11px; line-height:1.45; user-select:text}
+.mascote .fala.cmd span{color:var(--kw); padding-top:6px}
+.mascote .fala.saida span{color:var(--fg74)}
+.mascote .fala.saidaErro span{color:var(--T)}
+
+.mascote .linhaChat{display:flex; align-items:baseline; gap:7px; padding:5px 10px 7px;
+  border-top:1px solid var(--line); font-family:var(--mono); font-size:11px}
+.mascote .promptChat{flex:none; color:var(--kw); white-space:nowrap; max-width:45%;
+  overflow:hidden; text-overflow:ellipsis}
+.mascote .linhaChat input{flex:1; min-width:0; background:none; border:none; outline:none;
+  padding:0; font:inherit; color:var(--fg); caret-color:var(--fg)}
+.mascote .linhaChat input::placeholder{color:var(--fg36)}
+.mascote .linhaChat.ocupada .promptChat, .mascote .linhaChat.ocupada input{opacity:.45}
+.mascote .pararChat{flex:none; color:var(--fg36); font-size:10px; padding:0 2px}
+.mascote .pararChat:hover{color:var(--T)}
+.mascote .pararChat.oculto{display:none}
+
 .mascote .entrada{border-top:1px solid var(--line); padding:7px 10px}
 .mascote .entrada textarea{width:100%; resize:none; background:transparent; border:0;
   color:var(--fg); font:inherit; font-size:12.5px; line-height:1.5; outline:none;
@@ -560,6 +598,20 @@ button:disabled{opacity:.35; cursor:default}
 /* ===================== texto fantasma ===================== */
 /* Cinza e itálico: tem de se ler como proposta, não como código escrito. */
 .cm-fantasma{color:var(--fg36); font-style:italic; white-space:pre-wrap}
+
+/* ---------------- correção do código (ADR 0025) ----------------
+   A linha errada não some: ela fica marcada e a proposta aparece embaixo, para
+   quem está aprendendo ver o antes e o depois. A casca é monocromática (ADR
+   0005) e a cor saturada é do cromatograma — por isso a marca aqui é o
+   `--badge`, que já existe, e só no pedaço que muda. */
+.cm-correcao-antes{background:#f0f0f00a; box-shadow:inset 2px 0 0 var(--fg36)}
+.cm-correcao{margin:2px 0 4px; padding:4px 0 4px 10px; border-left:2px solid var(--badge);
+  background:#88c0d00f}
+.cm-correcao-texto{font-family:var(--mono); color:var(--fg74); white-space:pre-wrap;
+  word-break:break-word}
+.cm-correcao-novo{color:var(--badge); background:#88c0d024; border-radius:2px}
+.cm-correcao-teclas{margin-top:3px; font-family:var(--sans); font-size:10.5px;
+  letter-spacing:.02em; color:var(--fg36)}
 
 /* ===================== painel de configurações ===================== */
 .cfg{padding:16px 18px; font-size:12.5px; line-height:1.6; color:var(--fg74)}
@@ -612,6 +664,18 @@ button:disabled{opacity:.35; cursor:default}
   text-decoration-skip-ink:none; text-underline-offset:3px}
 .cm-lintRange-info{background:none; text-decoration:underline dotted var(--fg36);
   text-underline-offset:3px}
+
+/* ---------- o erro escrito na linha (ADR 0026) ----------
+   Mesma convenção do rabisco e da bolinha da margem — --T para erro, --num
+   para aviso — porém em opacidade baixa: quem grita é o código, o recado só
+   precisa ser legível. Fonte sans e menor, para não ser confundido com código.
+   `pointer-events:none` porque clicar no texto do aviso e o cursor ir parar
+   dentro dele seria uma armadilha silenciosa. */
+.cm-recado{margin-left:2ch; font-family:var(--sans); font-size:11px; font-style:normal;
+  letter-spacing:.01em; white-space:pre; pointer-events:none; user-select:none}
+.cm-recado-error{color:#f0574fb3}
+.cm-recado-warning{color:#ebc88db3}
+.cm-recado-info{color:var(--fg36)}
 
 .cm-gutter-lint{width:14px}
 .cm-gutter-lint .cm-gutterElement{padding:0}

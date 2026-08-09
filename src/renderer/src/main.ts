@@ -98,6 +98,13 @@ let renomeando: { modo: "arquivo" | "pasta" | "renomear"; dir: string; alvo?: st
 
 /* ============================ terminal ============================ */
 
+/**
+ * De onde veio o que está rodando. O terminal é um só e o `exec:evento` também,
+ * então sem isto o fim de um `pip install` cairia no `concluirCorrecao` e
+ * marcaria como aprovado um exercício que ninguém corrigiu.
+ */
+let origemDaExecucao: "script" | "comando" = "script";
+
 const terminal = new TerminalSaida($("term"), ({ arquivo, linha }) => {
   void irParaQuadro(arquivo, linha);
 });
@@ -131,8 +138,16 @@ function abrirPainel(): void {
   definirPainel(true);
 }
 
+/**
+ * Ctrl+` e o botão da barra: abrir aqui é gesto de quem vai digitar, então o
+ * cursor já vai para a linha de comando. `abrirPainel` **não** faz isso de
+ * propósito — ele é chamado sozinho sempre que aparece saída, e roubaria o foco
+ * do editor no meio de uma frase.
+ */
 function alternarPainel(): void {
-  definirPainel($("painel").classList.contains("oculto"));
+  const abrindo = $("painel").classList.contains("oculto");
+  definirPainel(abrindo);
+  if (abrindo) $("entradaCmd").focus();
 }
 
 /* ============================ divisores ============================ */
@@ -414,9 +429,19 @@ function sincronizarComServidor(aba: Aba): void {
   }, 300);
 }
 
-/** Registra o documento no servidor e passa a ser o alvo dos diagnósticos. */
+/**
+ * Diz quem está na frente: para os diagnósticos, aqui na interface, e para o
+ * processo principal, que precisa saber a quem pertence o texto que o fantasma
+ * manda ao Copilot.
+ *
+ * O aviso ao processo principal é de 04/08. Sem ele, trocar de aba não mudava
+ * nada lá: o alvo do fantasma ficava preso no último arquivo **aberto**, e não
+ * no que estava sendo editado.
+ */
 function focarNoServidor(aba: Aba | undefined): void {
-  definirArquivoAtual(aba && ehPython(aba.caminho) ? aba.caminho : null);
+  const alvo = aba && ehPython(aba.caminho) ? aba.caminho : null;
+  definirArquivoAtual(alvo);
+  api.lsp.focar(alvo);
   editor.avisarDiagnosticos();
 }
 
@@ -502,7 +527,26 @@ async function desenharConfiguracoes(): Promise<void> {
     <div class="cfg">
       <b>Texto fantasma</b>
       <p class="dim">Sugestão de código por IA, em cinza à frente do cursor. Sai
-         desta máquina: o trecho em volta do cursor vai para o modelo.</p>
+         desta máquina: ${
+           e.motor === "copilot"
+             ? `com o <b>Copilot</b>, vão o arquivo aberto <b>inteiro</b> e
+                também <b>as outras abas Python que você deixou abertas</b> — é
+                delas que ele tira o contexto, e sem elas ele inventa
+                assinatura de função.`
+             : `o trecho em volta do cursor vai para o modelo.`
+         }</p>
+      ${
+        e.motor === "copilot"
+          ? `<p class="dim">Este mesmo interruptor liga a <b>correção do código</b>:
+               parado por um instante, o Copilot pode propor <b>trocar um trecho
+               que você já escreveu</b> — a linha fica marcada e a proposta
+               aparece embaixo dela. Nada é aplicado sozinho; só o
+               <code>Ctrl+.</code> escreve. O que sai da máquina é o mesmo de
+               cima, e nada além.</p>`
+          : `<p class="dim">A <b>correção do código</b> — propor a troca de um
+               trecho já escrito — só existe com o Copilot. O modelo da DeepSeek
+               preenche o meio de uma linha, não reescreve o que está lá.</p>`
+      }
       ${
         e.configurado
           ? `<label class="chave">
@@ -845,6 +889,7 @@ async function corrigir(topicoId: string, exercicioId: string): Promise<void> {
   definirRodando(true);
   mascote.reagir("rodando");
   corrigindo = `${topicoId}/${exercicioId}`;
+  origemDaExecucao = "script";
   api.rodar(r.valor.verificador, [r.valor.teste, r.valor.arquivo]);
 }
 
@@ -1280,6 +1325,13 @@ async function excluir(alvo: string): Promise<void> {
   for (let i = abas.length - 1; i >= 0; i--) {
     const c = abas[i]!.caminho;
     if (c === alvo || c.startsWith(`${alvo}/`)) {
+      // Avisar os servidores é obrigação daqui também, não só do `fecharAba`:
+      // um arquivo que foi para a lixeira não pode seguir aberto no pyright nem
+      // servindo de vizinho ao Copilot.
+      if (ehPython(c)) {
+        api.lsp.fechar(c);
+        limparArquivo(c);
+      }
       abas.splice(i, 1);
       if (ativa >= i) ativa--;
     }
@@ -1291,6 +1343,7 @@ async function excluir(alvo: string): Promise<void> {
     if (ativa < 0) ativa = 0;
     editor.abrir(abas[ativa]!.conteudo, abas[ativa]!.gravado);
   }
+  focarNoServidor(abas[ativa]);
 
   // O painel de baixo segue a mesma regra: o que foi para a lixeira não pode
   // continuar como aba, e reler o caminho daria erro na cara do usuário.
@@ -1482,6 +1535,9 @@ async function assumirProjeto(p: ProjetoAberto): Promise<void> {
   await atualizarRecentes();
   desenharArvore();
   terminal.nota(`pasta aberta: ${p.raiz}`);
+  // O terminal volta para a raiz junto: seguir digitando dentro da corrida
+  // anterior seria o engano mais fácil de cometer e mais difícil de notar.
+  await sincronizarPastaCmd();
 }
 
 async function escolherProjeto(): Promise<void> {
@@ -1507,6 +1563,8 @@ function fecharProjeto(): void {
   desenharArvore();
   if (nome) terminal.nota(`pasta fechada: ${nome} (nada foi apagado)`);
   avisar(`${nome ?? "pasta"} fechada — nada foi apagado`);
+  // O prompt mostrava o nome da pasta; sem ela, mostra o caminho de verdade.
+  pintarPrompt();
 }
 
 async function abrirRecente(raiz: string): Promise<void> {
@@ -1661,6 +1719,9 @@ function definirRodando(v: boolean): void {
   ($("btRodar") as HTMLButtonElement).disabled = v;
   ($("btParar") as HTMLButtonElement).disabled = !v;
   $("estadoExec").textContent = v ? "rodando…" : "pronto";
+  // A linha de comando apaga em vez de desabilitar: desabilitada ela perderia o
+  // foco, e com ele o Ctrl+C que interrompe o que está rodando.
+  $("linhaCmd").classList.toggle("ocupada", v);
 }
 
 async function rodar(): Promise<void> {
@@ -1678,6 +1739,7 @@ async function rodar(): Promise<void> {
   terminal.comando(projeto?.nome ?? "", `python -u ${a.nome}`);
   definirRodando(true);
   mascote.reagir("rodando");
+  origemDaExecucao = "script";
   api.rodar(a.caminho);
 }
 
@@ -1689,24 +1751,171 @@ api.aoExecutar((e) => {
     case "erro":
       terminal.erro(e.texto);
       break;
-    case "fim":
+    case "fim": {
       definirRodando(false);
-      terminal.nota(
-        e.sinal
-          ? `\r\ninterrompido (${e.sinal})`
-          : e.codigo === 0
-            ? "\r\nconcluído"
-            : `\r\nsaiu com código ${e.codigo}`,
-      );
-      mascote.reagir(e.codigo === 0 && !e.sinal ? "ok" : "erro");
+      const bem = e.codigo === 0 && !e.sinal;
+      if (e.sinal) terminal.nota(`\r\ninterrompido (${e.sinal})`);
+      else if (!bem) terminal.nota(`\r\nsaiu com código ${e.codigo}`);
+      // Comando que deu certo termina calado, como em qualquer terminal: o
+      // prompt seguinte já é o aviso de que acabou. "concluído" só faz sentido
+      // para o ▶, onde não há prompt nenhum reaparecendo.
+      else if (origemDaExecucao === "script") terminal.nota("\r\nconcluído");
+      mascote.reagir(bem ? "ok" : "erro");
       // Se o que rodou era uma correção da trilha, o código de saída é a nota.
-      void concluirCorrecao(e.codigo === 0 && !e.sinal);
+      if (origemDaExecucao === "script") void concluirCorrecao(bem);
       break;
+    }
     case "falha":
       definirRodando(false);
       terminal.erro(`\r\n${e.mensagem}\r\n`);
       mascote.reagir("erro");
       break;
+  }
+});
+
+/* ========================= linha de comando (ADR 0020) ===================== */
+
+/**
+ * O terminal deixou de ser só tela.
+ *
+ * Motivo de existir, sem rodeio: o autor foi instalar o pandas para estudar e
+ * não tinha onde digitar. Uma IDE em que não se instala biblioteca não serve
+ * para aprender Python, que é o propósito declarado desta.
+ *
+ * Três escolhas que valem a leitura:
+ *
+ * 1. **É um `<input>`, não digitação dentro do xterm.** Sem PTY não existe eco
+ *    nem readline do outro lado; escrever no xterm significaria reimplementar
+ *    cursor, seleção, colar e acentuação. O campo do sistema já faz tudo isso.
+ * 2. **A pasta é a do terminal, não a do arquivo aberto**, e o `cd` a move. É o
+ *    que qualquer pessoa espera, e `pip install` não tem arquivo aberto algum.
+ * 3. **O eco vem antes da saída.** A linha digitada é repetida no terminal com o
+ *    prompt do momento, para que rolar a saída para cima continue contando a
+ *    história de quem pediu o quê — o campo esvazia, o registro fica.
+ */
+const campoCmd = $("entradaCmd") as HTMLInputElement;
+
+/** Pasta atual do terminal, em caminho absoluto. */
+let pastaCmd = "";
+/** Do mais recente para o mais antigo; `-1` é a linha que está sendo escrita. */
+let historicoCmd: string[] = [];
+let posHistorico = -1;
+let rascunhoCmd = "";
+
+/** O rótulo do prompt: nome da pasta aberta mais o caminho de dentro dela. */
+function rotuloDaPasta(): string {
+  if (!pastaCmd) return "~";
+  if (projeto && (pastaCmd === projeto.raiz || pastaCmd.startsWith(projeto.raiz + "/"))) {
+    const dentro = pastaCmd.slice(projeto.raiz.length).replace(/^\//, "");
+    return dentro ? `${projeto.nome}/${dentro}` : projeto.nome;
+  }
+  // Fora da pasta aberta o nome curto mentiria sobre onde o comando vai rodar.
+  return pastaCmd.replace(/^\/home\/[^/]+/, "~");
+}
+
+function pintarPrompt(): void {
+  $("promptCmd").textContent = `➜ ${rotuloDaPasta()}`;
+}
+
+async function sincronizarPastaCmd(): Promise<void> {
+  const r = await api.pastaDoComando();
+  if (r.ok) pastaCmd = r.valor;
+  pintarPrompt();
+}
+
+async function executarLinha(linha: string): Promise<void> {
+  const texto = linha.trim();
+  if (texto === "") return;
+
+  // `clear` não é processo: some com o que está na tela e pronto. Fica aqui, e
+  // não no processo principal, porque quem tem a tela é este lado.
+  if (texto === "clear" || texto === "cls") {
+    terminal.limpar();
+    campoCmd.value = "";
+    posHistorico = -1;
+    return;
+  }
+
+  terminal.comando(rotuloDaPasta(), texto);
+  campoCmd.value = "";
+  posHistorico = -1;
+  rascunhoCmd = "";
+
+  const r = await api.comando(texto);
+
+  // Repetido não empilha, para a seta ↑ não gastar dez toques em `pip list`.
+  historicoCmd = [texto, ...historicoCmd.filter((x) => x !== texto)];
+
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    return;
+  }
+  pastaCmd = r.valor.pasta;
+  pintarPrompt();
+  if (r.valor.nota) terminal.nota(r.valor.nota);
+  if (r.valor.rodando) {
+    origemDaExecucao = "comando";
+    definirRodando(true);
+    mascote.reagir("rodando");
+  }
+}
+
+$("linhaCmd").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (rodando) {
+    terminal.nota("há algo rodando — pare antes (■ no cabeçalho, ou Ctrl+C aqui)");
+    return;
+  }
+  void executarLinha(campoCmd.value);
+});
+
+// Clicar na faixa do prompt, e não só no campo, põe o cursor para digitar.
+$("linhaCmd").addEventListener("mousedown", (ev) => {
+  if (ev.target !== campoCmd) {
+    ev.preventDefault();
+    campoCmd.focus();
+  }
+});
+
+campoCmd.addEventListener("keydown", (ev) => {
+  // Ctrl+C: com algo rodando, mata — é o gesto que a mão já tem. Sem nada
+  // rodando, limpa a linha, como faz qualquer shell. Com texto selecionado não
+  // se mete: ali Ctrl+C é copiar, e roubar isso seria pior que não ter o gesto.
+  const temSelecao = campoCmd.selectionStart !== campoCmd.selectionEnd;
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c" && !temSelecao) {
+    ev.preventDefault();
+    if (rodando) {
+      api.parar();
+      terminal.nota("^C");
+    } else {
+      campoCmd.value = "";
+      posHistorico = -1;
+    }
+    return;
+  }
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "l") {
+    ev.preventDefault();
+    terminal.limpar();
+    return;
+  }
+
+  // O histórico é uma pilha do mais recente para o mais antigo: ↑ afunda, ↓
+  // volta, e voltar além do topo devolve a linha que estava escrita antes.
+  if (ev.key === "ArrowUp") {
+    if (posHistorico + 1 >= historicoCmd.length) return;
+    ev.preventDefault();
+    if (posHistorico === -1) rascunhoCmd = campoCmd.value;
+    posHistorico++;
+    campoCmd.value = historicoCmd[posHistorico] ?? "";
+    campoCmd.setSelectionRange(campoCmd.value.length, campoCmd.value.length);
+    return;
+  }
+  if (ev.key === "ArrowDown") {
+    if (posHistorico < 0) return;
+    ev.preventDefault();
+    posHistorico--;
+    campoCmd.value = posHistorico === -1 ? rascunhoCmd : (historicoCmd[posHistorico] ?? "");
+    campoCmd.setSelectionRange(campoCmd.value.length, campoCmd.value.length);
   }
 });
 
@@ -2026,6 +2235,12 @@ async function iniciar(): Promise<void> {
     avisar("não consegui reabrir a última pasta");
   }
   desenharArvore();
+
+  // A linha de comando precisa saber onde está antes de alguém digitar, e o
+  // histórico é lido do config.json — não do localStorage, ver `config.ts`.
+  await sincronizarPastaCmd();
+  const h = await api.historicoDeComandos();
+  if (h.ok) historicoCmd = h.valor;
 
   const c = await api.catalogo();
   if (c.ok) {

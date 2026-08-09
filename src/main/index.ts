@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
 import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
@@ -14,7 +15,9 @@ import { detectarVersoes } from "./ambiente.js";
 import { carregarCatalogo } from "./catalogo.js";
 import { lerCromatograma } from "./cromatograma.js";
 import {
+  comandosRecentes,
   configDoFantasma,
+  esquecerComandos,
   esquecerFantasma,
   esquecerPasta,
   gravarAparencia,
@@ -31,10 +34,20 @@ import {
   PASTA_FERN,
   registrarPasta,
   salvarFantasma,
+  registrarComando,
   ultimaPasta,
 } from "./config.js";
-import { cancelarFantasma, definirArquivoDoFantasma, sugerir } from "./fantasma.js";
-import { estadoCopilot, iniciarCopilot } from "./copilot.js";
+import { analisar, destinoDoCd } from "./comando.js";
+import { cancelarFantasma, corrigir, definirArquivoDoFantasma, sugerir } from "./fantasma.js";
+import {
+  avisarEdicaoAceita,
+  avisarEdicaoRecusada,
+  estadoCopilot,
+  fecharDocumento,
+  focarDocumento,
+  iniciarCopilot,
+  sincronizarDocumento,
+} from "./copilot.js";
 import {
   cancelarConversa,
   conversar,
@@ -53,7 +66,7 @@ import {
   marcarFeito,
   prepararExercicio,
 } from "./trilha.js";
-import { estaRodando, pararScript, rodarScript } from "./execucao.js";
+import { estaRodando, pararScript, pararTudo, rodarComando, rodarScript } from "./execucao.js";
 import { ServidorPython } from "./lsp.js";
 import {
   abrirProjeto,
@@ -141,11 +154,20 @@ function pastaDaLinhaDeComando(): string | null {
 /** A pasta de trabalho aberta agora. Guardada aqui para poder ser protegida. */
 let raizAberta: string | null = null;
 
+/**
+ * A pasta onde a linha de comando roda (ADR 0020). Começa na pasta aberta,
+ * anda com o `cd`, e volta para a raiz sempre que outra pasta é aberta — abrir
+ * uma corrida nova e continuar digitando dentro da corrida anterior seria a
+ * armadilha mais fácil de cair e mais difícil de perceber.
+ */
+let pastaDoComando: string | null = null;
+
 async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
   // A leitura da pasta vem primeiro: se ela não existe mais, o erro sobe e a
   // pasta some da lista em vez de ser registrada de novo.
   const projeto = await abrirProjeto(raiz);
   raizAberta = raiz;
+  pastaDoComando = raiz;
   void ligarServidor(raiz);
   registrarPasta(raiz);
   return projeto;
@@ -198,6 +220,56 @@ function aLixeiraAlcanca(alvo: string): boolean {
   }
 }
 
+/**
+ * `Ctrl +`, `Ctrl -` e `Ctrl 0` aumentam, diminuem e voltam ao tamanho natural.
+ *
+ * **Isto não existia** — descoberto em 08/08, quando o autor perguntou como
+ * aumentaria a tela. A janela é `frame: false` (ADR 0003), então não há barra de
+ * menu, e é da barra de menu que vinham os atalhos de zoom que todo aplicativo
+ * Electron ganha de graça. Ninguém tinha reparado porque quem escreveu a casca
+ * enxerga bem a 1340×820.
+ *
+ * **No processo principal, e não num `keymap` do CodeMirror**, de propósito: a
+ * pessoa pode estar com o foco no terminal, na conversa da Fern, na trilha ou na
+ * árvore de arquivos, e "a letra está pequena" não é um problema do editor — é
+ * da janela. O `before-input-event` chega antes de qualquer campo da interface.
+ *
+ * Os três nomes de tecla do aumentar não são zelo: `=` é o que o teclado manda
+ * quando se aperta `Ctrl` e a tecla do `+` sem `Shift`, `+` é o do teclado
+ * numérico e o do ABNT2, e `Shift+=` é o de layouts onde o `+` exige `Shift`.
+ * Escolher um só faria o atalho funcionar em alguns teclados e não em outros —
+ * e este é o teclado ABNT2 de quem pediu.
+ */
+function ligarZoom(alvo: BrowserWindow): void {
+  const LIMITE_MIN = 0.6;
+  const LIMITE_MAX = 2.5;
+  const PASSO = 0.1;
+
+  const aplicar = (fator: number): void => {
+    const preso = Math.min(LIMITE_MAX, Math.max(LIMITE_MIN, Number(fator.toFixed(2))));
+    alvo.webContents.setZoomFactor(preso);
+    gravarAparencia({ zoom: preso });
+  };
+
+  // O zoom lembrado da sessão anterior. Vai depois do primeiro carregamento
+  // porque o Electron reinicia o fator a cada navegação — aplicado antes, ele
+  // seria descartado sem aviso.
+  alvo.webContents.on("did-finish-load", () => {
+    alvo.webContents.setZoomFactor(lerAparencia().zoom);
+  });
+
+  alvo.webContents.on("before-input-event", (evento, entrada) => {
+    if (entrada.type !== "keyDown" || !entrada.control || entrada.alt || entrada.meta) return;
+    const atual = alvo.webContents.getZoomFactor();
+    if (entrada.key === "=" || entrada.key === "+") aplicar(atual + PASSO);
+    else if (entrada.key === "-" || entrada.key === "_") aplicar(atual - PASSO);
+    else if (entrada.key === "0") aplicar(1);
+    else return;
+    // Sem isto o `Ctrl 0` chegaria ao editor como digitar zero.
+    evento.preventDefault();
+  });
+}
+
 function criarJanela(): void {
   janela = new BrowserWindow({
     width: 1340,
@@ -222,6 +294,8 @@ function criarJanela(): void {
       sandbox: false,
     },
   });
+
+  ligarZoom(janela);
 
   // A opção `icon:` do construtor não bastou nesta máquina (a propriedade
   // _NET_WM_ICON ficava vazia). Setar explicitamente resolve, e o aviso no
@@ -470,17 +544,39 @@ function registrarPonte(): void {
     }),
   );
 
+  // Os três avisos de ciclo de vida do editor servem a **dois** servidores: o
+  // pyright, que analisa o arquivo aberto, e o Copilot, que precisa saber quais
+  // são as **outras** abas para montar o contexto. Antes de 04/08 só o `abrir`
+  // chegava ao Copilot, e mesmo assim só para gravar um nome de arquivo.
   ipcMain.on("lsp:abrir", (_e, arquivo: string, texto: string) => {
-    // O Copilot precisa de um caminho para saber a linguagem e o contexto; o
-    // fantasma FIM nunca precisou. Aproveita-se o aviso que o editor já manda
-    // ao language server, em vez de alargar a ponte só para isto.
-    definirArquivoDoFantasma(typeof arquivo === "string" ? arquivo : null);
     servidor?.abrir(arquivo, texto);
+    sincronizarDocumento(arquivo, texto);
   });
-  ipcMain.on("lsp:mudar", (_e, arquivo: string, versao: number, texto: string) =>
-    servidor?.mudar(arquivo, versao, texto),
-  );
-  ipcMain.on("lsp:fechar", (_e, arquivo: string) => servidor?.fechar(arquivo));
+  ipcMain.on("lsp:mudar", (_e, arquivo: string, versao: number, texto: string) => {
+    servidor?.mudar(arquivo, versao, texto);
+    sincronizarDocumento(arquivo, texto);
+  });
+  ipcMain.on("lsp:fechar", (_e, arquivo: string) => {
+    servidor?.fechar(arquivo);
+    fecharDocumento(arquivo);
+  });
+
+  /**
+   * Qual aba está na frente.
+   *
+   * Este aviso não existia, e a falta era defeito de verdade:
+   * `definirArquivoDoFantasma` só era chamado na **primeira** abertura de cada
+   * arquivo, então depois de abrir um segundo e voltar para o primeiro, o
+   * fantasma mandava o texto de um com o caminho do outro — e o `didChange`
+   * sobrescrevia no servidor a cópia do arquivo que nem estava sendo editado.
+   * Medido em `docs/comparativo-fantasma-copilot.md`: 3/3 certo com o caminho
+   * certo, 0/3 depois da troca de abas.
+   */
+  ipcMain.on("lsp:focar", (_e, arquivo: unknown) => {
+    const alvo = typeof arquivo === "string" ? arquivo : null;
+    definirArquivoDoFantasma(alvo);
+    focarDocumento(alvo);
+  });
 
   ipcMain.handle(
     "lsp:completar",
@@ -525,6 +621,16 @@ function registrarPonte(): void {
     seguro((_e, texto: string, cursor: number) => sugerir({ texto, cursor })),
   );
   ipcMain.on("fantasma:cancelar", () => cancelarFantasma());
+
+  // Correção do que já está escrito (ADR 0025). Canal separado do
+  // `fantasma:sugerir` porque é outro pedido, outro tempo (2,5–4,5 s contra
+  // 886 ms) e outra resposta: intervalos a substituir, não texto a inserir.
+  ipcMain.handle(
+    "fantasma:corrigir",
+    seguro((_e, texto: string, cursor: number) => corrigir({ texto, cursor })),
+  );
+  ipcMain.on("fantasma:edicaoAceita", () => avisarEdicaoAceita());
+  ipcMain.on("fantasma:edicaoRecusada", () => avisarEdicaoRecusada());
 
   // Mascote (ADR 0008). A interface pede a conversa e recebe a resposta — o
   // miniMD que serve de contexto nunca atravessa esta ponte: ele é lido do lado
@@ -690,6 +796,105 @@ function registrarPonte(): void {
   });
   ipcMain.on("exec:parar", () => pararScript());
 
+  /**
+   * A linha de comando do terminal (ADR 0020).
+   *
+   * **Aqui não há `confinado`, e é a diferença de fundo em relação a
+   * `exec:rodar`.** Aquele recebe um caminho vindo da árvore de arquivos e só
+   * pode acabar em `.py` dentro da pasta aberta, porque é a Bancada quem monta o
+   * comando. Este recebe uma linha que a pessoa digitou olhando para a tela:
+   * confiná-la seria fingir que a Bancada sabe melhor do que o dono da máquina o
+   * que ele quis instalar. O que sobra de proteção é o que realmente protege —
+   * `shell: false`, sem interpolação de texto — e está em `comando.ts`.
+   *
+   * Devolve a pasta atual junto porque o `cd` acontece deste lado: quem pergunta
+   * já recebe o prompt novo, sem uma segunda viagem pela ponte.
+   */
+  ipcMain.handle(
+    "exec:comando",
+    seguro((e, linha: unknown) => {
+      if (typeof linha !== "string") throw new Error("Comando inválido.");
+      // Recusado antes de qualquer análise: quebra de linha aqui é a única forma
+      // de uma caixa de texto de uma linha esconder um segundo comando.
+      if (/[\n\r\0]/.test(linha)) throw new Error("O comando não pode ter quebra de linha.");
+      if (linha.length > 4000) throw new Error("Comando longo demais.");
+
+      const cwd = pastaDoComando ?? homedir();
+      const pronto = analisar(linha, cwd);
+      if (!pronto) return { pasta: cwd, rodando: false, nota: null };
+
+      registrarComando(linha.trim());
+
+      if (pronto.tipo === "cd") {
+        pastaDoComando = destinoDoCd(pronto.args, cwd, homedir());
+        return { pasta: pastaDoComando, rodando: false, nota: null };
+      }
+
+      if (estaRodando()) throw new Error("Já há algo em execução. Pare antes de rodar outro.");
+
+      rodarComando(pronto.programa, pronto.args, cwd, (evento: EventoExecucao) =>
+        e.sender.send("exec:evento", evento),
+      );
+      return { pasta: cwd, rodando: true, nota: pronto.nota ?? null };
+    }),
+  );
+  ipcMain.handle(
+    "exec:pasta",
+    seguro(() => pastaDoComando ?? homedir()),
+  );
+  ipcMain.handle(
+    "exec:historico",
+    seguro(() => comandosRecentes()),
+  );
+  ipcMain.handle(
+    "exec:esquecerHistorico",
+    seguro(() => esquecerComandos()),
+  );
+
+  /**
+   * O terminal do chat (ADR 0022).
+   *
+   * Mesma análise e mesmas travas do terminal de baixo — é o mesmo `comando.ts`,
+   * de propósito: duas linhas de comando com regras diferentes seriam duas
+   * superfícies para auditar em vez de uma. O que muda é só **onde o processo
+   * mora**, para o `verboo` não ocupar o lugar do ▶ pelo minuto que leva.
+   *
+   * A pasta é a mesma do terminal de baixo, e o `cd` de um move o outro. Foi
+   * escolha: dois prompts mostrando pastas diferentes na mesma janela é o tipo
+   * de coisa que faz alguém rodar o comando certo no lugar errado.
+   */
+  ipcMain.handle(
+    "chat:comando",
+    seguro((e, linha: unknown) => {
+      if (typeof linha !== "string") throw new Error("Comando inválido.");
+      if (/[\n\r\0]/.test(linha)) throw new Error("O comando não pode ter quebra de linha.");
+      if (linha.length > 4000) throw new Error("Comando longo demais.");
+
+      const cwd = pastaDoComando ?? homedir();
+      const pronto = analisar(linha, cwd);
+      if (!pronto) return { pasta: cwd, rodando: false, nota: null };
+
+      registrarComando(linha.trim());
+
+      if (pronto.tipo === "cd") {
+        pastaDoComando = destinoDoCd(pronto.args, cwd, homedir());
+        return { pasta: pastaDoComando, rodando: false, nota: null };
+      }
+
+      if (estaRodando("chat")) throw new Error("Já há algo rodando aqui. Pare antes.");
+
+      rodarComando(
+        pronto.programa,
+        pronto.args,
+        cwd,
+        (evento: EventoExecucao) => e.sender.send("chat:evento", evento),
+        "chat",
+      );
+      return { pasta: cwd, rodando: true, nota: pronto.nota ?? null };
+    }),
+  );
+  ipcMain.on("chat:parar", () => pararScript("chat"));
+
   ipcMain.on("janela:minimizar", () => janela?.minimize());
   ipcMain.on("janela:alternar-maximo", () =>
     janela?.isMaximized() ? janela.unmaximize() : janela?.maximize(),
@@ -703,7 +908,7 @@ void app.whenReady().then(() => {
   // O servidor do Copilot só sobe quando ele é o motor escolhido: sao 111 MB e
   // um processo a mais, e quem usa a DeepSeek nao paga por isso.
   if (configDoFantasma()?.motor === "copilot") {
-    void iniciarCopilot(RAIZ_APP).catch(() => {
+    void iniciarCopilot(RAIZ_APP, configDoFantasma()?.ligado === true).catch(() => {
       janela?.webContents.send("lsp:falhou", "O servidor do Copilot nao subiu.");
     });
   }
@@ -713,7 +918,7 @@ void app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  pararScript();
+  pararTudo();
   servidor?.parar();
   if (process.platform !== "darwin") app.quit();
 });
