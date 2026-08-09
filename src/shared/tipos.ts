@@ -70,6 +70,16 @@ export type EventoExecucao =
   | { tipo: "fim"; codigo: number | null; sinal: string | null }
   | { tipo: "falha"; mensagem: string };
 
+/** O que volta de uma linha digitada no terminal (ADR 0020). */
+export interface RespostaComando {
+  /** A pasta onde a linha rodou — ou a nova, quando a linha era um `cd`. */
+  pasta: string;
+  /** `false` quando não nasceu processo (`cd`, linha em branco). */
+  rodando: boolean;
+  /** Aviso de reescrita, como a troca de `pip` por `python -m pip`. */
+  nota: string | null;
+}
+
 /** Resultado de qualquer operação que pode falhar por culpa do ambiente. */
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };
 
@@ -227,6 +237,8 @@ export interface EstadoAparencia {
   gerado: Record<string, string> | null;
   /** Preenchido pela interface: a imagem é animada e o reprodutor a assumiu. */
   animado?: boolean;
+  /** Zoom da janela inteira, como fator. 1 é o tamanho natural. */
+  zoom: number;
 }
 
 /* ------------------------------- mascote ---------------------------------- */
@@ -285,4 +297,27 @@ export interface EstadoFantasma {
   chaveiroDisponivel: boolean;
   chaveEmTextoPuro: boolean;
   arquivo: string;
+  /** Quem completa. Muda **o que sai da máquina**, e por isso a tela precisa
+   *  saber: o FIM manda o trecho em volta do cursor; o Copilot manda o arquivo
+   *  inteiro e, desde 04/08, as outras abas abertas. */
+  motor: "deepseek" | "copilot";
+}
+
+/**
+ * Uma correção proposta pelo Copilot — o "next edit" (ADR 0025).
+ *
+ * **O que a separa do texto fantasma:** o fantasma só sabe *inserir* no cursor;
+ * isto aqui *substitui* um trecho que já está escrito, e por isso carrega um
+ * intervalo em vez de uma posição. Foi o que faltou no caso de 08/08, em que
+ * `dicionario(i, 0)` precisava virar `dicionario.get(i, 0)`: nenhuma superfície
+ * da Bancada era capaz de trocar caractere já digitado.
+ *
+ * Os deslocamentos são **absolutos no documento que foi mandado**, não
+ * linha/coluna: a conversão do formato do LSP acontece no processo principal,
+ * para a interface não precisar conhecer o protocolo.
+ */
+export interface EdicaoSugerida {
+  de: number;
+  ate: number;
+  texto: string;
 }

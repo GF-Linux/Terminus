@@ -15,9 +15,62 @@ import type { EstadoDoMascote, EstadoMascote, FalaMascote } from "../../shared/t
  *    identificação de amostra.
  * 2. **Conversa** — sai da máquina, e só quando ligada. Vai a fala digitada e o
  *    miniMD (que o processo principal injeta); não vai nada da sessão.
+ *
+ * O painel dela também hospeda o **terminal do chat** (ADR 0022) — uma linha de
+ * comando para chamar o verboo sem sair daqui. Ele e a Fern dividem a janela e
+ * **não se falam**: nada do que roda ali entra na conversa dela.
  */
 
 const ESTADOS: EstadoMascote[] = ["parado", "piscando", "feliz", "preocupado", "pensando"];
+
+/** Texto de usuário — e agora também nome de arquivo — nunca entra cru no HTML. */
+const esc = (t: string): string =>
+  t
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * Uma linha na janela. Ou é fala (dela ou dele), ou é o terminal (ADR 0022) —
+ * e o que é do terminal **não** entra no que sai para a API dela.
+ */
+interface LinhaNaTela {
+  quem: "autor" | "mascote" | "comando" | "saida" | "erro";
+  texto: string;
+}
+
+/**
+ * De quem é a linha → classe de CSS.
+ *
+ * `mascote` vira `resposta` e **não** `mascote`: o widget inteiro já é
+ * `.mascote`, e uma fala com essa classe herdava dele `position:fixed` e
+ * `width:112px` — as respostas empilhavam umas por cima das outras no canto. Só
+ * apareceu na captura de tela.
+ */
+const CLASSE: Record<LinhaNaTela["quem"], string> = {
+  autor: "autor",
+  mascote: "resposta",
+  comando: "cmd",
+  saida: "saida",
+  erro: "saidaErro",
+};
+
+/**
+ * O que sai daqui para a API dela.
+ *
+ * **É este filtro que sustenta a promessa da ADR 0022**: o terminal divide a
+ * janela com a conversa e não entra nela. Linha de comando, saída e erro ficam
+ * de fora — só fala vira mensagem. Está numa função só, e não espalhado em cada
+ * chamada, porque é a única coisa que separa "painel compartilhado" de "a Fern
+ * lê tudo o que você roda".
+ */
+const soAsFalas = (linhas: LinhaNaTela[]): FalaMascote[] =>
+  linhas
+    .filter((l): l is LinhaNaTela & { quem: "autor" | "mascote" } =>
+      l.quem === "autor" || l.quem === "mascote")
+    .map((l) => ({ quem: l.quem, texto: l.texto }));
 
 /** O que ele diz em cada situação. Sorteado, para não virar papagaio. */
 const FALAS: Record<string, string[]> = {
@@ -45,11 +98,21 @@ export class Mascote {
   private readonly lista: HTMLElement;
   private readonly painelMemoria: HTMLElement;
   private readonly campo: HTMLTextAreaElement;
+  private readonly campoCmd: HTMLInputElement;
 
   private quadros: Partial<Record<EstadoMascote, string>> = {};
   private estado: EstadoDoMascote | null = null;
-  private falas: FalaMascote[] = [];
+  private falas: LinhaNaTela[] = [];
   private esperando = false;
+
+  /* --- terminal do chat (ADR 0022) --- */
+  private pastaCmd = "";
+  private rodandoCmd = false;
+  /** A linha de saída que está sendo preenchida agora, para o texto ir crescendo. */
+  private saidaAtual: LinhaNaTela | null = null;
+  private historicoCmd: string[] = [];
+  private posHistorico = -1;
+  private rascunhoCmd = "";
 
   private volta: number | undefined;
   private some: number | undefined;
@@ -76,6 +139,15 @@ export class Mascote {
         <div class="entrada">
           <textarea rows="1" placeholder="conversar…" spellcheck="false"></textarea>
         </div>
+        <!-- O terminal do chat (ADR 0022). Campo próprio, e não um prefixo
+             mágico no campo de conversa: são duas coisas diferentes e a tela
+             deve dizer isso sozinha. -->
+        <form class="linhaChat" autocomplete="off">
+          <span class="promptChat">&#10148;</span>
+          <input type="text" spellcheck="false" autocapitalize="off"
+                 placeholder='verboo -p "por que dá NaN?"' aria-label="Comando" />
+          <button type="button" class="pararChat oculto" title="Parar">&#9632;</button>
+        </form>
         <div class="rodape"></div>
       </div>`;
 
@@ -85,6 +157,7 @@ export class Mascote {
     this.lista = this.raiz.querySelector(".falas")!;
     this.painelMemoria = this.raiz.querySelector(".memoria")!;
     this.campo = this.raiz.querySelector("textarea")!;
+    this.campoCmd = this.raiz.querySelector(".linhaChat input")!;
 
     this.raiz.querySelector(".verMemoria")!.addEventListener("click", () => {
       void this.alternarMemoria();
@@ -135,6 +208,137 @@ export class Mascote {
       this.campo.style.height = "auto";
       this.campo.style.height = `${Math.min(96, this.campo.scrollHeight)}px`;
     });
+
+    this.ligarTerminal();
+  }
+
+  /* ---------------------- terminal do chat (ADR 0022) --------------------- */
+
+  /**
+   * A linha de comando que mora no painel dela.
+   *
+   * **Por que existe:** o `master` da ADR 0021 dava olhos à Fern e reprovou no
+   * uso real — o `contexto.md` dela diz, e sempre disse, *"não é assistente de
+   * código"*. Quem faz esse trabalho é o verboo, que já é um agente com acesso
+   * a arquivo próprio. Rodando com o diretório de trabalho na pasta aberta, ele
+   * lê o projeto sozinho: não há leitura para a Bancada construir.
+   *
+   * **Por que aqui e não no terminal de baixo:** a pergunta e a resposta ficam
+   * na mesma coluna da conversa, que é onde a cabeça já está quando se pergunta
+   * "por que isso não funciona". O terminal de baixo continua sendo o lugar de
+   * `pip install` e de rodar script.
+   *
+   * **O que ele não faz:** falar com ela. Ver `soAsFalas`.
+   */
+  private ligarTerminal(): void {
+    const forma = this.raiz.querySelector<HTMLFormElement>(".linhaChat")!;
+    forma.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      if (this.rodandoCmd) return;
+      void this.rodarNoChat(this.campoCmd.value);
+    });
+    this.raiz.querySelector(".pararChat")!.addEventListener("click", () => this.api.chat.parar());
+
+    this.campoCmd.addEventListener("keydown", (ev) => {
+      // O Esc fecha a janela como no campo de conversa — mas primeiro precisa
+      // não vazar para o atalho global, que fecharia o menu de contexto.
+      if (ev.key === "Escape") {
+        ev.stopPropagation();
+        this.conversa.classList.add("oculto");
+        return;
+      }
+      const semSelecao = this.campoCmd.selectionStart === this.campoCmd.selectionEnd;
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "c" && semSelecao) {
+        ev.preventDefault();
+        if (this.rodandoCmd) {
+          this.api.chat.parar();
+          this.empilhar("erro", "^C");
+        } else {
+          this.campoCmd.value = "";
+          this.posHistorico = -1;
+        }
+        return;
+      }
+      if (ev.key === "ArrowUp") {
+        if (this.posHistorico + 1 >= this.historicoCmd.length) return;
+        ev.preventDefault();
+        if (this.posHistorico === -1) this.rascunhoCmd = this.campoCmd.value;
+        this.posHistorico++;
+        this.campoCmd.value = this.historicoCmd[this.posHistorico] ?? "";
+        return;
+      }
+      if (ev.key === "ArrowDown") {
+        if (this.posHistorico < 0) return;
+        ev.preventDefault();
+        this.posHistorico--;
+        this.campoCmd.value =
+          this.posHistorico === -1 ? this.rascunhoCmd : (this.historicoCmd[this.posHistorico] ?? "");
+      }
+    });
+  }
+
+  /** Acrescenta uma linha na janela e repinta. */
+  private empilhar(quem: LinhaNaTela["quem"], texto: string): LinhaNaTela {
+    const linha: LinhaNaTela = { quem, texto };
+    this.falas.push(linha);
+    this.desenharFalas();
+    return linha;
+  }
+
+  private rotuloDaPasta(): string {
+    if (!this.pastaCmd) return "~";
+    return this.pastaCmd.replace(/^\/home\/[^/]+/, "~").split("/").slice(-2).join("/");
+  }
+
+  private pintarPromptCmd(): void {
+    this.raiz.querySelector(".promptChat")!.textContent = `➜ ${this.rotuloDaPasta()}`;
+  }
+
+  private definirRodandoCmd(v: boolean): void {
+    this.rodandoCmd = v;
+    this.raiz.querySelector(".pararChat")!.classList.toggle("oculto", !v);
+    this.raiz.querySelector(".linhaChat")!.classList.toggle("ocupada", v);
+    if (!v) this.saidaAtual = null;
+  }
+
+  private async rodarNoChat(linha: string): Promise<void> {
+    const texto = linha.trim();
+    if (texto === "") return;
+
+    if (texto === "clear" || texto === "cls") {
+      // Limpa só o terminal; a conversa com ela fica. São dois assuntos na
+      // mesma janela, e limpar um não pode apagar o outro.
+      this.falas = this.falas.filter((l) => l.quem === "autor" || l.quem === "mascote");
+      this.campoCmd.value = "";
+      this.desenharFalas();
+      return;
+    }
+
+    this.empilhar("comando", `➜ ${this.rotuloDaPasta()}  ${texto}`);
+    this.campoCmd.value = "";
+    this.posHistorico = -1;
+    this.rascunhoCmd = "";
+    this.historicoCmd = [texto, ...this.historicoCmd.filter((x) => x !== texto)];
+
+    const r = await this.api.chat.comando(texto);
+    if (!r.ok) {
+      this.empilhar("erro", r.erro);
+      return;
+    }
+    this.pastaCmd = r.valor.pasta;
+    this.pintarPromptCmd();
+    if (r.valor.nota) this.empilhar("saida", r.valor.nota);
+    if (r.valor.rodando) this.definirRodandoCmd(true);
+  }
+
+  /** A saída chega em pedaços; cada pedaço cresce a mesma linha. */
+  private receberSaida(tipo: "saida" | "erro", texto: string): void {
+    if (this.saidaAtual && this.saidaAtual.quem === tipo) {
+      this.saidaAtual.texto += texto;
+      this.desenharFalas();
+      return;
+    }
+    this.saidaAtual = this.empilhar(tipo, texto);
   }
 
   /* ----------------------------- ciclo de vida ---------------------------- */
@@ -148,6 +352,30 @@ export class Mascote {
     this.raiz.querySelector(".nome")!.textContent = this.estado?.nome ?? "Mascote";
     this.desenharRodape();
     this.restaurarLugar();
+
+    // O terminal do chat: pasta, histórico e o cano da saída.
+    const pasta = await api.pastaDoComando();
+    if (pasta.ok) this.pastaCmd = pasta.valor;
+    this.pintarPromptCmd();
+    const hist = await api.historicoDeComandos();
+    if (hist.ok) this.historicoCmd = hist.valor;
+    api.chat.aoExecutar((e) => {
+      switch (e.tipo) {
+        case "saida":
+        case "erro":
+          this.receberSaida(e.tipo, e.texto);
+          break;
+        case "fim":
+          this.definirRodandoCmd(false);
+          if (e.sinal) this.empilhar("erro", `interrompido (${e.sinal})`);
+          else if (e.codigo !== 0) this.empilhar("erro", `saiu com código ${e.codigo}`);
+          break;
+        case "falha":
+          this.definirRodandoCmd(false);
+          this.empilhar("erro", e.mensagem);
+          break;
+      }
+    });
 
     // Só aparece se não foi dispensado da última vez.
     this.definirVisivel(localStorage.getItem("bancada.mascoteVisivel") !== "0");
@@ -296,7 +524,9 @@ export class Mascote {
       rodape.querySelector("[data-m=ligar]")!.addEventListener("click", () => void this.ligar(true));
       return;
     }
-    // Ligada, a frase que importa: o que sai daqui.
+    // Ligada, a frase que importa: o que sai daqui. Continua verdadeira com o
+    // terminal do chat ao lado (ADR 0022) **porque ele não fala com ela** — o
+    // que roda ali não entra em nenhuma chamada da API.
     rodape.innerHTML = `<span class="dim">Sai da máquina: o que você escrever e o
       resumo em <code>contexto.md</code>. Nada do que está aberto.</span>
       <button class="acao" data-m="desligar">Desligar</button>`;
@@ -324,15 +554,7 @@ export class Mascote {
   private desenharFalas(): void {
     this.lista.innerHTML =
       this.falas
-        .map(
-          (f) =>
-            `<div class="fala ${f.quem === "autor" ? "autor" : "resposta"}"><span>${f.texto
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#39;")}</span></div>`,
-        )
+        .map((f) => `<div class="fala ${CLASSE[f.quem]}"><span>${esc(f.texto)}</span></div>`)
         .join("") + (this.esperando ? `<div class="fala resposta pensando"><span>…</span></div>` : "");
     this.lista.scrollTop = this.lista.scrollHeight;
   }
@@ -401,7 +623,7 @@ export class Mascote {
   private async destilar(): Promise<void> {
     if (this.falas.length < 4 || this.falas.length === this.destiladoEm) return;
     this.destiladoEm = this.falas.length;
-    const r = await this.api.mascote.destilar(this.falas);
+    const r = await this.api.mascote.destilar(soAsFalas(this.falas));
     if (r.ok && r.valor) this.aoAvisar("a Fern atualizou o que sabe sobre você");
   }
 
@@ -418,7 +640,7 @@ export class Mascote {
     this.mostrar("pensando");
     this.desenharFalas();
 
-    const r = await this.api.mascote.conversar(this.falas);
+    const r = await this.api.mascote.conversar(soAsFalas(this.falas));
     this.esperando = false;
 
     if (r.ok) {

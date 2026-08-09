@@ -38,6 +38,8 @@ interface ConfigGravada {
   };
   /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
   pastas?: string[];
+  /** Linhas digitadas no terminal, da mais recente para a mais antiga. */
+  comandos?: string[];
   aparencia?: {
     /** Arquivo copiado para dentro de ~/.config/bancada, ou null. */
     wallpaper?: string | null;
@@ -49,6 +51,8 @@ interface ConfigGravada {
     junta?: string;
     /** Nome do tema, ou "gerado". */
     tema?: string;
+    /** Zoom da janela inteira, como fator. 1 é o tamanho natural. */
+    zoom?: number;
     /** A paleta extraída da imagem, quando o tema é "gerado". */
     gerado?: Record<string, string> | null;
   };
@@ -105,6 +109,7 @@ export function estadoDoFantasma(): EstadoFantasma {
     chaveiroDisponivel: safeStorage.isEncryptionAvailable(),
     chaveEmTextoPuro: Boolean(f?.chaveAberta),
     arquivo: ARQUIVO,
+    motor: f?.motor ?? "deepseek",
   };
 }
 
@@ -162,6 +167,15 @@ const APARENCIA_PADRAO = {
   junta: "crossfade",
   tema: "cursor-dark",
   gerado: null as Record<string, string> | null,
+  /**
+   * O zoom da janela inteira, como fator (1 = tamanho natural).
+   *
+   * Mora aqui, e não no `localStorage`, pelo mesmo motivo das medidas dos
+   * painéis: é ajuste de acessibilidade, e quem precisa dele precisa **toda
+   * vez**. Reiniciar e a tela voltar ao tamanho pequeno é a ferramenta
+   * esquecendo o que mais importa lembrar.
+   */
+  zoom: 1,
 };
 
 export type Aparencia = typeof APARENCIA_PADRAO;
@@ -175,6 +189,9 @@ export function lerAparencia(): Aparencia {
     junta: a.junta ?? APARENCIA_PADRAO.junta,
     tema: a.tema ?? APARENCIA_PADRAO.tema,
     gerado: a.gerado ?? null,
+    // Os mesmos limites que os atalhos aplicam, para um config.json editado à
+    // mão não deixar a janela ilegível nem microscópica.
+    zoom: Math.min(2.5, Math.max(0.6, a.zoom ?? APARENCIA_PADRAO.zoom)),
   };
 }
 
@@ -331,6 +348,38 @@ export function registrarPasta(raiz: string): void {
 export function esquecerPasta(raiz: string): void {
   const c = ler();
   c.pastas = (c.pastas ?? []).filter((p) => p !== raiz);
+  gravar(c);
+}
+
+/* --------------------------- histórico do terminal ------------------------ */
+
+/**
+ * As linhas já digitadas no terminal (ADR 0020), para a seta ↑.
+ *
+ * Mora aqui pela mesma razão que a lista de pastas recentes: **comando também é
+ * dado sensível** — carrega caminho de corrida, nome de amostra, às vezes um
+ * endereço de servidor. Fica no `config.json` `0600` e não no `localStorage`,
+ * que é um arquivo do Chromium sem permissão restrita e sem dono claro.
+ *
+ * Repetido não empilha: quem roda `pip list` dez vezes não perde o comando de
+ * ontem por causa disso.
+ */
+const MAX_COMANDOS = 200;
+
+export function comandosRecentes(): string[] {
+  return ler().comandos ?? [];
+}
+
+export function registrarComando(linha: string): void {
+  const c = ler();
+  const antes = (c.comandos ?? []).filter((x) => x !== linha);
+  c.comandos = [linha, ...antes].slice(0, MAX_COMANDOS);
+  gravar(c);
+}
+
+export function esquecerComandos(): void {
+  const c = ler();
+  delete c.comandos;
   gravar(c);
 }
 

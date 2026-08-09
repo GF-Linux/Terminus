@@ -42,6 +42,15 @@ import {
  * de arquivo numa pasta de corrida costuma ser identificação de amostra, e
  * mandar isso para uma API por educação do mascote seria furar a fronteira pelo
  * lado mais bobo. As reações ao trabalho ficam locais justamente por isso.
+ *
+ * ## A ADR 0021 tentou abrir uma exceção aqui, e foi revertida
+ *
+ * O modo `master` dava a ela leitura dos arquivos da pasta aberta. Funcionava —
+ * e mesmo assim reprovou no uso real, por um motivo que estava escrito no
+ * `contexto.md` dela o tempo todo: *"não é assistente de código, não revisa o
+ * trabalho dele"*. Dar olhos a ela era mandá-la ser o que a própria persona dela
+ * proíbe. Quem faz esse trabalho agora é o verboo, pelo terminal do chat
+ * (ADR 0022), e a fronteira acima voltou a valer inteira.
  */
 
 /** Só uma conversa em voo; mandar outra pergunta cancela a anterior. */
@@ -199,6 +208,7 @@ const FERRAMENTAS = [
     },
   },
 ] as const;
+
 
 interface ChamadaDeFerramenta {
   id: string;

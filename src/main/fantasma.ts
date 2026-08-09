@@ -1,5 +1,6 @@
+import type { EdicaoSugerida } from "../shared/tipos.js";
 import { chaveDoFantasma, configDoFantasma } from "./config.js";
-import { sugerirComCopilot } from "./copilot.js";
+import { sugerirComCopilot, sugerirEdicaoComCopilot } from "./copilot.js";
 
 /**
  * Texto fantasma — completamento por IA, no formato FIM (fill-in-the-middle).
@@ -139,4 +140,21 @@ export async function sugerir(pedido: PedidoFantasma): Promise<string | null> {
   } finally {
     if (emVoo === controle) emVoo = null;
   }
+}
+
+/**
+ * Corrigir o que já está escrito (ADR 0025). Só existe com o Copilot.
+ *
+ * Passa pelo **mesmo interruptor** do fantasma de propósito: é o mesmo servidor,
+ * a mesma conta e o mesmo código saindo da máquina. Quem desligou o fantasma
+ * desligou isto junto, e a tela não precisa de um segundo interruptor para
+ * dizer uma segunda verdade.
+ *
+ * A DeepSeek não entra: FIM preenche o meio, não reescreve o que existe.
+ */
+export async function corrigir(pedido: PedidoFantasma): Promise<EdicaoSugerida[]> {
+  const cfg = configDoFantasma();
+  if (!cfg || !cfg.ligado || cfg.motor !== "copilot") return [];
+  if (!arquivoAtual) return [];
+  return sugerirEdicaoComCopilot(arquivoAtual, pedido.texto, pedido.cursor);
 }

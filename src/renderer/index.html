@@ -107,6 +107,16 @@
         </span>
       </div>
       <div class="term" id="term"></div>
+      <!-- A linha de comando (ADR 0020). É um <input> de HTML, e não digitação
+           dentro do xterm, de propósito: sem PTY não há eco nem readline do
+           outro lado, então escrever no terminal significaria reimplementar
+           cursor, seleção, colar e acentuação à mão. O campo do sistema já faz
+           tudo isso — inclusive o teclado do Deck. -->
+      <form class="linhaCmd" id="linhaCmd" autocomplete="off">
+        <span class="promptCmd" id="promptCmd">&#10148;</span>
+        <input id="entradaCmd" type="text" spellcheck="false" autocapitalize="off"
+               placeholder="pip install pandas" aria-label="Comando" />
+      </form>
     </aside>
 
   </div>

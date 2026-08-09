@@ -16,3 +16,15 @@ __pycache__/
 
 # Relatorios da varredura de seguranca: ficam na maquina, nao no repositorio.
 CLAUDE-SECURITY-*/
+
+# O copilot.ts empacotado para o verificador rodar contra o modulo de verdade, e
+# o arquivo em edicao que os casos reescrevem a cada corrida. Os dois sao
+# gerados; versionar seria guardar uma copia que envelhece em silencio.
+tools/comparativo-fantasma/.copilot.build.mjs
+tools/comparativo-fantasma/.copilot.correcao.mjs
+tools/comparativo-fantasma/.fantasma-empacotado.mjs
+tools/comparativo-fantasma/.fronteira-empacotada.mjs
+tools/comparativo-fantasma/.fronteira-entrada.ts
+tools/comparativo-fantasma/.recados-empacotado.mjs
+tools/comparativo-fantasma/.copilot.bloco.mjs
+tools/comparativo-fantasma/ws/analise.py

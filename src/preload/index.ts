@@ -8,6 +8,7 @@ import type {
   EstadoDoMascote,
   EstadoFantasma,
   EdicaoExtra,
+  EdicaoSugerida,
   EstadoMascote,
   EstadoTrilha,
   ExercicioTrilha,
@@ -16,6 +17,7 @@ import type {
   LugarNoCodigo,
   NoArquivo,
   ProjetoAberto,
+  RespostaComando,
   RespostaMascote,
   Resultado,
   Vestimenta,
@@ -29,7 +31,25 @@ import type {
  * `contextIsolation` está ligado e `nodeIntegration` desligado: o renderizador
  * não tem `require`, não tem `fs` e não tem `child_process`. Tudo o que ele pode
  * fazer está listado abaixo — e cada item aqui é uma decisão de segurança, não
- * conveniência. Não acrescentar um "executar comando arbitrário".
+ * conveniência.
+ *
+ * **Até a ADR 0020 este comentário dizia "não acrescentar um executar comando
+ * arbitrário", e agora `comando()` é exatamente isso.** A troca foi consciente e
+ * está registrada: uma IDE onde não se instala biblioteca não serve para estudar,
+ * que é o propósito declarado desta. O que a linha tirou de garantia e o que
+ * ficou de pé:
+ *
+ * - **caiu:** a interface deixou de estar limitada a rodar `.py` de dentro da
+ *   pasta aberta. Quem controla o renderizador controla o que o usuário
+ *   controla no terminal.
+ * - **fica de pé:** não há shell, então nada de texto é reinterpretado
+ *   (`shell: false`, argumentos separados em `comando.ts`); um processo por vez;
+ *   e nenhum recurso de IA alcança esta porta — o fantasma, a Fern e o Copilot
+ *   falam por canais próprios que só trocam texto, e **nada do que eles
+ *   respondem chega aqui sem alguém digitar e apertar Enter**.
+ *
+ * Esta última linha é a que precisa continuar verdadeira. Se um dia algo sugerir
+ * comando na tela, o botão que executa é uma decisão nova, não um detalhe.
  */
 const api = {
   catalogo: (): Promise<Resultado<Catalogo>> => ipcRenderer.invoke("catalogo:carregar"),
@@ -72,10 +92,40 @@ const api = {
     ipcRenderer.send("exec:rodar", arquivo, extras),
   parar: (): void => ipcRenderer.send("exec:parar"),
   rodando: (): Promise<boolean> => ipcRenderer.invoke("exec:rodando"),
+
+  /**
+   * A linha de comando (ADR 0020). A saída chega pelo mesmo `aoExecutar` de
+   * sempre; o retorno traz só o que a interface precisa saber na hora: a pasta
+   * (que o `cd` muda), se ficou algo rodando, e a nota de uma reescrita.
+   */
+  comando: (linha: string): Promise<Resultado<RespostaComando>> =>
+    ipcRenderer.invoke("exec:comando", linha),
+  pastaDoComando: (): Promise<Resultado<string>> => ipcRenderer.invoke("exec:pasta"),
+  historicoDeComandos: (): Promise<Resultado<string[]>> => ipcRenderer.invoke("exec:historico"),
+  esquecerComandos: (): Promise<Resultado<void>> => ipcRenderer.invoke("exec:esquecerHistorico"),
   aoExecutar: (ouvinte: (e: EventoExecucao) => void): (() => void) => {
     const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
     ipcRenderer.on("exec:evento", wrap);
     return () => ipcRenderer.off("exec:evento", wrap);
+  },
+
+  /**
+   * O terminal do chat (ADR 0022) — a linha que mora no painel da Fern, para
+   * chamar o `verboo` sem sair de lá. Canal próprio (`chat:*`) e **lugar de
+   * processo próprio**: o que roda aqui não desabilita o ▶ do editor.
+   *
+   * Note o que **não** existe: nenhum caminho da conversa dela para cá. O que
+   * roda aqui é o que a pessoa digitou, e a saída não volta para a API dela.
+   */
+  chat: {
+    comando: (linha: string): Promise<Resultado<RespostaComando>> =>
+      ipcRenderer.invoke("chat:comando", linha),
+    parar: (): void => ipcRenderer.send("chat:parar"),
+    aoExecutar: (ouvinte: (e: EventoExecucao) => void): (() => void) => {
+      const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
+      ipcRenderer.on("chat:evento", wrap);
+      return () => ipcRenderer.off("chat:evento", wrap);
+    },
   },
 
   copilot: {
@@ -88,6 +138,10 @@ const api = {
     mudar: (arquivo: string, versao: number, texto: string): void =>
       ipcRenderer.send("lsp:mudar", arquivo, versao, texto),
     fechar: (arquivo: string): void => ipcRenderer.send("lsp:fechar", arquivo),
+    /** Qual aba está na frente — `null` quando não há nenhuma, ou quando a que
+     *  está na frente não é Python. Separado do `abrir` porque trocar de aba não
+     *  abre nada, e era exatamente essa distinção que faltava. */
+    focar: (arquivo: string | null): void => ipcRenderer.send("lsp:focar", arquivo),
     completar: (a: string, l: number, c: number): Promise<Resultado<SugestaoLsp[]>> =>
       ipcRenderer.invoke("lsp:completar", a, l, c),
     /** O `import` que falta para a sugestão de índice `i`, perguntado na aceitação. */
@@ -119,6 +173,16 @@ const api = {
     sugerir: (texto: string, cursor: number): Promise<Resultado<string | null>> =>
       ipcRenderer.invoke("fantasma:sugerir", texto, cursor),
     cancelar: (): void => ipcRenderer.send("fantasma:cancelar"),
+    /**
+     * A correção do que já está escrito (ADR 0025). Devolve **intervalos a
+     * substituir**, e não texto a inserir — é a única coisa nesta ponte capaz
+     * de trocar caractere que a pessoa já digitou. Por isso ela chega como
+     * proposta na tela, e só vira código quando alguém aperta a tecla.
+     */
+    corrigir: (texto: string, cursor: number): Promise<Resultado<EdicaoSugerida[]>> =>
+      ipcRenderer.invoke("fantasma:corrigir", texto, cursor),
+    edicaoAceita: (): void => ipcRenderer.send("fantasma:edicaoAceita"),
+    edicaoRecusada: (): void => ipcRenderer.send("fantasma:edicaoRecusada"),
   },
 
   /**

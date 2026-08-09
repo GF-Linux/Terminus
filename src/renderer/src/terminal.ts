@@ -13,6 +13,13 @@ import "@xterm/xterm/css/xterm.css";
  * Consequência visível: o cursor não pisca esperando digitação, `input()` trava o
  * script, e programas que checam `isatty` não colorem a saída. Está registrado em
  * src/main/execucao.ts.
+ *
+ * **Desde a ADR 0020 dá para digitar comando — mas não aqui dentro.** O campo é
+ * um `<input>` de HTML logo abaixo desta tela (`#linhaCmd`), e `disableStdin`
+ * continua ligado. Sem PTY não há eco nem readline do outro lado, então digitar
+ * dentro do xterm significaria reimplementar cursor, seleção, colar e
+ * acentuação à mão — o campo do sistema já faz tudo isso, e faz certo no
+ * teclado do Deck.
  */
 /**
  * A linha de quadro de um traceback do Python:
