@@ -1,30 +1,12 @@
-import type {
-  EstadoTrilha,
-  TopicoTrilha,
-  Vestimenta,
-  NoArquivo,
-  PluginNvim,
-  ProjetoAberto,
-  Resultado,
-} from "../../shared/tipos.js";
-import { definirCatalogo } from "./completar.js";
-import { VistaCromatograma } from "./cromatograma.js";
+import type { NoArquivo, PluginNvim, ProjetoAberto, Resultado } from "../../shared/tipos.js";
 import { Aparencia, TEMAS } from "./aparencia.js";
-import { Editor } from "./editor.js";
 import { VistaNeovim } from "./neovim.js";
 import urlMarca from "../../../media/marca.png";
 import urlIcone from "../../../media/icon.png";
 import { Paleta, type ItemPaleta } from "./paleta.js";
-import {
-  aoImportarDoServidor,
-  definicaoEm,
-  definirArquivoAtual,
-  iniciarServidor,
-  limparArquivo,
-} from "./servidor.js";
 import { TerminalSaida } from "./terminal.js";
 
-const api = window.bancada;
+const api = window.terminus;
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
   if (!el) throw new Error(`elemento #${id} não existe no index.html`);
@@ -54,35 +36,10 @@ function ou<T>(r: Resultado<T>, aoFalhar: T): T {
 
 /* ============================ estado ============================ */
 
-/**
- * Aba do editor. Só texto: desde a ADR 0006 o `.ab1` não disputa a área de
- * escrita — ele tem abas próprias, no painel de baixo.
- */
-interface Aba {
-  caminho: string;
-  nome: string;
-  /** O que está em edição — pode divergir do disco. */
-  conteudo: string;
-  /** O que está no disco. `conteudo !== gravado` é o que acende o marcador. */
-  gravado: string;
-  /** Versão do documento no language server; o protocolo exige que só cresça. */
-  versao: number;
-}
-
-/** Aba do painel do cromatograma. Não guarda o traço: reler é mais barato que
- *  segurar megabytes por arquivo aberto. */
-interface AbaAb1 {
-  caminho: string;
-  nome: string;
-}
-
-const estaSuja = (a: Aba): boolean => a.conteudo !== a.gravado;
-
+// A casca não guarda mais aba nem conteúdo de arquivo: quem sabe o que está
+// aberto, e se foi gravado, é o Neovim (ADR 0025). O que sobra de estado aqui é
+// o da própria casca — a pasta, a árvore e o que está sendo renomeado nela.
 let projeto: ProjetoAberto | null = null;
-const abas: Aba[] = [];
-let ativa: number = -1;
-const ab1s: AbaAb1[] = [];
-let ativoAb1: number = -1;
 /** Pastas expandidas na árvore, por caminho absoluto. */
 const expandidas = new Map<string, NoArquivo[]>();
 /** Pasta que recebe um "novo arquivo": a do arquivo aberto, ou a raiz. */
@@ -92,33 +49,31 @@ let renomeando: { modo: "arquivo" | "pasta" | "renomear"; dir: string; alvo?: st
 
 /* ============================ terminal ============================ */
 
-/**
- * De onde veio o que está rodando. O terminal é um só e o `exec:evento` também,
- * então sem isto o fim de um `pip install` cairia no `concluirCorrecao` e
- * marcaria como aprovado um exercício que ninguém corrigiu.
- */
-let origemDaExecucao: "script" | "comando" = "script";
-
 const terminal = new TerminalSaida($("term"), ({ arquivo, linha }) => {
   void irParaQuadro(arquivo, linha);
 });
 
-/** Abre o arquivo de um quadro de traceback e para o cursor na linha. */
-async function irParaQuadro(arquivo: string, linha: number): Promise<void> {
-  await abrirArquivo(arquivo);
-  // Só salta se o arquivo realmente virou a aba ativa — se a leitura falhou,
-  // saltar levaria o cursor para a linha errada de outro arquivo.
-  if (abas[ativa]?.caminho === arquivo) editor.irParaLinha(linha);
-}
-
-/** F12 — mesmo salto do traceback, com o destino vindo do pyright. */
-async function irParaDefinicao(): Promise<void> {
-  const alvo = await definicaoEm(editor.vista(), editor.posicaoDoCursor());
-  if (!alvo) {
-    avisar("sem definição para o que está sob o cursor");
+/**
+ * Abre um arquivo no Neovim e entra em modo de escrita (ADR 0025).
+ *
+ * É o caminho único: o clique na árvore, o Ctrl+P e o quadro de traceback do
+ * terminal chegam todos aqui. A casca não guarda o conteúdo — quem abre, guarda
+ * e grava é o Neovim.
+ */
+async function abrirArquivo(caminho: string, linha?: number): Promise<void> {
+  const r = await api.neovim.abrir(caminho, linha);
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
     return;
   }
-  await irParaQuadro(alvo.arquivo, alvo.linha);
+  vistaNeovim?.focar();
+  desenharArvore();
+}
+
+/** Abre o arquivo de um quadro de traceback com o cursor já na linha do erro. */
+async function irParaQuadro(arquivo: string, linha: number): Promise<void> {
+  await abrirArquivo(arquivo, linha);
 }
 
 function definirPainel(aberto: boolean): void {
@@ -234,12 +189,12 @@ function ligarDivisor(opcoes: {
  */
 type Doca = "direita" | "esquerda" | "baixo";
 let doca: Doca = ((): Doca => {
-  const g = localStorage.getItem("bancada.doca");
+  const g = localStorage.getItem("terminus.doca");
   return g === "esquerda" || g === "baixo" ? g : "direita";
 })();
 
 const chaveDaMedida = (d: Doca): string =>
-  d === "baixo" ? "bancada.terminalAltura" : "bancada.terminalLargura";
+  d === "baixo" ? "terminus.terminalAltura" : "terminus.terminalLargura";
 const medidaPadrao = (d: Doca): number => (d === "baixo" ? 320 : 400);
 const medidaMinima = (d: Doca): number => (d === "baixo" ? 120 : 220);
 const tetoDaMedida = (d: Doca): number =>
@@ -261,7 +216,7 @@ function aplicarMedidaTerminal(valor: number): void {
 function definirDoca(nova: Doca): void {
   doca = nova;
   $("centro").dataset["doca"] = nova;
-  localStorage.setItem("bancada.doca", nova);
+  localStorage.setItem("terminus.doca", nova);
   const marcas: [string, Doca][] = [
     ["btDocaBaixo", "baixo"],
     ["btDocaDireita", "direita"],
@@ -341,33 +296,12 @@ function definirLateralAberta(aberta: boolean): void {
   for (const b of $("act").querySelectorAll<HTMLElement>("button[data-p]")) {
     b.setAttribute("aria-selected", String(aberta && b.dataset["p"] === painelLateral));
   }
-  localStorage.setItem("bancada.lateralAberta", aberta ? "1" : "0");
+  localStorage.setItem("terminus.lateralAberta", aberta ? "1" : "0");
 }
 
 function alternarLateral(): void {
   definirLateralAberta(!lateralAberta);
 }
-
-/* ============================ editor ============================ */
-
-const editor = new Editor({
-  host: $("editorHost"),
-  aoMudar: () => {
-    if (ativa >= 0) {
-      const aba = abas[ativa]!;
-      aba.conteudo = editor.conteudo();
-      desenharAbas();
-      sincronizarComServidor(aba);
-    }
-  },
-  aoMoverCursor: () => {
-    // Linha/coluna saiu da barra de estado (ADR 0025): quem diz onde o cursor
-    // está é a statusline do Neovim, que é o motor.
-  },
-  aoSalvar: () => void salvar(),
-  aoRodar: () => void rodar(),
-  aoImportar: (linhas) => avisar(`import acrescentado: ${linhas.join(" · ")}`),
-});
 
 /* ===================== motor Neovim (ADR 0025) =====================
    Fatia 1: o Neovim é o editor visível. O CodeMirror acima continua existindo
@@ -410,152 +344,6 @@ const aparencia = new Aparencia($("fundoTela"), api, () => desenharConfigAparenc
 ($("imgMarca") as HTMLImageElement).src = urlMarca;
 ($("imgMarcaGrande") as HTMLImageElement).src = urlIcone;
 
-/* ============================ mascote ============================ */
-
-// O widget flutuante saiu com a virada da ADR 0025: o Terminus é casca de
-// editor, e a companhia de bancada era do produto anterior. O código da Fern
-// (conversa e memória) continua no processo principal, sem porta na casca —
-// o destino dela é decisão em aberto, não um resto esquecido aqui.
-
-/* ============================ cromatograma ============================ */
-
-/**
- * O painel de baixo (ADR 0006).
- *
- * O cromatograma deixou de tomar a área do editor: agora é uma faixa deitada
- * embaixo dele, com uma aba por `.ab1`. O formato casa com o dado — o traço é
- * longo em x e curto em y — e, sobretudo, o script continua na tela enquanto o
- * cromatograma está aberto, que é o que a corrida realmente pede.
- */
-const vistaAb1 = new VistaCromatograma($("cromatogramaHost"));
-
-const EXT_CROMATOGRAMA = /\.ab1$/i;
-
-function desenharAbasAb1(): void {
-  const tem = ab1s.length > 0;
-  $("painelCromo").classList.toggle("oculto", !tem);
-  $("divCromo").classList.toggle("oculto", !tem);
-
-  $("abasCromo").innerHTML = ab1s
-    .map(
-      (a, i) =>
-        `<span class="pt${i === ativoAb1 ? " on" : ""}" data-ab1="${i}" title="${esc(a.caminho)}">
-           ${esc(a.nome)}
-           <button class="x" data-fechar-ab1="${i}" title="Fechar">✕</button></span>`,
-    )
-    .join("");
-}
-
-/** Abre — ou traz para a frente — o `.ab1` no painel de baixo. */
-async function abrirCromatograma(caminho: string): Promise<void> {
-  const ja = ab1s.findIndex((a) => a.caminho === caminho);
-  if (ja >= 0) {
-    ativoAb1 = ja;
-    desenharAbasAb1();
-    desenharArvore();
-    await mostrarAb1(ab1s[ja]!);
-    return;
-  }
-
-  const aba: AbaAb1 = { caminho, nome: caminho.split("/").pop() ?? caminho };
-  ab1s.push(aba);
-  ativoAb1 = ab1s.length - 1;
-  // A aba nasce antes do dado chegar: a leitura é feita pelo Python do
-  // laboratório e pode levar um segundo, e sem a aba o clique pareceria
-  // não ter feito nada.
-  desenharAbasAb1();
-  desenharArvore();
-  avisar(`lendo ${aba.nome}…`);
-  await mostrarAb1(aba);
-}
-
-/**
- * Lê e desenha um `.ab1`.
- *
- * Relê a cada troca de aba de propósito: guardar megabytes de traço por arquivo
- * aberto custaria mais memória do que reler custa tempo.
- */
-async function mostrarAb1(aba: AbaAb1): Promise<void> {
-  const r = await api.cromatograma(aba.caminho);
-  // Entre o pedido e a resposta o usuário pode ter fechado a aba ou trocado.
-  if (ab1s[ativoAb1] !== aba) return;
-  if (!r.ok) {
-    vistaAb1.falhar(r.erro);
-    terminal.erro(`${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-  vistaAb1.mostrar(r.valor);
-  avisar(`${aba.nome}: ${r.valor.resumo.bases} bases`);
-}
-
-function trocarAb1(i: number): void {
-  if (i === ativoAb1 || !ab1s[i]) return;
-  ativoAb1 = i;
-  desenharAbasAb1();
-  desenharArvore();
-  void mostrarAb1(ab1s[i]!);
-}
-
-function fecharAb1(i: number): void {
-  if (!ab1s[i]) return;
-  ab1s.splice(i, 1);
-  ativoAb1 = ab1s.length === 0 ? -1 : Math.min(i, ab1s.length - 1);
-  desenharAbasAb1();
-  desenharArvore();
-  if (ativoAb1 >= 0) void mostrarAb1(ab1s[ativoAb1]!);
-  else vistaAb1.limpar();
-}
-
-/** Fecha o painel inteiro — o ✕ do cabeçalho, no gesto do painel do terminal. */
-function fecharPainelCromo(): void {
-  ab1s.length = 0;
-  ativoAb1 = -1;
-  vistaAb1.limpar();
-  desenharAbasAb1();
-  desenharArvore();
-}
-
-/* ======================= sincronia com o servidor ======================= */
-
-/**
- * Manda o texto ao pyright depois que a digitação para.
- *
- * Só `.py`: mandar FASTA ou CSV faria o servidor analisar o que não é Python.
- * O atraso existe porque cada tecla dispararia uma reanálise do arquivo inteiro
- * — e a análise é o trabalho caro do outro lado.
- */
-let sincronizaPendente: number | undefined;
-
-function ehPython(caminho: string): boolean {
-  return caminho.toLowerCase().endsWith(".py");
-}
-
-function sincronizarComServidor(aba: Aba): void {
-  if (!ehPython(aba.caminho)) return;
-  window.clearTimeout(sincronizaPendente);
-  sincronizaPendente = window.setTimeout(() => {
-    aba.versao += 1;
-    api.lsp.mudar(aba.caminho, aba.versao, aba.conteudo);
-  }, 300);
-}
-
-/**
- * Diz quem está na frente: para os diagnósticos, aqui na interface, e para o
- * processo principal, que precisa saber a quem pertence o texto que o fantasma
- * manda ao Copilot.
- *
- * O aviso ao processo principal é de 04/08. Sem ele, trocar de aba não mudava
- * nada lá: o alvo do fantasma ficava preso no último arquivo **aberto**, e não
- * no que estava sendo editado.
- */
-function focarNoServidor(aba: Aba | undefined): void {
-  const alvo = aba && ehPython(aba.caminho) ? aba.caminho : null;
-  definirArquivoAtual(alvo);
-  api.lsp.focar(alvo);
-  editor.avisarDiagnosticos();
-}
-
 /* ============================ lateral ============================ */
 
 /** Ícones do cabeçalho do Explorer, no traço do resto da casca. */
@@ -592,8 +380,6 @@ function definirLateral(painel: string): void {
     // se descobrir de cor, e `:Lazy` é uma tela dentro do editor. Aqui a lista
     // fica na lateral, filtrável e clicável, como numa IDE.
     void desenharPlugins();
-  } else if (painel === "trilha") {
-    void desenharTrilha();
   } else {
     void desenharConfiguracoes();
   }
@@ -677,405 +463,27 @@ async function abrirPastaDoPlugin(dir: string): Promise<void> {
 
 /* ------------------------- painel de configurações ------------------------ */
 
+/**
+ * Configurações da casca.
+ *
+ * Ficou só a aparência: o texto fantasma, o Copilot e a Fern eram do produto
+ * anterior e saíram com a ADR 0025. O que configura o editor agora é a config do
+ * Neovim, que é dele — e a casca não vai fingir ser dona disso.
+ */
 async function desenharConfiguracoes(): Promise<void> {
-  const corpo = $("lateral");
-  const r = await api.fantasma.estado();
-  if (!r.ok) {
-    corpo.innerHTML = `<div class="aviso"><b>Erro</b>${esc(r.erro)}</div>`;
-    return;
-  }
-  const e = r.valor;
-
-  const alerta = e.chaveEmTextoPuro
-    ? `<div class="alerta">A chave está em <b>texto puro</b> no disco, porque este
-         sistema não ofereceu chaveiro. Arquivo: <code>${esc(e.arquivo)}</code></div>`
-    : "";
-
-  corpo.innerHTML = `
+  $("lateral").innerHTML = `
     <div class="cfg">
-      <b>Texto fantasma</b>
-      <p class="dim">Sugestão de código por IA, em cinza à frente do cursor. Sai
-         desta máquina: ${
-           e.motor === "copilot"
-             ? `com o <b>Copilot</b>, vão o arquivo aberto <b>inteiro</b> e
-                também <b>as outras abas Python que você deixou abertas</b> — é
-                delas que ele tira o contexto, e sem elas ele inventa
-                assinatura de função.`
-             : `o trecho em volta do cursor vai para o modelo.`
-         }</p>
-      ${
-        e.motor === "copilot"
-          ? `<p class="dim">Este mesmo interruptor liga a <b>correção do código</b>:
-               parado por um instante, o Copilot pode propor <b>trocar um trecho
-               que você já escreveu</b> — a linha fica marcada e a proposta
-               aparece embaixo dela. Nada é aplicado sozinho; só o
-               <code>Ctrl+.</code> escreve. O que sai da máquina é o mesmo de
-               cima, e nada além.</p>`
-          : `<p class="dim">A <b>correção do código</b> — propor a troca de um
-               trecho já escrito — só existe com o Copilot. O modelo da DeepSeek
-               preenche o meio de uma linha, não reescreve o que está lá.</p>`
-      }
-      ${
-        e.configurado
-          ? `<label class="chave">
-               <input type="checkbox" id="cfgLigado" ${e.ligado ? "checked" : ""}>
-               <span>${e.ligado ? "Ligado" : "Desligado"}</span>
-             </label>
-             <div class="linhas">
-               <div><span>modelo</span><code>${esc(e.modelo ?? "?")}</code></div>
-               <div><span>destino</span><code>${esc(e.endpoint ?? "?")}</code></div>
-               <div><span>chave</span><code>${e.chaveiroDisponivel ? "no chaveiro do sistema" : "em texto puro"}</code></div>
-             </div>
-             ${alerta}
-             <button class="acao" id="cfgEsquecer">Esquecer a chave</button>`
-          : `<p class="dim">Nenhuma chave configurada.</p>
-             <button class="acao" id="cfgImportar">Importar do Twinny (VS Code)</button>`
-      }
-
       <b class="sep">Aparência</b>
       <div id="cfgAparencia"></div>
 
-      <b class="sep">Interpretador</b>
-      <p class="dim">Ainda fixo no código (<code>src/main/ambiente.ts</code>):
-         tenta o env <code>easycontig-demo</code> do miniforge e cai para
-         <code>/usr/bin/python3</code>.</p>
+      <b class="sep">Editor</b>
+      <p class="dim">O motor é o <b>Neovim</b>. Atalhos, plugins, tema do texto e
+         autocomplete moram na configuração dele
+         (<code>~/.config/nvim</code>) — o Terminus não os duplica.</p>
     </div>`;
-
   desenharConfigAparencia();
-
-  const marca = document.getElementById("cfgLigado") as HTMLInputElement | null;
-  marca?.addEventListener("change", async () => {
-    await api.fantasma.ligar(marca.checked);
-    void desenharConfiguracoes();
-  });
-
-  document.getElementById("cfgImportar")?.addEventListener("click", async () => {
-    const s = await api.fantasma.importarDoTwinny();
-    if (!s.ok) {
-      terminal.erro(`${s.erro}\r\n`);
-      abrirPainel();
-      return;
-    }
-    avisar("chave importada do Twinny");
-    void desenharConfiguracoes();
-  });
-
-  document.getElementById("cfgEsquecer")?.addEventListener("click", async () => {
-    if (!confirm("Esquecer a chave? O texto fantasma para de funcionar.")) return;
-    await api.fantasma.esquecer();
-    void desenharConfiguracoes();
-  });
 }
 
-/* ============================ trilha ============================ */
-
-/**
- * O painel da trilha (ADR 0015).
- *
- * A regra do desenho: **um exercício de cada vez na tela**. Lista de degraus
- * fechada, o tópico aberto mostra abertura, conceitos, recursos e exercícios.
- * Roadmap que mostra tudo aberto vira parede de texto, e parede de texto é onde
- * trilha de estudo morre.
- */
-let trilha: EstadoTrilha | null = null;
-let topicoAberto: string | null = null;
-
-/**
- * As fases. A 1 é o núcleo de Python, escrita a partir do caderno do autor; a 2
- * é a trilha de backend do roadmap.sh **reordenada pelo que serve ao trabalho
- * dele** — automação e análise de dados —, com o resto do mapa presente no
- * último degrau em vez de escondido (ADR 0017).
- */
-const FASES = [
-  {
-    id: "fase1",
-    nome: "Python",
-    // O que fazer nesta fase, escrito no painel. Sem isto a tela oferece botões
-    // sem dizer qual é o gesto — foi o que confundiu o autor no primeiro uso.
-    comoUsar:
-      "Abra um tópico, clique em <b>praticar</b> (cria o arquivo na pasta da corrida " +
-      "e abre no editor), escreva a função e clique em <b>corrigir</b> — a Bancada roda " +
-      "o seu código e diz o que falta.",
-  },
-  {
-    id: "fase2",
-    nome: "Backend",
-    comoUsar:
-      "Esta fase é <b>mapa, não exercício</b>: cada semana traz os conceitos e os links " +
-      "para estudar. Não há o que executar aqui ainda — os exercícios da Fase 2 são de " +
-      "outra natureza (buscar numa API de verdade, consultar um banco) e estão por escrever.",
-  },
-] as const;
-let faseAtual = "fase1";
-
-/** "neutro" primeiro e como padrão: é a resposta para quem só quer o exercício,
- *  sem história nenhuma em volta. As outras quatro são a mesma coisa vestida. */
-const VESTIMENTAS: Vestimenta[] = ["neutro", "sequências", "clínica", "campo", "laboratório"];
-
-/** "hoje", "ontem", "há 12 dias" — a distância que importa é a do calendário. */
-function desdeQuando(iso: string): string {
-  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (dias <= 0) return "hoje";
-  if (dias === 1) return "ontem";
-  return `há ${dias} dias`;
-}
-
-/**
- * O convite para revisitar.
- *
- * Procura o exercício feito há mais tempo (pelo menos uma semana) e sugere
- * refazê-lo **numa roupa que ele ainda não usou** — a mesma ideia numa história
- * diferente é reescrever sem ser repetitivo. É a repetição espaçada saindo de
- * graça das vestimentas (ADR 0016).
- */
-function sugestaoDeRevisita(t: EstadoTrilha): string {
-  const candidatos = Object.entries(t.feito)
-    .map(([chave, reg]) => ({ chave, reg, dias: (Date.now() - new Date(reg.ultima).getTime()) / 86_400_000 }))
-    .filter((c) => c.dias >= 7)
-    .sort((a, b) => b.dias - a.dias);
-
-  const alvo = candidatos[0];
-  if (!alvo) return "";
-
-  const [topicoId, exercicioId] = alvo.chave.split("/");
-  const topico = t.topicos.find((x) => x.id === topicoId);
-  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
-  if (!topico || !exercicio) return "";
-
-  const nova = VESTIMENTAS.find((v) => !alvo.reg.roupas.includes(v) && exercicio.enunciados[v]);
-  return `<div class="revisita">
-      <span class="rot">Que tal revisitar</span>
-      <p><b>${esc(exercicio.funcao || exercicio.id)}</b> — ${desdeQuando(alvo.reg.ultima)}${
-        nova ? `, e ainda não na roupa de <b>${nova}</b>` : ""
-      }.</p>
-      <button data-revisitar="${esc(topicoId!)}|${esc(exercicioId!)}|${esc(nova ?? "")}">refazer do zero</button>
-    </div>`;
-}
-
-async function desenharTrilha(): Promise<void> {
-  if (!trilha) {
-    const r = await api.trilha.ler(faseAtual);
-    if (!r.ok) {
-      $("lateral").innerHTML = `<div class="aviso"><b>Trilha indisponível</b>${esc(r.erro)}</div>`;
-      return;
-    }
-    trilha = r.valor;
-  }
-  pintarTrilha();
-}
-
-function pintarTrilha(): void {
-  const t = trilha;
-  if (!t) return;
-
-  const fase = FASES.find((f) => f.id === faseAtual) ?? FASES[0];
-  const fases =
-    `<div class="fases">${FASES.map(
-      (f) =>
-        `<button class="tema${f.id === faseAtual ? " on" : ""}" data-fase="${f.id}">${f.nome}</button>`,
-    ).join("")}</div>` + `<p class="comoUsar">${fase.comoUsar}</p>`;
-
-  const seletor = `<div class="vestimentas">
-      <span class="rot">Contexto dos enunciados</span>
-      <div class="opcoes">${VESTIMENTAS.map(
-        (v) =>
-          `<button class="tema${v === t.vestimenta ? " on" : ""}" data-vest="${v}">${v}</button>`,
-      ).join("")}</div>
-      <p class="dim"><b>Tanto faz qual.</b> O exercício, a correção e o seu progresso
-         são os mesmos nas cinco — muda só a história do enunciado. Em dúvida, fique
-         no <b>neutro</b>. Trocar depois é de graça, e refazer numa roupa nova é o
-         jeito de repetir sem repetir.</p>
-    </div>`;
-
-  const degraus = t.topicos
-    .map((topico) => {
-      const total = topico.exercicios.length;
-      const feitos = topico.exercicios.filter((e) => t.feito[`${topico.id}/${e.id}`]).length;
-      const aberto = topicoAberto === topico.id;
-      const estado = total === 0 ? (faseAtual === "fase2" ? "ler" : "em preparo") : `${feitos}/${total}`;
-
-      return `<div class="degrau${aberto ? " aberto" : ""}">
-        <button class="cab" data-topico="${esc(topico.id)}">
-          <span class="sem">${topico.semana}</span>
-          <span class="tit">${esc(topico.titulo)}</span>
-          <span class="cont${feitos && feitos === total ? " ok" : ""}">${estado}</span>
-        </button>
-        ${aberto ? corpoDoTopico(topico, t) : ""}
-      </div>`;
-    })
-    .join("");
-
-  // O seletor de roupa some onde não há enunciado para vestir.
-  const temExercicio = t.topicos.some((x) => x.exercicios.length > 0);
-  $("lateral").innerHTML =
-    `<div class="trilha">${fases}${temExercicio ? seletor : ""}` +
-    `${sugestaoDeRevisita(t)}${degraus}</div>`;
-}
-
-function corpoDoTopico(topico: TopicoTrilha, t: EstadoTrilha): string {
-  const exercicios = topico.exercicios.length
-    ? topico.exercicios
-        .map((e) => {
-          const chave = `${topico.id}/${e.id}`;
-          const reg = t.feito[chave];
-          const enunciado = e.enunciados[t.vestimenta] ?? Object.values(e.enunciados)[0] ?? "";
-          // "3× · há 12 dias" em vez de um ✓. Quantas vezes e quando importam
-          // mais que "concluído" para quem aprende reescrevendo (ADR 0016).
-          const selo = reg
-            ? `<span class="selo">${reg.vezes}× · ${desdeQuando(reg.ultima)}</span>`
-            : "";
-          return `<div class="ex${reg ? " feito" : ""}">
-            <div class="assinatura">${esc(e.funcao || e.id)}${selo}</div>
-            <p>${esc(enunciado)}</p>
-            <div class="acoes">
-              <button data-praticar="${esc(topico.id)}|${esc(e.id)}">${reg ? "abrir" : "praticar"}</button>
-              ${reg ? `<button data-refazer="${esc(topico.id)}|${esc(e.id)}">refazer do zero</button>` : ""}
-              <button data-verificar="${esc(topico.id)}|${esc(e.id)}">corrigir</button>
-            </div>
-          </div>`;
-        })
-        .join("")
-    : faseAtual === "fase2"
-      ? `<p class="preparo">Semana de leitura: siga os links dos recursos. Quando um
-           projeto seu esbarrar nestes conceitos, eles deixam de ser teoria.</p>`
-      : `<p class="preparo">Os exercícios deste tópico ainda não foram escritos.
-           Os conceitos e os recursos já valem — o resto vem.</p>`;
-
-  return `<div class="corpo">
-      <p class="abertura">${esc(topico.abertura)}</p>
-      <span class="rot">Conceitos</span>
-      <ul class="conceitos">${topico.conceitos.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
-      <span class="rot">Recursos</span>
-      <ul class="recursos">${topico.recursos
-        .map((r) => `<li><a href="${esc(r.url)}" target="_blank">${esc(r.nome)}</a></li>`)
-        .join("")}</ul>
-      <span class="rot">Exercícios</span>
-      ${exercicios}
-      <p class="entrega">Entrega da semana: ${esc(topico.entrega)}</p>
-    </div>`;
-}
-
-/** Cria (ou reabre) o arquivo do exercício na pasta da corrida e abre no editor. */
-async function praticar(topicoId: string, exercicioId: string): Promise<void> {
-  const t = trilha;
-  const raiz = projeto?.raiz;
-  if (!t) return;
-  if (!raiz) {
-    avisar("abra a pasta da corrida antes — o exercício nasce dentro dela");
-    return;
-  }
-  const topico = t.topicos.find((x) => x.id === topicoId);
-  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
-  if (!topico || !exercicio) return;
-
-  const enunciado = exercicio.enunciados[t.vestimenta] ?? Object.values(exercicio.enunciados)[0] ?? "";
-  const r = await api.trilha.praticar({
-    raizProjeto: raiz,
-    topico: topico.id,
-    exercicio,
-    vestimenta: t.vestimenta,
-    enunciado,
-  });
-  if (!r.ok) {
-    terminal.erro(`${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-  await atualizarArvore();
-  await abrirArquivo(r.valor.caminho);
-  avisar(r.valor.novo ? "exercício criado na pasta da corrida" : "exercício reaberto");
-}
-
-/**
- * Refazer do zero: arquiva a tentativa anterior e abre um arquivo limpo.
- *
- * Existe porque o autor aprende reescrevendo — editar o que já está pronto não
- * forma a memória muscular que ele descreveu, e apagar sem guardar tiraria a
- * chance de comparar as duas versões (ADR 0016).
- */
-async function refazer(topicoId: string, exercicioId: string): Promise<void> {
-  const t = trilha;
-  const raiz = projeto?.raiz;
-  if (!t || !raiz) {
-    avisar("abra a pasta da corrida antes");
-    return;
-  }
-  const topico = t.topicos.find((x) => x.id === topicoId);
-  const exercicio = topico?.exercicios.find((x) => x.id === exercicioId);
-  if (!topico || !exercicio) return;
-
-  const enunciado =
-    exercicio.enunciados[t.vestimenta] ?? Object.values(exercicio.enunciados)[0] ?? "";
-  const r = await api.trilha.refazer({
-    raizProjeto: raiz,
-    topico: topico.id,
-    exercicio,
-    vestimenta: t.vestimenta,
-    enunciado,
-  });
-  if (!r.ok) {
-    terminal.erro(`${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-  await atualizarArvore();
-  await abrirArquivo(r.valor.caminho);
-  avisar(
-    r.valor.guardado
-      ? `folha em branco — a anterior virou ${r.valor.guardado.split("/").pop()}`
-      : "folha em branco",
-  );
-}
-
-/**
- * Roda o verificador do exercício.
- *
- * Usa o mesmo motor de execução do `Ctrl+Enter` — o resultado aparece no
- * terminal de sempre, no Python do laboratório. A correção não é uma tela
- * especial: é o seu código rodando.
- */
-async function corrigir(topicoId: string, exercicioId: string): Promise<void> {
-  const raiz = projeto?.raiz;
-  if (!raiz) {
-    avisar("abra a pasta da corrida antes");
-    return;
-  }
-  const arquivo = `${raiz}/trilha/${topicoId}_${exercicioId}.py`;
-  const r = await api.trilha.verificar(exercicioId, arquivo);
-  if (!r.ok) {
-    terminal.erro(`${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-
-  abrirPainel();
-  terminal.comando(projeto?.nome ?? "", `corrigir ${topicoId}/${exercicioId}`);
-  definirRodando(true);
-  corrigindo = `${topicoId}/${exercicioId}`;
-  origemDaExecucao = "script";
-  api.rodar(r.valor.verificador, [r.valor.teste, r.valor.arquivo]);
-}
-
-/** Qual exercício está sendo corrigido agora — para marcar quando passar. */
-let corrigindo: string | null = null;
-
-async function concluirCorrecao(passou: boolean): Promise<void> {
-  const chave = corrigindo;
-  corrigindo = null;
-  if (!chave || !passou) return;
-  const r = await api.trilha.marcar(chave, trilha?.vestimenta ?? "");
-  if (r.ok) trilha = r.valor;
-  if (painelLateral === "trilha" && lateralAberta) pintarTrilha();
-  const vezes = trilha?.feito[chave]?.vezes ?? 1;
-  avisar(vezes > 1 ? `${chave}: ${vezes}ª vez` : `exercício ${chave} passou`);
-}
-
-/**
- * A seção de aparência (ADR 0010).
- *
- * O aviso sobre o cromatograma fica escrito na tela, e não só no código: quem
- * clarear demais o papel de parede precisa saber por que o padrão era escuro.
- */
 function desenharConfigAparencia(): void {
   const alvo = document.getElementById("cfgAparencia");
   const a = aparencia.atual();
@@ -1210,7 +618,7 @@ function desenharArvore(): void {
   $("sideAcoes").innerHTML = projeto ? ACOES_EXPLORER : "";
 
   if (!projeto) {
-    // As pastas já abertas ficam à mão: a Bancada volta sozinha na última, e
+    // As pastas já abertas ficam à mão: o Terminus volta sozinha na última, e
     // trocar entre as corridas da semana não devia passar por diálogo de
     // arquivo. O ✕ tira da lista sem tocar no disco.
     const lista = recentes.length
@@ -1268,11 +676,10 @@ function desenharArvore(): void {
           nivel(expandidas.get(no.caminho)!, prof + 1);
         }
       } else {
-        // O `.ab1` aberto marca a linha igual a um arquivo de texto — ele está
-        // aberto, só que no painel de baixo (ADR 0006).
-        const aberto =
-          abas[ativa]?.caminho === no.caminho || ab1s[ativoAb1]?.caminho === no.caminho;
-        const suportado = /\.(py|txt|md|fasta|fa|fastq|csv|tsv|json|xml|cfg|toml|ya?ml|ab1)$/i.test(no.nome);
+        // Qual arquivo está aberto é do Neovim (ADR 0025): a casca deixou de
+        // guardar abas, então a árvore não marca mais linha "ativa".
+        const aberto = false;
+        const suportado = !/\.(png|jpe?g|gif|webp|pdf|zip|gz|so|bin|ab1)$/i.test(no.nome);
         linhas.push(
           editando
             ? `<div class="row" style="padding-left:${recuo + 16}px">
@@ -1361,30 +768,11 @@ async function confirmarNome(
     return;
   }
 
-  // Renomear move o arquivo: a aba aberta tem de acompanhar, senão o próximo
-  // Ctrl+S gravaria num caminho que não existe mais e recriaria o arquivo antigo.
-  if (op.modo === "renomear") {
-    const antigo = op.alvo!;
-    for (const aba of abas) {
-      if (aba.caminho === antigo) {
-        aba.caminho = r.valor;
-        aba.nome = r.valor.split("/").pop() ?? r.valor;
-      } else if (aba.caminho.startsWith(`${antigo}/`)) {
-        aba.caminho = r.valor + aba.caminho.slice(antigo.length);
-      }
-    }
-    for (const ab1 of ab1s) {
-      if (ab1.caminho === antigo) {
-        ab1.caminho = r.valor;
-        ab1.nome = r.valor.split("/").pop() ?? r.valor;
-      } else if (ab1.caminho.startsWith(`${antigo}/`)) {
-        ab1.caminho = r.valor + ab1.caminho.slice(antigo.length);
-      }
-    }
-    if (expandidas.has(antigo)) expandidas.delete(antigo);
-    desenharAbas();
-    desenharAbasAb1();
-  }
+  // Renomear move o caminho: a árvore esquece o que sabia da pasta antiga. O
+  // buffer aberto no Neovim continua apontando para o nome anterior — quem
+  // renomeia pela árvore e segue editando precisa reabrir. Está registrado como
+  // limitação conhecida, não como comportamento pretendido.
+  if (op.modo === "renomear" && expandidas.has(op.alvo!)) expandidas.delete(op.alvo!);
 
   await atualizarArvore();
   if (op.modo === "arquivo") await abrirArquivo(r.valor);
@@ -1399,51 +787,10 @@ async function excluir(alvo: string): Promise<void> {
   }
   if (!r.valor) return; // cancelado na confirmação
 
-  // Fecha as abas do que sumiu, sem perguntar de novo: o arquivo já foi para a
-  // lixeira, insistir em "há alterações não gravadas" não salvaria nada.
-  for (let i = abas.length - 1; i >= 0; i--) {
-    const c = abas[i]!.caminho;
-    if (c === alvo || c.startsWith(`${alvo}/`)) {
-      // Avisar os servidores é obrigação daqui também, não só do `fecharAba`:
-      // um arquivo que foi para a lixeira não pode seguir aberto no pyright nem
-      // servindo de vizinho ao Copilot.
-      if (ehPython(c)) {
-        api.lsp.fechar(c);
-        limparArquivo(c);
-      }
-      abas.splice(i, 1);
-      if (ativa >= i) ativa--;
-    }
-  }
-  if (abas.length === 0) {
-    ativa = -1;
-    editor.abrir("");
-  } else {
-    if (ativa < 0) ativa = 0;
-    editor.abrir(abas[ativa]!.conteudo, abas[ativa]!.gravado);
-  }
-  focarNoServidor(abas[ativa]);
-
-  // O painel de baixo segue a mesma regra: o que foi para a lixeira não pode
-  // continuar como aba, e reler o caminho daria erro na cara do usuário.
-  for (let i = ab1s.length - 1; i >= 0; i--) {
-    const c = ab1s[i]!.caminho;
-    if (c === alvo || c.startsWith(`${alvo}/`)) {
-      ab1s.splice(i, 1);
-      if (ativoAb1 >= i) ativoAb1--;
-    }
-  }
-  if (ab1s.length === 0) {
-    ativoAb1 = -1;
-    vistaAb1.limpar();
-  } else {
-    if (ativoAb1 < 0) ativoAb1 = 0;
-    void mostrarAb1(ab1s[ativoAb1]!);
-  }
-
+  // O que sumiu pode continuar aberto no Neovim, com o buffer na memória. A
+  // casca não fecha por ele: fechar buffer sujo por trás de quem edita é pior
+  // que deixar o aviso aparecer na hora de gravar.
   expandidas.delete(alvo);
-  desenharAbas();
-  desenharAbasAb1();
   await atualizarArvore();
   terminal.nota(`movido para a lixeira: ${alvo}`);
 }
@@ -1470,9 +817,8 @@ async function atualizarArvore(): Promise<void> {
 /** Onde um "novo arquivo" deve nascer: a pasta em foco, ou a raiz. */
 function dirCorrente(): string {
   if (pastaAlvo && expandidas.has(pastaAlvo)) return pastaAlvo;
-  const aberto = abas[ativa]?.caminho;
-  if (aberto) {
-    const dir = aberto.slice(0, aberto.lastIndexOf("/"));
+  {
+    const dir = "";
     if (dir === projeto?.raiz || expandidas.has(dir)) return dir;
   }
   return projeto?.raiz ?? "";
@@ -1503,7 +849,7 @@ async function abrirPaleta(): Promise<void> {
   }
 
   // A lista é montada a cada abertura, não cacheada: um arquivo criado fora da
-  // Bancada tem de aparecer sem exigir "atualizar". Numa pasta de corrida a
+  // Terminus tem de aparecer sem exigir "atualizar". Numa pasta de corrida a
   // varredura é instantânea.
   const r = await api.arquivosDoProjeto(raiz);
   if (!r.ok) {
@@ -1669,199 +1015,24 @@ async function alternarPasta(caminho: string): Promise<void> {
   desenharArvore();
 }
 
-/* ============================ abas ============================ */
+/* ========================= linha de comando (ADR 0020) ===================== */
 
-function desenharAbas(): void {
-  $("abas").innerHTML = abas
-    .map((a, i) => {
-      const sujo = estaSuja(a);
-      return `<span class="tab${i === ativa ? " on" : ""}" data-aba="${i}">
-           ${esc(a.nome)}
-           <button class="${sujo ? "sujo" : "x"}" data-fechar="${i}"
-                   title="${sujo ? "Não gravado" : "Fechar"}">${sujo ? "" : "✕"}</button>
-         </span>`;
-    })
-    .join("");
-
-  const a = abas[ativa];
-  $("trilha").innerHTML = a
-    ? `${esc(projeto?.nome ?? "")} <span>&rsaquo;</span> ${esc(a.nome)}`
-    : "";
-  $("tituloDoc").textContent = a
-    ? `${a.nome}${estaSuja(a) ? " •" : ""}${projeto ? ` — ${projeto.nome}` : ""}`
-    : "Terminus";
-  $("editorHost").classList.toggle("ativo", ativa >= 0);
-  $("vazio").classList.toggle("oculto", ativa >= 0);
-}
-
-async function abrirArquivo(caminho: string): Promise<void> {
-  // Antes de olhar as abas do editor: `.ab1` nunca abre lá desde a ADR 0006.
-  if (EXT_CROMATOGRAMA.test(caminho)) return abrirCromatograma(caminho);
-
-  // ADR 0025: o motor é o Neovim. Abrir arquivo = pedir ao Neovim `edit` +
-  // `startinsert` por RPC (Fatia 2), então o clique já deixa a pessoa escrevendo.
-  // Caminho absoluto, então o `cd` da pasta não interfere.
-  if (MOTOR_NEOVIM && vistaNeovim) {
-    const r = await api.neovim.abrir(caminho);
-    if (!r.ok) {
-      terminal.erro(`${r.erro}\r\n`);
-      abrirPainel();
-    } else {
-      vistaNeovim.focar();
-    }
-    return;
-  }
-
-  const jaAberta = abas.findIndex((a) => a.caminho === caminho);
-  if (jaAberta >= 0) {
-    trocarAba(jaAberta);
-    return;
-  }
-
-  const r = await api.ler(caminho);
-  if (!r.ok) {
-    terminal.erro(`${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-
-  guardarAtual();
-  const aba: Aba = {
-    caminho,
-    nome: caminho.split("/").pop() ?? caminho,
-    conteudo: r.valor,
-    gravado: r.valor,
-    versao: 1,
-  };
-  abas.push(aba);
-  ativa = abas.length - 1;
-  editor.abrir(r.valor);
-  if (ehPython(caminho)) api.lsp.abrir(caminho, r.valor);
-  focarNoServidor(aba);
-  desenharAbas();
-  desenharArvore();
-  editor.focar();
-}
-
-/** Guarda o texto em edição na aba atual antes de trocar de documento. */
-function guardarAtual(): void {
-  const a = abas[ativa];
-  if (a) a.conteudo = editor.conteudo();
-}
-
-function trocarAba(i: number): void {
-  if (i === ativa || !abas[i]) return;
-  guardarAtual();
-  ativa = i;
-  const alvo = abas[i]!;
-  editor.abrir(alvo.conteudo, alvo.gravado);
-  focarNoServidor(alvo);
-  desenharAbas();
-  desenharArvore();
-  editor.focar();
-}
-
-function fecharAba(i: number): void {
-  const a = abas[i];
-  if (!a) return;
-  if (estaSuja(a) && !confirm(`${a.nome} tem alterações não gravadas. Fechar mesmo assim?`)) return;
-
-  if (ehPython(a.caminho)) {
-    api.lsp.fechar(a.caminho);
-    limparArquivo(a.caminho);
-  }
-
-  abas.splice(i, 1);
-  if (abas.length === 0) {
-    ativa = -1;
-    editor.abrir("");
-    focarNoServidor(undefined);
-  } else {
-    ativa = Math.min(i, abas.length - 1);
-    const alvo = abas[ativa]!;
-    editor.abrir(alvo.conteudo, alvo.gravado);
-    focarNoServidor(alvo);
-  }
-  desenharAbas();
-  desenharArvore();
-}
-
-async function salvar(): Promise<void> {
-  const a = abas[ativa];
-  if (!a) return;
-  const conteudo = editor.conteudo();
-  const r = await api.gravar(a.caminho, conteudo);
-  if (!r.ok) {
-    terminal.erro(`não gravei ${a.nome}: ${r.erro}\r\n`);
-    abrirPainel();
-    return;
-  }
-  a.conteudo = conteudo;
-  a.gravado = conteudo;
-  editor.marcarGravado();
-  desenharAbas();
-}
-
-/* ============================ execução ============================ */
-
+/**
+ * Há um comando em execução?
+ *
+ * Sobrou da execução do arquivo aberto (o ▶, que saiu com a ADR 0025): hoje só a
+ * linha de comando roda algo, e o estado serve para o ■ parar e para o Ctrl+C
+ * saber se mata um processo ou limpa a linha.
+ */
 let rodando = false;
 
 function definirRodando(v: boolean): void {
   rodando = v;
-  ($("btRodar") as HTMLButtonElement).disabled = v;
   ($("btParar") as HTMLButtonElement).disabled = !v;
-  // A linha de comando apaga em vez de desabilitar: desabilitada ela perderia o
-  // foco, e com ele o Ctrl+C que interrompe o que está rodando.
+  // A linha apaga em vez de desabilitar: desabilitada ela perderia o foco, e com
+  // ele o Ctrl+C que interrompe o que está rodando.
   $("linhaCmd").classList.toggle("ocupada", v);
 }
-
-async function rodar(): Promise<void> {
-  const a = abas[ativa];
-  if (!a || rodando) return;
-  if (!a.nome.endsWith(".py")) {
-    terminal.nota(`${a.nome} não é script Python — nada a rodar.`);
-    abrirPainel();
-    return;
-  }
-
-  if (estaSuja(a)) await salvar();
-
-  abrirPainel();
-  terminal.comando(projeto?.nome ?? "", `python -u ${a.nome}`);
-  definirRodando(true);
-  origemDaExecucao = "script";
-  api.rodar(a.caminho);
-}
-
-api.aoExecutar((e) => {
-  switch (e.tipo) {
-    case "saida":
-      terminal.escrever(e.texto);
-      break;
-    case "erro":
-      terminal.erro(e.texto);
-      break;
-    case "fim": {
-      definirRodando(false);
-      const bem = e.codigo === 0 && !e.sinal;
-      if (e.sinal) terminal.nota(`\r\ninterrompido (${e.sinal})`);
-      else if (!bem) terminal.nota(`\r\nsaiu com código ${e.codigo}`);
-      // Comando que deu certo termina calado, como em qualquer terminal: o
-      // prompt seguinte já é o aviso de que acabou. "concluído" só faz sentido
-      // para o ▶, onde não há prompt nenhum reaparecendo.
-      else if (origemDaExecucao === "script") terminal.nota("\r\nconcluído");
-      // Se o que rodou era uma correção da trilha, o código de saída é a nota.
-      if (origemDaExecucao === "script") void concluirCorrecao(bem);
-      break;
-    }
-    case "falha":
-      definirRodando(false);
-      terminal.erro(`\r\n${e.mensagem}\r\n`);
-      break;
-  }
-});
-
-/* ========================= linha de comando (ADR 0020) ===================== */
 
 /**
  * O terminal deixou de ser só tela.
@@ -1941,10 +1112,7 @@ async function executarLinha(linha: string): Promise<void> {
   pastaCmd = r.valor.pasta;
   pintarPrompt();
   if (r.valor.nota) terminal.nota(r.valor.nota);
-  if (r.valor.rodando) {
-    origemDaExecucao = "comando";
-    definirRodando(true);
-  }
+  if (r.valor.rodando) definirRodando(true);
 }
 
 $("linhaCmd").addEventListener("submit", (ev) => {
@@ -2046,57 +1214,6 @@ $("sideAcoes").addEventListener("click", (ev) => {
 $("lateral").addEventListener("click", (ev) => {
   const alvo = ev.target as HTMLElement;
 
-  // trilha (ADR 0015)
-  const fase = alvo.closest<HTMLElement>("[data-fase]");
-  if (fase) {
-    faseAtual = fase.dataset["fase"]!;
-    topicoAberto = null;
-    trilha = null;
-    return void desenharTrilha();
-  }
-  const vest = alvo.closest<HTMLElement>("[data-vest]");
-  if (vest) {
-    return void api.trilha.vestimenta(vest.dataset["vest"] as Vestimenta).then((r) => {
-      if (r.ok) trilha = r.valor;
-      pintarTrilha();
-    });
-  }
-  const cabecalho = alvo.closest<HTMLElement>("[data-topico]");
-  if (cabecalho) {
-    const id = cabecalho.dataset["topico"]!;
-    topicoAberto = topicoAberto === id ? null : id;
-    pintarTrilha();
-    return;
-  }
-  const pratica = alvo.closest<HTMLElement>("[data-praticar]");
-  if (pratica) {
-    const [t, e] = pratica.dataset["praticar"]!.split("|");
-    return void praticar(t!, e!);
-  }
-  const refaz = alvo.closest<HTMLElement>("[data-refazer]");
-  if (refaz) {
-    const [t, e] = refaz.dataset["refazer"]!.split("|");
-    return void refazer(t!, e!);
-  }
-  const revisita = alvo.closest<HTMLElement>("[data-revisitar]");
-  if (revisita) {
-    const [t, e, roupa] = revisita.dataset["revisitar"]!.split("|");
-    return void (async () => {
-      if (roupa) {
-        const r = await api.trilha.vestimenta(roupa as Vestimenta);
-        if (r.ok) trilha = r.valor;
-      }
-      topicoAberto = t!;
-      pintarTrilha();
-      await refazer(t!, e!);
-    })();
-  }
-  const corrige = alvo.closest<HTMLElement>("[data-verificar]");
-  if (corrige) {
-    const [t, e] = corrige.dataset["verificar"]!.split("|");
-    return void corrigir(t!, e!);
-  }
-
   const recente = alvo.closest<HTMLElement>("[data-recente]");
   if (recente) return void abrirRecente(recente.dataset["recente"]!);
   const esquecer = alvo.closest<HTMLElement>("[data-esquecer]");
@@ -2129,31 +1246,6 @@ $("lateral").addEventListener("contextmenu", (ev) => {
   }
 });
 
-$("abas").addEventListener("click", (ev) => {
-  const alvo = ev.target as HTMLElement;
-  const fechar = alvo.closest<HTMLElement>("[data-fechar]");
-  if (fechar) {
-    ev.stopPropagation();
-    return fecharAba(Number(fechar.dataset["fechar"]));
-  }
-  const aba = alvo.closest<HTMLElement>("[data-aba]");
-  if (aba) trocarAba(Number(aba.dataset["aba"]));
-});
-
-$("abasCromo").addEventListener("click", (ev) => {
-  const alvo = ev.target as HTMLElement;
-  const fechar = alvo.closest<HTMLElement>("[data-fechar-ab1]");
-  if (fechar) {
-    ev.stopPropagation();
-    return fecharAb1(Number(fechar.dataset["fecharAb1"]));
-  }
-  const aba = alvo.closest<HTMLElement>("[data-ab1]");
-  if (aba) trocarAb1(Number(aba.dataset["ab1"]));
-});
-
-$("btFecharCromo").addEventListener("click", () => fecharPainelCromo());
-
-$("btRodar").addEventListener("click", () => void rodar());
 $("btParar").addEventListener("click", () => api.parar());
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
@@ -2203,29 +1295,7 @@ window.addEventListener("keydown", (ev) => {
     comecarNovo("arquivo");
     return;
   }
-  // Ctrl+W fecha a aba de onde a mão está: dentro do painel de baixo fecha o
-  // `.ab1`, fora dele fecha o arquivo do editor.
-  if (mod && ev.key.toLowerCase() === "w") {
-    const noCromo = document.activeElement?.closest("#painelCromo");
-    if (noCromo && ativoAb1 >= 0) {
-      ev.preventDefault();
-      fecharAb1(ativoAb1);
-      return;
-    }
-    if (ativa >= 0) {
-      ev.preventDefault();
-      fecharAba(ativa);
-      return;
-    }
-  }
   if (ev.key === "Escape") fecharMenu();
-
-  // F12 no editor: ir para a definição do que está sob o cursor.
-  if (ev.key === "F12" && document.activeElement?.closest("#editorHost")) {
-    ev.preventDefault();
-    void irParaDefinicao();
-    return;
-  }
 
   // F2 e Delete valem sobre a linha da árvore que está com o foco. Dentro do
   // editor, Delete apaga texto — roubar isso apagaria arquivo por engano.
@@ -2250,8 +1320,6 @@ $("btMaximizar").addEventListener("click", () => api.janela.alternarMaximo());
 
 async function iniciar(): Promise<void> {
   definirLateral("explorer");
-  desenharAbas();
-  desenharAbasAb1();
   definirRodando(false);
 
   // Papel de parede e tema antes de qualquer desenho: trocar de tema depois da
@@ -2259,7 +1327,7 @@ async function iniciar(): Promise<void> {
   await aparencia.carregar();
 
   // A lateral abre fechada se foi assim que ficou da última vez.
-  definirLateralAberta(localStorage.getItem("bancada.lateralAberta") !== "0");
+  definirLateralAberta(localStorage.getItem("terminus.lateralAberta") !== "0");
 
   ligarDivisor({
     divisor: $("divLateral"),
@@ -2269,7 +1337,7 @@ async function iniciar(): Promise<void> {
     padrao: 250,
     min: 170,
     max: () => window.innerWidth - 520,
-    chave: "bancada.larguraLateral",
+    chave: "terminus.larguraLateral",
   });
 
   // Os dois painéis da ADR 0006. O teto deixa sempre um pedaço utilizável de
@@ -2282,30 +1350,8 @@ async function iniciar(): Promise<void> {
   $("btDocaDireita").addEventListener("click", () => definirDoca("direita"));
   $("btDocaEsquerda").addEventListener("click", () => definirDoca("esquerda"));
   definirDoca(doca);
-  ligarDivisor({
-    divisor: $("divCromo"),
-    painel: $("painelCromo"),
-    eixo: "altura",
-    padrao: 320,
-    // O mínimo é o do CSS: abaixo dele o traço não cabe sem rolagem vertical.
-    min: 260,
-    max: () => $("stage").clientHeight - 160,
-    chave: "bancada.alturaCromatograma",
-  });
-
-  iniciarServidor(
-    () => editor.avisarDiagnosticos(),
-    (motivo) => {
-      // Sem language server o editor continua inteiro — só perde os avisos.
-      terminal.erro(`language server indisponível: ${motivo}\r\n`);
-    },
-  );
-
-  // O import que o pyright acrescenta é anunciado igual ao do catálogo: nenhuma
-  // edição fora da vista do cursor acontece calada.
-  aoImportarDoServidor((linhas) => avisar(`import acrescentado: ${linhas.join(" · ")}`));
-
-  // `bancada ~/corridas/18S` já abre a pasta; sem argumento, volta a última
+  
+  // `terminus ~/projeto` já abre a pasta; sem argumento, volta a última
   // pasta aberta. Os recentes vêm junto para a tela vazia não nascer sem eles.
   await atualizarRecentes();
   const inicial = await api.projetoInicial();
@@ -2330,12 +1376,6 @@ async function iniciar(): Promise<void> {
   await sincronizarPastaCmd();
   const h = await api.historicoDeComandos();
   if (h.ok) historicoCmd = h.valor;
-
-  // O catálogo do Biopython ainda alimenta o autocomplete do CodeMirror, que
-  // segue por baixo (ADR 0025, Fatia 3 removerá os dois). Falha aqui não é mais
-  // digna de abrir o terminal: o motor é o Neovim.
-  const c = await api.catalogo();
-  if (c.ok) definirCatalogo(c.valor);
 
 
   // O ambiente do laboratório (Biopython · BLAST+ · Tracy · Python) saiu da

@@ -27,7 +27,7 @@ import "@xterm/xterm/css/xterm.css";
  *     File "/home/deck/corridas/18S/medir_gc.py", line 12, in <module>
  *
  * O caminho é capturado inteiro entre aspas, então nome com espaço funciona. O
- * `python -u` que a Bancada usa recebe caminho absoluto, então o que vem aqui
+ * `python -u` que o Terminus usa recebe caminho absoluto, então o que vem aqui
  * também é absoluto — inclusive para quadros dentro de bibliotecas, que abrem
  * em modo leitura como em qualquer IDE.
  */

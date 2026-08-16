@@ -3,70 +3,24 @@ import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type {
-  EventoExecucao,
-  ExercicioTrilha,
-  FalaMascote,
-  ProjetoAberto,
-  Resultado,
-  Vestimenta,
-} from "../shared/tipos.js";
-import { detectarVersoes } from "./ambiente.js";
-import { carregarCatalogo } from "./catalogo.js";
-import { lerCromatograma } from "./cromatograma.js";
+import type { EventoExecucao, ProjetoAberto, Resultado } from "../shared/tipos.js";
 import {
   comandosRecentes,
-  configDoFantasma,
   esquecerComandos,
-  esquecerFantasma,
   esquecerPasta,
   gravarAparencia,
   guardarWallpaper,
   lerAparencia,
   lerWallpaper,
   tirarWallpaper,
-  estadoDoFantasma,
-  lerDoTwinny,
-  ligarFantasma,
-  ligarMascote,
-  nomearMascote,
   pastasRecentes,
-  PASTA_FERN,
+  PASTA_CONFIG,
   registrarPasta,
-  salvarFantasma,
   registrarComando,
   ultimaPasta,
 } from "./config.js";
 import { analisar, destinoDoCd } from "./comando.js";
-import { cancelarFantasma, corrigir, definirArquivoDoFantasma, sugerir } from "./fantasma.js";
-import {
-  avisarEdicaoAceita,
-  avisarEdicaoRecusada,
-  estadoCopilot,
-  fecharDocumento,
-  focarDocumento,
-  iniciarCopilot,
-  sincronizarDocumento,
-} from "./copilot.js";
-import {
-  cancelarConversa,
-  conversar,
-  destilar,
-  estadoDoMascote,
-  lerQuadros,
-} from "./mascote.js";
-import { apagarDaMemoria, listarMemoria } from "./memoria.js";
-import {
-  arquivarTentativa,
-  caminhoDoTeste,
-  caminhoDoVerificador,
-  definirVestimenta,
-  esquecerExercicio,
-  lerTrilha,
-  marcarFeito,
-  prepararExercicio,
-} from "./trilha.js";
-import { estaRodando, pararScript, pararTudo, rodarComando, rodarScript } from "./execucao.js";
+import { estaRodando, pararScript, pararTudo, rodarComando } from "./execucao.js";
 import {
   enviarNeovim,
   iniciarNeovim,
@@ -83,7 +37,6 @@ import {
   resetarControle,
   salvarNeovim,
 } from "./controle.js";
-import { ServidorPython } from "./lsp.js";
 import {
   abrirProjeto,
   criarArquivo,
@@ -105,31 +58,6 @@ const RAIZ_APP = app.isPackaged
   : path.resolve(__dirname_, "..", "..");
 
 let janela: BrowserWindow | null = null;
-let servidor: ServidorPython | null = null;
-
-/**
- * Sobe o pyright para a pasta aberta. Um servidor por projeto: ele indexa a
- * raiz, então trocar de pasta significa trocar de servidor.
- */
-async function ligarServidor(raiz: string): Promise<void> {
-  servidor?.parar();
-  servidor = new ServidorPython({
-    raiz,
-    aoDiagnosticar: (uri, diagnosticos) => {
-      janela?.webContents.send("lsp:diagnosticos", {
-        arquivo: decodeURIComponent(uri.replace(/^file:\/\//, "")),
-        diagnosticos,
-      });
-    },
-  });
-  try {
-    await servidor.iniciar(RAIZ_APP);
-  } catch (err) {
-    servidor = null;
-    // Sem language server o editor continua inteiro — só perde os avisos.
-    janela?.webContents.send("lsp:falhou", err instanceof Error ? err.message : String(err));
-  }
-}
 
 /**
  * Pasta passada na linha de comando: `bancada ~/corridas/18S`.
@@ -142,7 +70,7 @@ function pastaDaLinhaDeComando(): string | null {
   const args = process.argv.slice(app.isPackaged ? 1 : 2);
   // Em desenvolvimento o próprio diretório do aplicativo aparece entre os
   // argumentos (`electron .`), e ele **não** é pasta de corrida: lido como se
-  // fosse, o repositório da Bancada abriria no lugar da pasta lembrada, e a
+  // fosse, o repositório do Terminus abriria no lugar da pasta lembrada, e a
   // memória de pasta nunca teria vez fora do pacote. Só a primeira ocorrência é
   // descartada — quem passar o diretório de propósito continua sendo atendido.
   let appJaVisto = app.isPackaged;
@@ -162,11 +90,6 @@ function pastaDaLinhaDeComando(): string | null {
   return null;
 }
 
-/**
- * Entra numa pasta de corrida: sobe o pyright para ela e a registra como
- * recente. É o único caminho que grava — abrir a árvore de novo (o "atualizar")
- * passa por `projeto:abrir`, que não mexe em servidor nem em memória.
- */
 /** A pasta de trabalho aberta agora. Guardada aqui para poder ser protegida. */
 let raizAberta: string | null = null;
 
@@ -184,7 +107,8 @@ async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
   const projeto = await abrirProjeto(raiz);
   raizAberta = raiz;
   pastaDoComando = raiz;
-  void ligarServidor(raiz);
+  // Aponta o Neovim para a pasta junto: o buscador dele nasce no lugar certo.
+  void cdNeovim(raiz).catch(() => {});
   registrarPasta(raiz);
   return projeto;
 }
@@ -204,7 +128,7 @@ function protegerPastaDeTrabalho(alvo: string): void {
   if (escolhido === raiz || raiz.startsWith(escolhido + path.sep)) {
     throw new Error(
       `"${path.basename(escolhido)}" é a pasta de trabalho aberta (ou está acima dela). ` +
-        "Para tirá-la da Bancada use Fechar pasta — excluir aqui apagaria o seu trabalho.",
+        "Para tirá-la do Terminus use Fechar pasta — excluir aqui apagaria o seu trabalho.",
     );
   }
 }
@@ -220,7 +144,7 @@ function protegerPastaDeTrabalho(alvo: string): void {
  * lixeira nenhuma.
  *
  * Isso importa muito aqui: corrida de sequenciamento chega no laboratório em
- * **pendrive**, e a Bancada prometia na tela que dava para recuperar da lixeira.
+ * **pendrive**, e o Terminus prometia na tela que dava para recuperar da lixeira.
  * Promessa falsa sobre `.ab1` insubstituível é pior que não ter o botão.
  *
  * O teste é o do próprio padrão XDG: a lixeira do usuário vive no disco da pasta
@@ -329,7 +253,7 @@ function criarJanela(): void {
     // O ícone da janela (e, no X11, o da barra de tarefas). PNG e não SVG: o
     // Electron não lê SVG aqui. Gerado da marca em `media/icon.svg` (ADR 0014).
     icon: path.join(RAIZ_APP, "media", "icon.png"),
-    // Casca própria: a barra de título é desenhada pela Bancada (ADR 0003).
+    // Casca própria: a barra de título é desenhada pelo Terminus (ADR 0003).
     frame: false,
     // #141414 é o fundo da casca no Cursor Dark — evita o flash branco antes
     // do primeiro quadro.
@@ -378,38 +302,18 @@ function criarJanela(): void {
 }
 
 /**
- * As raízes que o processo principal aceita **escrever**: a pasta que o usuário
- * abriu e a memória do mascote, que a ADR 0009 manda ser editável no editor de
- * sempre, com `Ctrl+S` valendo como em qualquer arquivo.
- *
- * A instalação da Bancada fica de fora — o app não edita o próprio código.
+ * A raiz que o processo principal aceita **escrever**: a pasta que o usuário
+ * abriu, e só ela. A instalação do Terminus fica de fora — o app não edita o
+ * próprio código.
  *
  * Todas são registradas **aqui**, nunca recebidas de quem chama. É essa a
  * diferença para o `dentroDe` de `projeto.ts`, que confia na raiz que o
  * chamador passa junto — quem controla o argumento controla a checagem.
  */
 function raizesDeEscrita(): string[] {
-  const raizes = [path.resolve(PASTA_FERN)];
-  if (raizAberta) raizes.push(path.resolve(raizAberta));
-  return raizes;
+  return raizAberta ? [path.resolve(raizAberta)] : [];
 }
 
-/**
- * As raízes de onde se pode **executar**: a pasta aberta e a instalação da
- * Bancada, de onde saem o `verificar.py` e os testes da trilha.
- */
-function raizesDeExecucao(): string[] {
-  const raizes = [path.resolve(RAIZ_APP)];
-  if (raizAberta) raizes.push(path.resolve(raizAberta));
-  return raizes;
-}
-
-/**
- * O arquivo que guarda a chave da DeepSeek. Nunca abre no editor: é o único
- * segredo que a Bancada tem, e `.json` está na lista de extensões de texto.
- * A tela de Configurações continua sendo o caminho para mexer nele.
- */
-const SEGREDO = path.join(PASTA_FERN, "..", "config.json");
 
 /**
  * Resolve o caminho e exige que ele caia dentro de uma das raízes dadas.
@@ -428,7 +332,7 @@ function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
   // Recusado antes de resolver, e não depois: `path.resolve("-c")` devolve
   // `<pasta atual>/-c`, que cai dentro de uma raiz permitida e passaria na
   // conferência. Um caminho que comece com traço vira opção do programa que o
-  // recebe — a Bancada não precisa de nenhum e não abre essa porta.
+  // recebe — o Terminus não precisa de nenhum e não abre essa porta.
   if (alvo.startsWith("-")) throw new Error(`O ${oQue} não pode começar com "-".`);
   const abs = path.resolve(alvo);
   let real: string;
@@ -444,7 +348,7 @@ function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
     if (rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel))) return real;
   }
   throw new Error(
-    `"${path.basename(abs)}" está fora da pasta aberta — a Bancada não mexe em arquivo de fora.`,
+    `"${path.basename(abs)}" está fora da pasta aberta — o Terminus não mexe em arquivo de fora.`,
   );
 }
 
@@ -463,8 +367,6 @@ function seguro<A extends unknown[], T>(
 }
 
 function registrarPonte(): void {
-  ipcMain.handle("catalogo:carregar", seguro(() => carregarCatalogo(RAIZ_APP)));
-  ipcMain.handle("ambiente:versoes", seguro(() => detectarVersoes()));
 
   ipcMain.handle(
     "projeto:escolher",
@@ -522,21 +424,14 @@ function registrarPonte(): void {
       }
       const abs = path.resolve(arquivo);
       const alvo = existsSync(abs) ? realpathSync(abs) : abs;
-      if (alvo === path.resolve(SEGREDO)) {
-        throw new Error(
-          "config.json guarda a chave da API — use a tela de Configurações, não o editor.",
-        );
+      if (alvo === path.resolve(path.join(PASTA_CONFIG, "config.json"))) {
+        throw new Error("config.json é a configuração do Terminus — não abre no editor.");
       }
       if (!ehTexto(alvo)) {
-        throw new Error(`${path.basename(alvo)} não é arquivo de texto — a Bancada não sabe abrir.`);
+        throw new Error(`${path.basename(alvo)} não é arquivo de texto — o Terminus não sabe abrir.`);
       }
       return lerArquivo(alvo);
     }),
-  );
-
-  ipcMain.handle(
-    "cromatograma:ler",
-    seguro((_e, arquivo: string) => lerCromatograma(RAIZ_APP, arquivo)),
   );
 
   ipcMain.handle(
@@ -594,120 +489,8 @@ function registrarPonte(): void {
     }),
   );
 
-  // Os três avisos de ciclo de vida do editor servem a **dois** servidores: o
-  // pyright, que analisa o arquivo aberto, e o Copilot, que precisa saber quais
-  // são as **outras** abas para montar o contexto. Antes de 04/08 só o `abrir`
-  // chegava ao Copilot, e mesmo assim só para gravar um nome de arquivo.
-  ipcMain.on("lsp:abrir", (_e, arquivo: string, texto: string) => {
-    servidor?.abrir(arquivo, texto);
-    sincronizarDocumento(arquivo, texto);
-  });
-  ipcMain.on("lsp:mudar", (_e, arquivo: string, versao: number, texto: string) => {
-    servidor?.mudar(arquivo, versao, texto);
-    sincronizarDocumento(arquivo, texto);
-  });
-  ipcMain.on("lsp:fechar", (_e, arquivo: string) => {
-    servidor?.fechar(arquivo);
-    fecharDocumento(arquivo);
-  });
 
-  /**
-   * Qual aba está na frente.
-   *
-   * Este aviso não existia, e a falta era defeito de verdade:
-   * `definirArquivoDoFantasma` só era chamado na **primeira** abertura de cada
-   * arquivo, então depois de abrir um segundo e voltar para o primeiro, o
-   * fantasma mandava o texto de um com o caminho do outro — e o `didChange`
-   * sobrescrevia no servidor a cópia do arquivo que nem estava sendo editado.
-   * Medido em `docs/comparativo-fantasma-copilot.md`: 3/3 certo com o caminho
-   * certo, 0/3 depois da troca de abas.
-   */
-  ipcMain.on("lsp:focar", (_e, arquivo: unknown) => {
-    const alvo = typeof arquivo === "string" ? arquivo : null;
-    definirArquivoDoFantasma(alvo);
-    focarDocumento(alvo);
-  });
-
-  ipcMain.handle(
-    "lsp:completar",
-    seguro((_e, arquivo: string, linha: number, coluna: number) =>
-      servidor?.completar(arquivo, linha, coluna) ?? [],
-    ),
-  );
-  ipcMain.handle(
-    "lsp:resolver",
-    seguro((_e, indice: number) => {
-      if (typeof indice !== "number" || !Number.isInteger(indice) || indice < 0) {
-        throw new Error("Índice de sugestão inválido.");
-      }
-      return servidor?.resolverSugestao(indice) ?? [];
-    }),
-  );
-  ipcMain.handle(
-    "lsp:hover",
-    seguro((_e, arquivo: string, linha: number, coluna: number) =>
-      servidor?.hover(arquivo, linha, coluna) ?? null,
-    ),
-  );
-  ipcMain.handle(
-    "lsp:definicao",
-    seguro((_e, arquivo: string, linha: number, coluna: number) =>
-      servidor?.definicao(arquivo, linha, coluna) ?? null,
-    ),
-  );
-
-  ipcMain.handle("fantasma:estado", seguro(() => estadoDoFantasma()));
-  ipcMain.handle("fantasma:ligar", seguro((_e, ligado: boolean) => ligarFantasma(ligado)));
-  ipcMain.handle("fantasma:esquecer", seguro(() => esquecerFantasma()));
-  ipcMain.handle(
-    "fantasma:importar",
-    seguro(async () => {
-      const t = await lerDoTwinny();
-      return salvarFantasma({ ...t, ligado: true });
-    }),
-  );
-  ipcMain.handle(
-    "fantasma:sugerir",
-    seguro((_e, texto: string, cursor: number) => sugerir({ texto, cursor })),
-  );
-  ipcMain.on("fantasma:cancelar", () => cancelarFantasma());
-
-  // Correção do que já está escrito (ADR 0025). Canal separado do
-  // `fantasma:sugerir` porque é outro pedido, outro tempo (2,5–4,5 s contra
-  // 886 ms) e outra resposta: intervalos a substituir, não texto a inserir.
-  ipcMain.handle(
-    "fantasma:corrigir",
-    seguro((_e, texto: string, cursor: number) => corrigir({ texto, cursor })),
-  );
-  ipcMain.on("fantasma:edicaoAceita", () => avisarEdicaoAceita());
-  ipcMain.on("fantasma:edicaoRecusada", () => avisarEdicaoRecusada());
-
-  // Mascote (ADR 0008). A interface pede a conversa e recebe a resposta — o
-  // miniMD que serve de contexto nunca atravessa esta ponte: ele é lido do lado
-  // de cá e vai direto para o modelo.
-  ipcMain.handle("mascote:estado", seguro(() => estadoDoMascote()));
-  ipcMain.handle("mascote:quadros", seguro(() => lerQuadros()));
-  ipcMain.handle(
-    "mascote:ligar",
-    seguro((_e, ligado: boolean) => {
-      ligarMascote(ligado);
-      return estadoDoMascote();
-    }),
-  );
-  ipcMain.handle(
-    "mascote:nomear",
-    seguro((_e, nome: string) => {
-      nomearMascote(nome.trim().slice(0, 40));
-      return estadoDoMascote();
-    }),
-  );
-  ipcMain.handle("mascote:conversar", seguro((_e, falas: FalaMascote[]) => conversar(falas)));
-  ipcMain.on("mascote:cancelar", () => cancelarConversa());
-
-  // Memória do mascote (ADR 0009). A interface lista e apaga; ler e escrever o
-  // conteúdo é com o editor da própria Bancada — é isso que torna a memória
-  // auditável sem inventar uma tela de edição nova.
-  // Aparência: wallpaper e tema (ADR 0010).
+  // Aparência: papel de parede e tema (ADR 0010) — o que sobrou dela na casca.
   ipcMain.handle(
     "aparencia:estado",
     seguro(() => ({ ...lerAparencia(), imagem: lerWallpaper() })),
@@ -737,113 +520,6 @@ function registrarPonte(): void {
     seguro(() => ({ ...tirarWallpaper(), imagem: null })),
   );
 
-  // Trilha de estudo (ADR 0015). A fase pedida vira a corrente, para as
-  // gravações seguintes devolverem a mesma lista sem a interface repetir.
-  let faseAtual = "fase1";
-  ipcMain.handle("trilha:ler", seguro((_e, fase?: string) => {
-      if (fase) faseAtual = fase;
-      return lerTrilha(RAIZ_APP, faseAtual);
-    }));
-  ipcMain.handle(
-    "trilha:vestimenta",
-    seguro((_e, v: Vestimenta) => {
-      definirVestimenta(v);
-      return lerTrilha(RAIZ_APP, faseAtual);
-    }),
-  );
-  ipcMain.handle(
-    "trilha:marcar",
-    seguro((_e, chave: string, vestimenta: string) => {
-      marcarFeito(chave, vestimenta);
-      return lerTrilha(RAIZ_APP, faseAtual);
-    }),
-  );
-  ipcMain.handle(
-    "trilha:esquecer",
-    seguro((_e, chave: string) => {
-      esquecerExercicio(chave);
-      return lerTrilha(RAIZ_APP, faseAtual);
-    }),
-  );
-  // Refazer do zero: arquiva a tentativa anterior e devolve o arquivo limpo.
-  ipcMain.handle(
-    "trilha:refazer",
-    seguro(
-      (
-        _e,
-        entrada: {
-          raizProjeto: string;
-          topico: string;
-          exercicio: ExercicioTrilha;
-          vestimenta: string;
-          enunciado: string;
-        },
-      ) => {
-        const alvo = path.join(
-          entrada.raizProjeto,
-          "trilha",
-          `${entrada.topico}_${entrada.exercicio.id}.py`,
-        );
-        const guardado = arquivarTentativa(alvo);
-        return { ...prepararExercicio(entrada), guardado };
-      },
-    ),
-  );
-  ipcMain.handle(
-    "trilha:praticar",
-    seguro(
-      (
-        _e,
-        entrada: {
-          raizProjeto: string;
-          topico: string;
-          exercicio: ExercicioTrilha;
-          vestimenta: string;
-          enunciado: string;
-        },
-      ) => prepararExercicio(entrada),
-    ),
-  );
-  ipcMain.handle(
-    "trilha:verificar",
-    seguro((_e, exercicio: string, arquivo: string) => {
-      const teste = caminhoDoTeste(RAIZ_APP, exercicio);
-      if (!teste) throw new Error(`o exercício "${exercicio}" ainda não tem correção escrita`);
-      return { verificador: caminhoDoVerificador(RAIZ_APP), teste, arquivo };
-    }),
-  );
-
-  ipcMain.handle("memoria:listar", seguro(() => listarMemoria()));
-  ipcMain.handle("memoria:apagar", seguro((_e, caminho: string) => apagarDaMemoria(caminho)));
-  ipcMain.handle("memoria:destilar", seguro((_e, falas: FalaMascote[]) => destilar(falas)));
-
-  ipcMain.handle("copilot:estado", seguro(() => estadoCopilot()));
-
-  ipcMain.handle("exec:rodando", () => estaRodando());
-  ipcMain.on("exec:rodar", (e, arquivo: string, extras: string[] = []) => {
-    // O `arquivo` vira o `argv[1]` do interpretador, então um valor como `-c`
-    // deixa de ser caminho e vira opção: `python -u -c <extras[0]>` executa a
-    // linha que vier. `shell: false` não protege disto — a injeção é no
-    // interpretador, não no shell. Daí a checagem ser aqui e não só no spawn.
-    try {
-      const alvo = confinado(arquivo, raizesDeExecucao(), "script");
-      if (path.extname(alvo).toLowerCase() !== ".py") {
-        throw new Error(`${path.basename(alvo)} não é um script Python.`);
-      }
-      if (!Array.isArray(extras)) throw new Error("Argumentos inválidos.");
-      // Hoje os únicos `extras` legítimos são os dois caminhos que a trilha
-      // passa ao verificador. Confinar cada um mantém a porta do tamanho do que
-      // realmente passa por ela.
-      const args = extras.map((x) => confinado(x, raizesDeExecucao(), "argumento"));
-      rodarScript(alvo, (evento: EventoExecucao) => e.sender.send("exec:evento", evento), args);
-    } catch (err) {
-      const evento: EventoExecucao = {
-        tipo: "falha",
-        mensagem: err instanceof Error ? err.message : String(err),
-      };
-      e.sender.send("exec:evento", evento);
-    }
-  });
   ipcMain.on("exec:parar", () => pararScript());
 
   /**
@@ -851,9 +527,9 @@ function registrarPonte(): void {
    *
    * **Aqui não há `confinado`, e é a diferença de fundo em relação a
    * `exec:rodar`.** Aquele recebe um caminho vindo da árvore de arquivos e só
-   * pode acabar em `.py` dentro da pasta aberta, porque é a Bancada quem monta o
+   * pode acabar em `.py` dentro da pasta aberta, porque é o Terminus quem monta o
    * comando. Este recebe uma linha que a pessoa digitou olhando para a tela:
-   * confiná-la seria fingir que a Bancada sabe melhor do que o dono da máquina o
+   * confiná-la seria fingir que o Terminus sabe melhor do que o dono da máquina o
    * que ele quis instalar. O que sobra de proteção é o que realmente protege —
    * `shell: false`, sem interpolação de texto — e está em `comando.ts`.
    *
@@ -965,9 +641,9 @@ function registrarPonte(): void {
   // teclas da Fatia 1, e sem depender do modo em que o cursor estava.
   ipcMain.handle(
     "neovim:abrir",
-    seguro((_e, caminho: unknown) => {
+    seguro((_e, caminho: unknown, linha: unknown) => {
       if (typeof caminho !== "string") throw new Error("Caminho inválido.");
-      return abrirNoNeovim(caminho);
+      return abrirNoNeovim(caminho, typeof linha === "number" ? linha : undefined);
     }),
   );
   ipcMain.on("neovim:cd", (_e, pasta: unknown) => {
@@ -994,13 +670,6 @@ function registrarPonte(): void {
 void app.whenReady().then(() => {
   registrarPonte();
   criarJanela();
-  // O servidor do Copilot só sobe quando ele é o motor escolhido: sao 111 MB e
-  // um processo a mais, e quem usa a DeepSeek nao paga por isso.
-  if (configDoFantasma()?.motor === "copilot") {
-    void iniciarCopilot(RAIZ_APP, configDoFantasma()?.ligado === true).catch(() => {
-      janela?.webContents.send("lsp:falhou", "O servidor do Copilot nao subiu.");
-    });
-  }
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();
   });
@@ -1009,6 +678,5 @@ void app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   pararTudo();
   pararNeovim();
-  servidor?.parar();
   if (process.platform !== "darwin") app.quit();
 });

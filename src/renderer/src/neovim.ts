@@ -14,7 +14,7 @@ import "@xterm/xterm/css/xterm.css";
 export class VistaNeovim {
   private readonly term: Terminal;
   private readonly fit = new FitAddon();
-  private readonly api = window.bancada.neovim;
+  private readonly api = window.terminus.neovim;
   private encerrado = false;
 
   constructor(host: HTMLElement, cwd: string) {
@@ -51,7 +51,7 @@ export class VistaNeovim {
     this.api.aoEncerrar((codigo) => {
       this.encerrado = true;
       this.term.write(
-        `\r\n\x1b[90m[Neovim encerrou (código ${codigo}). Recarregue a Bancada para reabrir.]\x1b[0m\r\n`,
+        `\r\n\x1b[90m[Neovim encerrou (código ${codigo}). Recarregue o Terminus para reabrir.]\x1b[0m\r\n`,
       );
     });
 

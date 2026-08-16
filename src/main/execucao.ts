@@ -39,7 +39,7 @@ import { acharPython } from "./ambiente.js";
  * Medido no Deck: o PATH que o Plasma entrega a um aplicativo aberto pelo menu é
  * `/usr/local/sbin:/usr/local/bin:/usr/bin:…flatpak…:/opt/tailscale`. Não tem
  * `~/.local/bin` e, principalmente, **não tem o nvm** — onde mora o `verboo`.
- * Aberta pelo menu, a Bancada respondia "comando não encontrado" a um programa
+ * Aberta pelo menu, o Terminus respondia "comando não encontrado" a um programa
  * que existe e funciona no Konsole, o que é o tipo de coisa que faz a pessoa
  * achar que a IDE está quebrada.
  *

@@ -1,97 +1,23 @@
-import { execFile } from "node:child_process";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import { promisify } from "node:util";
-import type { Versoes } from "../shared/tipos.js";
-
-const executar = promisify(execFile);
+import { existsSync } from "node:fs";
 
 /**
- * Onde procurar o interpretador. A Bancada não cria ambiente: ela usa o que o
- * laboratório já tem. A ordem é deliberada — o env do EasyContig primeiro,
- * porque é onde o Biopython e o BLAST+ realmente estão nesta máquina.
+ * O Python que o Terminus usa.
  *
- * TODO(ADR futura): isto está fixo no código. Vira configuração assim que a
- * tela de Configurações existir; hoje seria configuração sem lugar onde morar.
+ * A versão anterior procurava um env específico de um laboratório (miniforge,
+ * `easycontig-demo`) — resíduo do produto de bioinformática que este repositório
+ * já foi. Agora é o Python do sistema, que é o certo para uma ferramenta que não
+ * conhece a máquina de quem a usa.
+ *
+ * Serve a **uma** coisa: reescrever `pip install x` como `python3 -m pip
+ * install x` na linha de comando. A diferença não é preciosismo — o `pip` do
+ * PATH pode instalar num Python e o `import` procurar em outro, e essa é uma das
+ * primeiras pedras em que quem chega ao Linux tropeça.
  */
-const CANDIDATOS_PYTHON = [
-  path.join(os.homedir(), "miniforge3", "envs", "easycontig-demo", "bin", "python"),
-  "/usr/bin/python3",
-];
-
-const TRACY = path.join(os.homedir(), "projetos", "dna-contingency", "bin", "tracy.exe");
-
-/** Devolve o primeiro interpretador que existe no disco. */
 export function acharPython(): string {
-  for (const c of CANDIDATOS_PYTHON) {
-    if (path.isAbsolute(c) && fs.existsSync(c)) return c;
+  for (const caminho of ["/usr/bin/python3", "/usr/local/bin/python3"]) {
+    if (existsSync(caminho)) return caminho;
   }
-  // Última tentativa: deixa o sistema resolver pelo PATH. Se não houver, quem
-  // for executar recebe ENOENT e a interface mostra o erro real.
+  // Sem caminho absoluto conhecido, o PATH resolve. `spawn` sem shell continua
+  // valendo: o nome do programa não é reinterpretado por ninguém.
   return "python3";
-}
-
-/**
- * Onde a sonda de versão roda. Nunca o diretório de trabalho herdado: o modo
- * `-c` do Python põe o diretório atual no começo do `sys.path`, então abrir a
- * Bancada com `cd <pasta> && bancada .` faria um `Bio.py` plantado ali executar
- * **na inicialização**, antes de qualquer clique. `~/.config/bancada` é criada
- * pela própria Bancada em 0700 e não guarda `.py`; a casa é o reserva para
- * quando ela ainda não existe.
- */
-function pastaNeutra(): string {
-  const config = path.join(os.homedir(), ".config", "bancada");
-  return fs.existsSync(config) ? config : os.homedir();
-}
-
-async function saidaDe(cmd: string, args: string[]): Promise<string> {
-  try {
-    const { stdout, stderr } = await executar(cmd, args, {
-      timeout: 30_000,
-      cwd: pastaNeutra(),
-      // Do Python 3.11 em diante isto tira o diretório atual do `sys.path` de
-      // vez, em vez de só apontá-lo para outro lugar. Versão mais antiga ignora
-      // a variável, e aí quem protege é o `cwd` acima.
-      env: { ...process.env, PYTHONSAFEPATH: "1" },
-    });
-    return (stdout ?? "") + (stderr ?? "");
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Lê as versões reais das ferramentas instaladas. Mesma lógica que
- * tools/build_prototype.py usa para a barra de estado do protótipo — a barra de
- * estado do aplicativo mostra o ambiente de verdade, nunca um valor escrito à mão.
- */
-export async function detectarVersoes(): Promise<Versoes> {
-  const versoes: Versoes = { python: "?", biopython: "?", blast: "?", tracy: "?" };
-  const python = acharPython();
-
-  const bio = (
-    await saidaDe(python, [
-      "-c",
-      "import Bio,sys;print(Bio.__version__);print('.'.join(map(str,sys.version_info[:3])))",
-    ])
-  ).split(/\s+/).filter(Boolean);
-  if (bio.length >= 2) {
-    versoes.biopython = bio[0]!;
-    versoes.python = bio[1]!;
-  }
-
-  if (fs.existsSync(TRACY)) {
-    const m = /Tracy version:\s*v?([\d.]+)/.exec(await saidaDe(TRACY, ["--version"]));
-    if (m) versoes.tracy = m[1]!;
-  }
-
-  // O blastn mora ao lado do python do env; se não estiver lá, tenta o PATH.
-  const blastnLocal = path.join(path.dirname(python), "blastn");
-  const blastn = fs.existsSync(blastnLocal) ? blastnLocal : "blastn";
-  const m = /blastn:\s*([\d.]+)\+?/.exec(await saidaDe(blastn, ["-version"]));
-  // sem o '+' final: o rótulo na barra de estado já diz "BLAST+".
-  if (m) versoes.blast = m[1]!;
-
-  return versoes;
 }
