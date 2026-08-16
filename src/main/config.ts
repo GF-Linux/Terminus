@@ -1,47 +1,32 @@
-import { safeStorage } from "electron";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { ConfigFantasma, EstadoFantasma } from "../shared/tipos.js";
 
 /**
- * Configuração da Bancada, incluindo o segredo do texto fantasma.
+ * Configuração do Terminus: `~/.config/terminus/config.json`, com permissão
+ * 0600.
  *
- * A chave é cifrada pelo `safeStorage` do Electron, que usa o chaveiro do
- * sistema (kwallet no KDE deste Deck). Se o chaveiro não estiver disponível a
- * chave é gravada em texto puro com permissão 0600 — e o aplicativo **diz isso
- * na tela**, em vez de fingir que guardou bem.
+ * O que mora aqui é o que a **casca** guarda entre sessões — aparência, pastas
+ * abertas antes, histórico da linha de comando. Configuração do editor não
+ * passa por aqui: essa é do Neovim, em `~/.config/nvim`.
  *
- * O arquivo mora em `~/.config/bancada/config.json`, não no `state.vscdb` do VS
- * Code. Ler o banco do Twinny em tempo de execução amarraria a Bancada a ele
- * estar instalado, e copiar segredo do armazenamento de outro aplicativo sem o
- * usuário mandar não é coisa que se faça em silêncio. A importação existe, mas
- * é um botão.
+ * Não é `localStorage` de propósito: caminho de projeto e linha de comando
+ * digitada são dado sensível o bastante para merecer um arquivo com dono.
  */
 
-const PASTA = path.join(os.homedir(), ".config", "bancada");
+const PASTA = path.join(os.homedir(), ".config", "terminus");
 const ARQUIVO = path.join(PASTA, "config.json");
 
 /** A pasta do usuário, para quem precisa guardar coisa dele ao lado da config. */
-export const PASTA_BANCADA = PASTA;
+export const PASTA_CONFIG = PASTA;
 
 interface ConfigGravada {
-  fantasma?: {
-    endpoint: string;
-    modelo: string;
-    /** Chave cifrada pelo safeStorage, em base64. */
-    chaveCifrada?: string;
-    /** Chave em texto puro — só quando não há chaveiro. */
-    chaveAberta?: string;
-    ligado: boolean;
-    motor?: "deepseek" | "copilot";
-  };
-  /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
+  /** Pastas já abertas, da mais recente para a mais antiga. */
   pastas?: string[];
   /** Linhas digitadas no terminal, da mais recente para a mais antiga. */
   comandos?: string[];
   aparencia?: {
-    /** Arquivo copiado para dentro de ~/.config/bancada, ou null. */
+    /** Arquivo copiado para dentro de ~/.config/terminus, ou null. */
     wallpaper?: string | null;
     /** 0–0.95: quanto do preto entra por cima da imagem. */
     escurecer?: number;
@@ -55,13 +40,6 @@ interface ConfigGravada {
     zoom?: number;
     /** A paleta extraída da imagem, quando o tema é "gerado". */
     gerado?: Record<string, string> | null;
-  };
-  mascote?: {
-    /** Endpoint de conversa. Vazio = derivado do endpoint do fantasma. */
-    endpoint?: string;
-    modelo?: string;
-    nome?: string;
-    ligado: boolean;
   };
 }
 
@@ -78,74 +56,6 @@ function gravar(c: ConfigGravada): void {
   fs.writeFileSync(ARQUIVO, JSON.stringify(c, null, 2), { encoding: "utf8", mode: 0o600 });
 }
 
-/** Resolve a chave para uso, decifrando se for o caso. */
-export function chaveDoFantasma(): string | null {
-  const f = ler().fantasma;
-  if (!f) return null;
-  if (f.chaveAberta) return f.chaveAberta;
-  if (!f.chaveCifrada) return null;
-  try {
-    return safeStorage.decryptString(Buffer.from(f.chaveCifrada, "base64"));
-  } catch {
-    // Chaveiro trocado ou perfil movido: a chave cifrada virou lixo. Melhor
-    // dizer que não há chave do que estourar no meio de uma sugestão.
-    return null;
-  }
-}
-
-export function configDoFantasma(): ConfigFantasma | null {
-  const f = ler().fantasma;
-  if (!f) return null;
-  return { endpoint: f.endpoint, modelo: f.modelo, ligado: f.ligado, motor: f.motor ?? "deepseek" };
-}
-
-export function estadoDoFantasma(): EstadoFantasma {
-  const f = ler().fantasma;
-  return {
-    configurado: chaveDoFantasma() !== null,
-    ligado: f?.ligado ?? false,
-    endpoint: f?.endpoint ?? null,
-    modelo: f?.modelo ?? null,
-    chaveiroDisponivel: safeStorage.isEncryptionAvailable(),
-    chaveEmTextoPuro: Boolean(f?.chaveAberta),
-    arquivo: ARQUIVO,
-    motor: f?.motor ?? "deepseek",
-  };
-}
-
-export function salvarFantasma(entrada: {
-  endpoint: string;
-  modelo: string;
-  chave: string;
-  ligado: boolean;
-}): EstadoFantasma {
-  const c = ler();
-  const base = { endpoint: entrada.endpoint, modelo: entrada.modelo, ligado: entrada.ligado };
-
-  c.fantasma = safeStorage.isEncryptionAvailable()
-    ? { ...base, chaveCifrada: safeStorage.encryptString(entrada.chave).toString("base64") }
-    : { ...base, chaveAberta: entrada.chave };
-
-  gravar(c);
-  return estadoDoFantasma();
-}
-
-export function ligarFantasma(ligado: boolean): EstadoFantasma {
-  const c = ler();
-  if (c.fantasma) {
-    c.fantasma.ligado = ligado;
-    gravar(c);
-  }
-  return estadoDoFantasma();
-}
-
-export function esquecerFantasma(): EstadoFantasma {
-  const c = ler();
-  delete c.fantasma;
-  gravar(c);
-  return estadoDoFantasma();
-}
-
 /* -------------------------------- aparência -------------------------------- */
 
 /**
@@ -153,7 +63,7 @@ export function esquecerFantasma(): EstadoFantasma {
  *
  * A imagem é **copiada** para cá em vez de referenciada onde estava: quem
  * escolhe um papel de parede em `~/Downloads` acaba limpando a pasta um dia, e
- * a Bancada não pode nascer quebrada por causa disso.
+ * o Terminus não pode nascer quebrada por causa disso.
  */
 const APARENCIA_PADRAO = {
   wallpaper: null as string | null,
@@ -232,78 +142,6 @@ export function tirarWallpaper(): Aparencia {
   // O tema gerado morre com a imagem: paleta tirada de uma foto que não está
   // mais na tela é paleta órfã.
   return gravarAparencia({ wallpaper: null, gerado: null, tema: "cursor-dark" });
-}
-
-/* --------------------------------- mascote --------------------------------- */
-
-/**
- * O mascote (ADR 0008).
- *
- * Reusa a chave do texto fantasma — é a mesma conta e o mesmo dono —, mas o
- * endereço é outro: o fantasma fala com um endpoint de **completamento** (FIM),
- * e conversa é `/chat/completions`. Por padrão o endereço é derivado do que já
- * está configurado; quem quiser outro provedor escreve no arquivo.
- */
-export const PASTA_SPRITE = path.join(PASTA, "mascote");
-export const ARQUIVO_CONTEXTO = path.join(PASTA, "contexto.md");
-/** Onde vive a memória que o próprio mascote escreve (ADR 0009). */
-export const PASTA_FERN = path.join(PASTA, "fern");
-
-const MODELO_CONVERSA_PADRAO = "deepseek-chat";
-
-/** Deriva o endereço de conversa a partir do endereço de completamento. */
-function endpointDerivado(): string {
-  const f = ler().fantasma;
-  if (!f?.endpoint) return "https://api.deepseek.com/chat/completions";
-  try {
-    const u = new URL(f.endpoint);
-    return `${u.origin}/chat/completions`;
-  } catch {
-    return "https://api.deepseek.com/chat/completions";
-  }
-}
-
-export function configDoMascote(): {
-  endpoint: string;
-  modelo: string;
-  nome: string;
-  ligado: boolean;
-} {
-  const m = ler().mascote;
-  return {
-    endpoint: m?.endpoint || endpointDerivado(),
-    modelo: m?.modelo || MODELO_CONVERSA_PADRAO,
-    nome: m?.nome || "Mascote",
-    // Vem **desligado**: conversa sai da máquina, e isso não se liga sozinho.
-    ligado: m?.ligado ?? false,
-  };
-}
-
-export function ligarMascote(ligado: boolean): void {
-  const c = ler();
-  c.mascote = { ...(c.mascote ?? {}), ligado };
-  gravar(c);
-}
-
-export function nomearMascote(nome: string): void {
-  const c = ler();
-  c.mascote = { ...(c.mascote ?? {}), ligado: c.mascote?.ligado ?? false, nome };
-  gravar(c);
-}
-
-/**
- * O miniMD — o **único** arquivo que o mascote lê.
- *
- * Fica no processo principal de propósito: a interface nunca vê este texto, e
- * ele não atravessa a ponte de IPC. Vai direto daqui para o modelo, quando há
- * conversa, e para mais lugar nenhum.
- */
-export function lerContexto(): string | null {
-  try {
-    return fs.readFileSync(ARQUIVO_CONTEXTO, "utf8");
-  } catch {
-    return null;
-  }
 }
 
 /* ----------------------------- pastas de corrida --------------------------- */
@@ -388,7 +226,7 @@ export function esquecerComandos(): void {
 /**
  * Lê o provedor FIM configurado no Twinny, se o VS Code estiver instalado.
  *
- * Só é chamado quando o usuário aperta o botão. Depois da importação a Bancada
+ * Só é chamado quando o usuário aperta o botão. Depois da importação o Terminus
  * passa a ter cópia própria: desinstalar o Twinny não a quebra.
  *
  * O `state.vscdb` é um SQLite, e ler SQLite daqui exigiria dependência nativa —

@@ -97,7 +97,7 @@ interface não tem `require`, `fs` nem `child_process` — toda a superfície es
 ```
 src/main/       processo principal — Neovim (PTY), canal de controle, arquivos
 src/preload/    a ponte, e a única porta para o sistema
-src/renderer/   a casca: árvore, abas, terminal, temas
+src/renderer/   a casca: árvore, terminal, plugins, temas
 ```
 
 ---
@@ -110,10 +110,9 @@ Lista honesta, porque v0.0.1 quer dizer isso:
 - **Testado numa máquina só** — Fedora 44, KDE em Wayland. Nunca rodou em GNOME,
   em X11 puro, em outra distribuição, no macOS nem no Windows.
 - **Terminal em janela separada** — o botão foi removido até existir de verdade.
-- **Resíduo do produto anterior**: este repositório nasceu como uma IDE de
-  bioinformática, e sobraram partes escondidas (um editor CodeMirror por baixo,
-  visualizador de cromatograma, trilha de estudo, um assistente). Elas não
-  aparecem na tela e serão removidas.
+- **Renomear pela árvore não avisa o Neovim**: o buffer aberto continua
+  apontando para o nome antigo; reabra o arquivo depois de renomear.
+- **Sem busca em arquivos pela casca** — use a do Neovim (`<space>/` no LazyVim).
 - **Atalhos são poucos e fixos** — o "personalizável" do objetivo ainda é o do
   Neovim, não da casca.
 - **Sem testes automatizados** na casca.
@@ -137,5 +136,9 @@ Lista honesta, porque v0.0.1 quer dizer isso:
 
 ## Licença
 
-**PolyForm Noncommercial License 1.0.0** — livre para uso não comercial; veja
-[LICENSE](LICENSE).
+**MIT** — veja [LICENSE](LICENSE). A escolha é deliberada: o Terminus só serve
+se puder ser copiado, adaptado e redistribuído por quem quiser adaptar a própria
+ponte.
+
+As fontes IBM Plex embutidas em `src/renderer/fontes/` são SIL OFL 1.1, e o aviso
+delas acompanha o LICENSE.

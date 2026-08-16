@@ -22,7 +22,7 @@ import * as path from "node:path";
  */
 
 /** O socket de controle do Neovim desta sessão (Fatia 2). */
-export const SOCKET_NEOVIM = path.join(tmpdir(), "bancada-nvim.sock");
+export const SOCKET_NEOVIM = path.join(tmpdir(), "terminus-nvim.sock");
 
 let proc: IPty | null = null;
 
@@ -49,10 +49,10 @@ export function iniciarNeovim(op: OpcoesNeovim): void {
   }
 
   // `--cmd` roda antes de qualquer config, e o autocmd fica de pé para toda a
-  // sessão. Ele responde sozinho ao aviso de swap file (E325): a Bancada abre
+  // sessão. Ele responde sozinho ao aviso de swap file (E325): o Terminus abre
   // arquivo por RPC, que é não-interativo, então um prompt de swap trava o
   // comando e volta E325 em vez de abrir. `v:swapchoice='e'` = "editar assim
-  // mesmo" — seguro aqui porque a Bancada roda uma instância só, então todo swap
+  // mesmo" — seguro aqui porque o Terminus roda uma instância só, então todo swap
   // encontrado é resto de sessão morta, não outro Neovim vivo com o arquivo.
   proc = spawn("nvim", ["--cmd", "autocmd SwapExists * let v:swapchoice = 'e'", "--listen", SOCKET_NEOVIM], {
     name: "xterm-256color",
@@ -65,7 +65,7 @@ export function iniciarNeovim(op: OpcoesNeovim): void {
       // Sem isto o Neovim cai para 8 cores e o tema fica irreconhecível.
       COLORTERM: "truecolor",
       // Marca que este Neovim roda dentro da casca. A config lê isto para esconder
-      // o que a Bancada já faz (o menu do dashboard) sem mexer no Neovim solto.
+      // o que o Terminus já faz (o menu do dashboard) sem mexer no Neovim solto.
       BANCADA: "1",
     },
   });

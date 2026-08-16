@@ -5,7 +5,7 @@ import { acharPython } from "./ambiente.js";
 /**
  * A linha de comando do terminal (ADR 0020).
  *
- * Até 02/08 a Bancada não tinha onde digitar comando: o terminal era só tela, e
+ * Até 02/08 o Terminus não tinha onde digitar comando: o terminal era só tela, e
  * `src/preload/index.ts` dizia em comentário para nunca abrir essa porta. O
  * autor foi instalar o pandas para estudar e descobriu que não havia como. A
  * porta abriu — a ADR registra por quê e o que muda.
@@ -18,7 +18,7 @@ import { acharPython } from "./ambiente.js";
  * pipe pede um shell por escrito: `bash -c "ls | grep .ab1"`.
  *
  * **Não há PTY** (node-pty é módulo nativo e este Deck não tem gcc/make; ver
- * `execucao.ts`). Programa que espera digitação não trava a Bancada, mas trava a
+ * `execucao.ts`). Programa que espera digitação não trava o Terminus, mas trava a
  * si mesmo esperando um stdin que nunca vem. Por isso os interativos conhecidos
  * são recusados na entrada: é melhor uma frase explicando do que um `htop`
  * pendurado até alguém apertar o quadrado vermelho.
@@ -125,10 +125,10 @@ const PRECISAM_DE_TTY: Record<string, string> = {
   sudo: "não há como digitar a senha aqui",
   su: "não há como digitar a senha aqui",
   ssh: "pede senha ou confirmação de chave",
-  nano: "é editor de tela cheia — edite na própria Bancada",
-  vim: "é editor de tela cheia — edite na própria Bancada",
-  vi: "é editor de tela cheia — edite na própria Bancada",
-  emacs: "é editor de tela cheia — edite na própria Bancada",
+  nano: "é editor de tela cheia — edite na próprio Terminus",
+  vim: "é editor de tela cheia — edite na próprio Terminus",
+  vi: "é editor de tela cheia — edite na próprio Terminus",
+  emacs: "é editor de tela cheia — edite na próprio Terminus",
   less: "espera teclas para rolar",
   more: "espera teclas para rolar",
   man: "abre no paginador, que espera teclas",
@@ -230,11 +230,11 @@ function expandir(arg: string, cwd: string): string[] {
 /* ------------------------------- tradução --------------------------------- */
 
 export interface ComandoPronto {
-  /** `cd`: a Bancada muda de pasta sozinha, não há processo para criar. */
+  /** `cd`: o Terminus muda de pasta sozinha, não há processo para criar. */
   tipo: "cd" | "processo";
   programa: string;
   args: string[];
-  /** O que dizer no terminal quando a Bancada reescreveu o comando. */
+  /** O que dizer no terminal quando o Terminus reescreveu o comando. */
   nota?: string;
 }
 
@@ -242,11 +242,11 @@ export interface ComandoPronto {
  * Decide o que a linha vai virar de fato.
  *
  * A reescrita do `pip` é o coração disto e o motivo original do recurso: `pip`
- * solto no PATH é o pip de **algum** Python, quase nunca o que a Bancada usa
+ * solto no PATH é o pip de **algum** Python, quase nunca o que o Terminus usa
  * para rodar os scripts. Instalar com ele deixa o pandas num lugar e o
  * `import pandas` procurando em outro — o erro mais desmoralizante possível para
  * quem está estudando. `python -m pip` instala, por construção, no interpretador
- * que vai importar. A Bancada faz a troca e **diz que fez**, porque o objetivo
+ * que vai importar. O Terminus faz a troca e **diz que fez**, porque o objetivo
  * dela é didático: quem lê a nota aprende a regra, não fica dependente da mágica.
  */
 export function traduzir(argv: string[], cwd: string): ComandoPronto {
@@ -256,14 +256,14 @@ export function traduzir(argv: string[], cwd: string): ComandoPronto {
   const motivo = PRECISAM_DE_TTY[nome];
   if (motivo) {
     throw new Error(
-      `${nome} ${motivo}, e o terminal da Bancada não tem entrada de teclado ` +
+      `${nome} ${motivo}, e o terminal do Terminus não tem entrada de teclado ` +
         `(não há PTY). Para isto, use o terminal do sistema.`,
     );
   }
   if (SO_TRAVA_PELADO.has(nome) && resto.length === 0) {
     throw new Error(
       `${nome} sem argumento abre um interpretador interativo, e o terminal da ` +
-        `Bancada não tem entrada de teclado (não há PTY). Passe um arquivo ou ` +
+        `Terminus não tem entrada de teclado (não há PTY). Passe um arquivo ou ` +
         `um ${nome === "bash" || nome === "sh" ? "-c \"comando\"" : "-c \"código\""}.`,
     );
   }
@@ -311,7 +311,7 @@ export function analisar(linha: string, cwd: string): ComandoPronto | null {
   const meta = metacaractereSolto(linha);
   if (meta) {
     throw new Error(
-      `"${meta}" é coisa de shell, e não há shell aqui — a Bancada entrega o ` +
+      `"${meta}" é coisa de shell, e não há shell aqui — o Terminus entrega o ` +
         `comando direto ao programa. Se precisar mesmo, peça um shell por escrito: ` +
         `bash -c "…".`,
     );

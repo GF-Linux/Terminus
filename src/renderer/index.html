@@ -29,15 +29,12 @@
 
   <div class="main">
 
-    <!-- Explorer / Plugins do Neovim / Trilha / Configurações (ADR 0025) -->
+    <!-- Explorer / Plugins do Neovim / Configurações (ADR 0025) -->
     <nav class="act" id="act" aria-label="Barra de atividades">
       <button data-p="explorer" aria-selected="true" title="Explorer">
         <svg viewBox="0 0 24 24"><path d="M4 6h5.5l1.8 2H20v11H4z"/></svg></button>
       <button data-p="extensions" aria-selected="false" title="Plugins do Neovim">
         <svg viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4zM13.5 13.5H20V20h-6.5zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4z"/></svg></button>
-      <!-- Trilha: degraus subindo. Aprender é o único ícone daqui que sobe. -->
-      <button data-p="trilha" aria-selected="false" title="Trilha de estudo">
-        <svg viewBox="0 0 24 24"><path d="M3 20h4v-5H3zM10 20h4v-9h-4zM17 20h4V6h-4z"/></svg></button>
       <button class="sp" data-p="config" aria-selected="false" title="Configurações">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.4v2.3M12 18.3v2.3M3.4 12h2.3M18.3 12h2.3M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></svg></button>
     </nav>
@@ -61,32 +58,14 @@
       <!-- Papel de parede: só atrás da área de escrita, nunca atrás do
            cromatograma nem da casca (ADR 0010). -->
       <div class="fundoTela oculto" id="fundoTela"></div>
-      <div class="tabs" id="abas"></div>
-      <div class="crumb" id="trilha"></div>
-      <div class="editorHost" id="editorHost"></div>
       <div class="vazio" id="vazio">
         <span class="marcaGrande" aria-hidden="true">
           <img id="imgMarcaGrande" alt="">
         </span>
-        <p>Nenhum arquivo aberto.</p>
-        <p class="dim">Abra uma pasta de corrida no Explorer.</p>
+        <p>Nenhuma pasta aberta.</p>
+        <p class="dim">Abra uma pasta no Explorer para começar.</p>
       </div>
 
-      <!-- O cromatograma é uma faixa deitada embaixo do editor, não uma tela
-           inteira: montar cromatograma é parte da corrida, escrever o script é
-           o resto dela, e as duas coisas acontecem juntas. Só aparece quando há
-           um .ab1 aberto. -->
-      <div class="divh oculto" id="divCromo" role="separator" aria-orientation="horizontal"
-           title="Arraste para redimensionar (duplo clique volta ao padrão)"></div>
-      <div class="painelCromo oculto" id="painelCromo">
-        <div class="ptabs">
-          <span class="pabas" id="abasCromo"></span>
-          <span class="r">
-            <button id="btFecharCromo" title="Fechar o painel do cromatograma">&#10005;</button>
-          </span>
-        </div>
-        <div class="cromatogramaHost" id="cromatogramaHost"></div>
-      </div>
     </div>
 
     <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão
@@ -101,7 +80,6 @@
           <button id="btDocaBaixo" class="doca" title="Terminal no rodapé">&#9601;</button>
           <button id="btDocaDireita" class="doca" title="Terminal à direita">&#9621;</button>
           <button id="btDocaEsquerda" class="doca" title="Terminal à esquerda">&#9615;</button>
-          <button id="btRodar" title="Rodar o arquivo aberto (Ctrl+Enter)">&#9654;</button>
           <button id="btParar" title="Parar" disabled>&#9632;</button>
           <button id="btLimpar" title="Limpar">&#9645;</button>
           <button id="btFecharPainel" title="Fechar painel">&#10005;</button>

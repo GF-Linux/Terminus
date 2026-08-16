@@ -6,48 +6,6 @@
  * atravessam a ponte de IPC.
  */
 
-/** Uma função/classe do Biopython, já verificada contra a instalação real. */
-export interface EntradaCatalogo {
-  /** Caminho pontilhado, ex. "Bio.SeqIO.parse". */
-  path: string;
-  kind: "function" | "class" | "module" | string;
-  /** Assinatura real lida por introspecção; null quando o Python não expõe uma. */
-  signature: string | null;
-  /** Primeira linha do docstring real. */
-  doc: string;
-  /** Texto do aviso de depreciação, ou null se não houver. */
-  deprecated: string | null;
-  /** Código para inserir no editor. */
-  snippet: string;
-  /** Observação de curadoria (armadilhas, equivalente atual, etc.). */
-  note: string | null;
-}
-
-/** Um agrupamento por tarefa — o que se quer fazer, não em que módulo mora. */
-export interface TarefaCatalogo {
-  id: string;
-  title: string;
-  why: string;
-  entries: EntradaCatalogo[];
-}
-
-export interface Catalogo {
-  biopython_version: string;
-  python_version: string;
-  task_count: number;
-  entry_count: number;
-  generated_by: string;
-  tasks: TarefaCatalogo[];
-}
-
-/** Versões detectadas nesta máquina. "?" quando não foi possível detectar. */
-export interface Versoes {
-  python: string;
-  biopython: string;
-  blast: string;
-  tracy: string;
-}
-
 /** Um nó da árvore de arquivos do projeto aberto. */
 export interface NoArquivo {
   nome: string;
@@ -85,125 +43,11 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };
 
 /* ----------------------------- language server ---------------------------- */
 
-/** Um aviso do pyright. Linhas e colunas são 0-based, como no protocolo LSP. */
-export interface Diagnostico {
-  linhaInicio: number;
-  colunaInicio: number;
-  linhaFim: number;
-  colunaFim: number;
-  gravidade: "error" | "warning" | "info" | "hint";
-  mensagem: string;
-  codigo: string | null;
-}
-
-/** Diagnósticos de um arquivo, como chegam do processo principal. */
-export interface AvisoDeArquivo {
-  arquivo: string;
-  diagnosticos: Diagnostico[];
-}
-
-/** Uma edição fora do ponto do cursor. Linha e coluna 0-based, como no LSP. */
-export interface EdicaoExtra {
-  linhaInicio: number;
-  colunaInicio: number;
-  linhaFim: number;
-  colunaFim: number;
-  texto: string;
-}
-
-export interface SugestaoLsp {
-  rotulo: string;
-  detalhe: string | null;
-  tipo: string;
-  documentacao: string | null;
-  inserir: string;
-  /**
-   * O `import` que falta, quando a sugestão vem de um módulo ainda não
-   * importado. É o `additionalTextEdits` do LSP.
-   *
-   * Sem aplicar isto, aceitar `gc_fraction` escreve o nome e deixa o arquivo
-   * quebrado — o erro que a pessoa foi resolver continua na tela. O catálogo já
-   * acrescentava o import; o pyright não, e essa era a diferença que fazia a
-   * sugestão do servidor parecer que "não conversava" com o código.
-   */
-  edicoesExtras: EdicaoExtra[];
-  /** Opaco: o pyright devolve isto e pede de volta no `resolve`. */
-  dados: unknown;
-  /** Índice na lista, para pedir o `resolve` do item certo. */
-  indice: number;
-}
-
-/** Onde uma definição mora. Linha e coluna 0-based. */
-export interface LugarNoCodigo {
-  arquivo: string;
-  linha: number;
-  coluna: number;
-}
-
 /* ------------------------------- cromatograma ----------------------------- */
-
-/** Saída de `tools/ler_ab1.py`. */
-export interface Cromatograma {
-  arquivo: string;
-  amostra: string;
-  /** Qual canal DATA é qual base, tipicamente "GATC". */
-  ordem_canais: string;
-  sequencia: string;
-  qualidade: number[];
-  /** Índice de amostra onde cada base foi chamada, já reescalado. */
-  picos: number[];
-  tracos: Record<"A" | "C" | "G" | "T", number[]>;
-  n_amostras: number;
-  fator_reducao: number;
-  resumo: {
-    bases: number;
-    phred_medio: number | null;
-    phred_min: number | null;
-    phred_max: number | null;
-    bases_boas: number;
-    ambiguas: number;
-  };
-}
 
 /* ------------------------------ texto fantasma ---------------------------- */
 
-export interface ConfigFantasma {
-  endpoint: string;
-  modelo: string;
-  ligado: boolean;
-  /**
-   * Quem gera a sugestão. `deepseek` fala FIM direto com a API que o autor já
-   * usa no Twinny; `copilot` usa o servidor LSP do GitHub, que exige assinatura
-   * própria. A caixa do catálogo e a do pyright não mudam com isto.
-   */
-  motor?: "deepseek" | "copilot";
-}
-
 /* -------------------------------- trilha ---------------------------------- */
-
-/** A roupa do enunciado. O conceito é o mesmo em todas (ADR 0015). */
-export type Vestimenta = "neutro" | "sequências" | "clínica" | "campo" | "laboratório";
-
-export interface ExercicioTrilha {
-  id: string;
-  /** Assinatura que a correção vai chamar, ex. `conta(itens, alvo)`. */
-  funcao: string;
-  /** O contrato em uma frase. */
-  contrato: string;
-  /** Enunciado por vestimenta. */
-  enunciados: Record<string, string>;
-}
-
-export interface TopicoTrilha {
-  id: string;
-  titulo: string;
-  semana: number;
-  entrega: string;
-  abertura: string;
-  conceitos: string[];
-  recursos: { nome: string; url: string }[];
-  exercicios: ExercicioTrilha[];
-}
 
 /**
  * Quantas vezes o exercício foi feito, quando foi a última e em que roupas.
@@ -214,13 +58,6 @@ export interface RegistroTrilha {
   vezes: number;
   ultima: string;
   roupas: string[];
-}
-
-export interface EstadoTrilha {
-  topicos: TopicoTrilha[];
-  /** Chave `topico/exercicio` → registro das passagens. */
-  feito: Record<string, RegistroTrilha>;
-  vestimenta: Vestimenta;
 }
 
 /* ------------------------------ aparência --------------------------------- */
@@ -242,85 +79,6 @@ export interface EstadoAparencia {
 }
 
 /* ------------------------------- mascote ---------------------------------- */
-
-/** Os estados que o mascote sabe mostrar. Cada um é um quadro de sprite. */
-export type EstadoMascote = "parado" | "piscando" | "feliz" | "preocupado" | "pensando";
-
-/** Uma fala da conversa. `mascote` é o que o modelo respondeu. */
-export interface FalaMascote {
-  quem: "autor" | "mascote";
-  texto: string;
-}
-
-/** Um arquivo da memória do mascote, para a tela de auditoria (ADR 0009). */
-export interface ArquivoDeMemoria {
-  nome: string;
-  caminho: string;
-  /** "perfil", "nota" ou "diário". */
-  tipo: string;
-  bytes: number;
-  alterado: number;
-}
-
-/** O que o mascote respondeu, mais o que ele mexeu na memória ao responder. */
-export interface RespostaMascote {
-  texto: string;
-  /** Frases como "guardado no diário de 2026-08-01", para a interface avisar. */
-  memoria: string[];
-}
-
-export interface EstadoDoMascote {
-  /** Há chave configurada — a mesma do texto fantasma. */
-  temChave: boolean;
-  /** A conversa está ligada. Vem desligada. */
-  ligado: boolean;
-  endpoint: string;
-  modelo: string;
-  nome: string;
-  /** O miniMD existe e será o contexto da conversa. */
-  temContexto: boolean;
-  /** Caminho do miniMD, para a tela poder dizer o que ele lê. */
-  arquivoContexto: string;
-  /** Pasta onde moram os quadros do sprite. */
-  pastaSprite: string;
-  /** Quais quadros foram achados no disco. */
-  quadros: EstadoMascote[];
-}
-
-/** O que a tela de configurações mostra. Nunca inclui a chave. */
-export interface EstadoFantasma {
-  configurado: boolean;
-  ligado: boolean;
-  endpoint: string | null;
-  modelo: string | null;
-  /** Se `false`, a chave está em texto puro no disco — e a tela avisa. */
-  chaveiroDisponivel: boolean;
-  chaveEmTextoPuro: boolean;
-  arquivo: string;
-  /** Quem completa. Muda **o que sai da máquina**, e por isso a tela precisa
-   *  saber: o FIM manda o trecho em volta do cursor; o Copilot manda o arquivo
-   *  inteiro e, desde 04/08, as outras abas abertas. */
-  motor: "deepseek" | "copilot";
-}
-
-/**
- * Uma correção proposta pelo Copilot — o "next edit" (ADR 0025).
- *
- * **O que a separa do texto fantasma:** o fantasma só sabe *inserir* no cursor;
- * isto aqui *substitui* um trecho que já está escrito, e por isso carrega um
- * intervalo em vez de uma posição. Foi o que faltou no caso de 08/08, em que
- * `dicionario(i, 0)` precisava virar `dicionario.get(i, 0)`: nenhuma superfície
- * da Bancada era capaz de trocar caractere já digitado.
- *
- * Os deslocamentos são **absolutos no documento que foi mandado**, não
- * linha/coluna: a conversão do formato do LSP acontece no processo principal,
- * para a interface não precisar conhecer o protocolo.
- */
-export interface EdicaoSugerida {
-  de: number;
-  ate: number;
-  texto: string;
-}
 
 /**
  * Um plugin do Neovim, como o lazy.nvim o descreve (ADR 0025).

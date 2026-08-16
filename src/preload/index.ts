@@ -1,29 +1,12 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
-  ArquivoDeMemoria,
-  AvisoDeArquivo,
-  Catalogo,
-  Cromatograma,
   EstadoAparencia,
-  EstadoDoMascote,
-  EstadoFantasma,
-  EdicaoExtra,
-  EdicaoSugerida,
-  EstadoMascote,
-  EstadoTrilha,
-  ExercicioTrilha,
   EventoExecucao,
-  FalaMascote,
-  LugarNoCodigo,
   NoArquivo,
   PluginNvim,
   ProjetoAberto,
   RespostaComando,
-  RespostaMascote,
   Resultado,
-  Vestimenta,
-  SugestaoLsp,
-  Versoes,
 } from "../shared/tipos.js";
 
 /**
@@ -53,9 +36,6 @@ import type {
  * comando na tela, o botão que executa é uma decisão nova, não um detalhe.
  */
 const api = {
-  catalogo: (): Promise<Resultado<Catalogo>> => ipcRenderer.invoke("catalogo:carregar"),
-  versoes: (): Promise<Resultado<Versoes>> => ipcRenderer.invoke("ambiente:versoes"),
-
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:escolher"),
   abrirProjeto: (raiz: string): Promise<Resultado<ProjetoAberto>> =>
@@ -89,8 +69,6 @@ const api = {
   excluir: (alvo: string): Promise<Resultado<boolean>> =>
     ipcRenderer.invoke("caminho:excluir", alvo),
 
-  rodar: (arquivo: string, extras: string[] = []): void =>
-    ipcRenderer.send("exec:rodar", arquivo, extras),
   parar: (): void => ipcRenderer.send("exec:parar"),
   rodando: (): Promise<boolean> => ipcRenderer.invoke("exec:rodando"),
 
@@ -129,123 +107,6 @@ const api = {
     },
   },
 
-  copilot: {
-    /** Se o Copilot esta autenticado, e com qual conta. */
-    estado: (): Promise<Resultado<{ entrou: boolean; usuario: string | null }>> =>
-      ipcRenderer.invoke("copilot:estado"),
-  },
-  lsp: {
-    abrir: (arquivo: string, texto: string): void => ipcRenderer.send("lsp:abrir", arquivo, texto),
-    mudar: (arquivo: string, versao: number, texto: string): void =>
-      ipcRenderer.send("lsp:mudar", arquivo, versao, texto),
-    fechar: (arquivo: string): void => ipcRenderer.send("lsp:fechar", arquivo),
-    /** Qual aba está na frente — `null` quando não há nenhuma, ou quando a que
-     *  está na frente não é Python. Separado do `abrir` porque trocar de aba não
-     *  abre nada, e era exatamente essa distinção que faltava. */
-    focar: (arquivo: string | null): void => ipcRenderer.send("lsp:focar", arquivo),
-    completar: (a: string, l: number, c: number): Promise<Resultado<SugestaoLsp[]>> =>
-      ipcRenderer.invoke("lsp:completar", a, l, c),
-    /** O `import` que falta para a sugestão de índice `i`, perguntado na aceitação. */
-    resolver: (i: number): Promise<Resultado<EdicaoExtra[]>> =>
-      ipcRenderer.invoke("lsp:resolver", i),
-    hover: (a: string, l: number, c: number): Promise<Resultado<string | null>> =>
-      ipcRenderer.invoke("lsp:hover", a, l, c),
-    definicao: (a: string, l: number, c: number): Promise<Resultado<LugarNoCodigo | null>> =>
-      ipcRenderer.invoke("lsp:definicao", a, l, c),
-    aoDiagnosticar: (ouvinte: (a: AvisoDeArquivo) => void): void => {
-      ipcRenderer.on("lsp:diagnosticos", (_, aviso: AvisoDeArquivo) => ouvinte(aviso));
-    },
-    aoFalhar: (ouvinte: (motivo: string) => void): void => {
-      ipcRenderer.on("lsp:falhou", (_, motivo: string) => ouvinte(motivo));
-    },
-  },
-
-  /** Lê um .ab1 e devolve os traços para o cromatograma. */
-  cromatograma: (arquivo: string): Promise<Resultado<Cromatograma>> =>
-    ipcRenderer.invoke("cromatograma:ler", arquivo),
-
-  fantasma: {
-    estado: (): Promise<Resultado<EstadoFantasma>> => ipcRenderer.invoke("fantasma:estado"),
-    ligar: (ligado: boolean): Promise<Resultado<EstadoFantasma>> =>
-      ipcRenderer.invoke("fantasma:ligar", ligado),
-    importarDoTwinny: (): Promise<Resultado<EstadoFantasma>> =>
-      ipcRenderer.invoke("fantasma:importar"),
-    esquecer: (): Promise<Resultado<EstadoFantasma>> => ipcRenderer.invoke("fantasma:esquecer"),
-    sugerir: (texto: string, cursor: number): Promise<Resultado<string | null>> =>
-      ipcRenderer.invoke("fantasma:sugerir", texto, cursor),
-    cancelar: (): void => ipcRenderer.send("fantasma:cancelar"),
-    /**
-     * A correção do que já está escrito (ADR 0025). Devolve **intervalos a
-     * substituir**, e não texto a inserir — é a única coisa nesta ponte capaz
-     * de trocar caractere que a pessoa já digitou. Por isso ela chega como
-     * proposta na tela, e só vira código quando alguém aperta a tecla.
-     */
-    corrigir: (texto: string, cursor: number): Promise<Resultado<EdicaoSugerida[]>> =>
-      ipcRenderer.invoke("fantasma:corrigir", texto, cursor),
-    edicaoAceita: (): void => ipcRenderer.send("fantasma:edicaoAceita"),
-    edicaoRecusada: (): void => ipcRenderer.send("fantasma:edicaoRecusada"),
-  },
-
-  /**
-   * O mascote (ADR 0008). Note o que **não** está aqui: nada que leve arquivo,
-   * caminho ou código para a conversa. A interface manda as falas e recebe a
-   * resposta; o miniMD que serve de contexto é lido no processo principal e
-   * nunca passa por esta ponte.
-   */
-  mascote: {
-    estado: (): Promise<Resultado<EstadoDoMascote>> => ipcRenderer.invoke("mascote:estado"),
-    quadros: (): Promise<Resultado<Partial<Record<EstadoMascote, string>>>> =>
-      ipcRenderer.invoke("mascote:quadros"),
-    ligar: (ligado: boolean): Promise<Resultado<EstadoDoMascote>> =>
-      ipcRenderer.invoke("mascote:ligar", ligado),
-    nomear: (nome: string): Promise<Resultado<EstadoDoMascote>> =>
-      ipcRenderer.invoke("mascote:nomear", nome),
-    conversar: (falas: FalaMascote[]): Promise<Resultado<RespostaMascote>> =>
-      ipcRenderer.invoke("mascote:conversar", falas),
-    cancelar: (): void => ipcRenderer.send("mascote:cancelar"),
-    /** A memória dela: listar para auditar, apagar o que não deveria estar lá. */
-    memoria: (): Promise<Resultado<{ pasta: string; arquivos: ArquivoDeMemoria[] }>> =>
-      ipcRenderer.invoke("memoria:listar"),
-    esquecerArquivo: (caminho: string): Promise<Resultado<void>> =>
-      ipcRenderer.invoke("memoria:apagar", caminho),
-    /** Fecha o laço: destila a conversa no perfil. */
-    destilar: (falas: FalaMascote[]): Promise<Resultado<boolean>> =>
-      ipcRenderer.invoke("memoria:destilar", falas),
-  },
-
-  /** A trilha de estudo (ADR 0015). */
-  trilha: {
-    ler: (fase?: string): Promise<Resultado<EstadoTrilha>> =>
-      ipcRenderer.invoke("trilha:ler", fase),
-    vestimenta: (v: Vestimenta): Promise<Resultado<EstadoTrilha>> =>
-      ipcRenderer.invoke("trilha:vestimenta", v),
-    marcar: (chave: string, vestimenta: string): Promise<Resultado<EstadoTrilha>> =>
-      ipcRenderer.invoke("trilha:marcar", chave, vestimenta),
-    esquecer: (chave: string): Promise<Resultado<EstadoTrilha>> =>
-      ipcRenderer.invoke("trilha:esquecer", chave),
-    refazer: (entrada: {
-      raizProjeto: string;
-      topico: string;
-      exercicio: ExercicioTrilha;
-      vestimenta: string;
-      enunciado: string;
-    }): Promise<Resultado<{ caminho: string; novo: boolean; guardado: string | null }>> =>
-      ipcRenderer.invoke("trilha:refazer", entrada),
-    praticar: (entrada: {
-      raizProjeto: string;
-      topico: string;
-      exercicio: ExercicioTrilha;
-      vestimenta: string;
-      enunciado: string;
-    }): Promise<Resultado<{ caminho: string; novo: boolean }>> =>
-      ipcRenderer.invoke("trilha:praticar", entrada),
-    verificar: (
-      exercicio: string,
-      arquivo: string,
-    ): Promise<Resultado<{ verificador: string; teste: string; arquivo: string }>> =>
-      ipcRenderer.invoke("trilha:verificar", exercicio, arquivo),
-  },
-
   /** Wallpaper e tema (ADR 0010). A imagem chega em `data:` URL. */
   aparencia: {
     estado: (): Promise<Resultado<EstadoAparencia>> => ipcRenderer.invoke("aparencia:estado"),
@@ -266,9 +127,10 @@ const api = {
     iniciar: (cwd: string, cols: number, rows: number): void =>
       ipcRenderer.send("neovim:iniciar", cwd, cols, rows),
     enviar: (dados: string): void => ipcRenderer.send("neovim:enviar", dados),
-    /** Abre um arquivo no Neovim e entra em modo de escrita (por RPC). */
-    abrir: (caminho: string): Promise<Resultado<void>> =>
-      ipcRenderer.invoke("neovim:abrir", caminho),
+    /** Abre um arquivo no Neovim e entra em modo de escrita (por RPC). Com
+     *  `linha`, o cursor já para no lugar — é o traceback clicável. */
+    abrir: (caminho: string, linha?: number): Promise<Resultado<void>> =>
+      ipcRenderer.invoke("neovim:abrir", caminho, linha),
     /** Aponta o diretório de trabalho do Neovim para a pasta dada. */
     cd: (pasta: string): void => ipcRenderer.send("neovim:cd", pasta),
     /** Os plugins instalados, perguntados ao lazy.nvim — alimenta o painel lateral. */
@@ -299,6 +161,6 @@ const api = {
   },
 } as const;
 
-export type ApiBancada = typeof api;
+export type ApiTerminus = typeof api;
 
-contextBridge.exposeInMainWorld("bancada", api);
+contextBridge.exposeInMainWorld("terminus", api);

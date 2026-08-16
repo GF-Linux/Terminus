@@ -91,11 +91,17 @@ export async function refazerNeovim(): Promise<void> {
  * `startinsert` é o que cumpre o pedido: abriu um arquivo, já está escrevendo, e
  * só sai disso quem apertar Esc.
  */
-export async function abrirNoNeovim(caminho: string): Promise<void> {
+export async function abrirNoNeovim(caminho: string, linha?: number): Promise<void> {
   const c = await obter();
   if (!c) throw new Error("Neovim não respondeu ao canal de controle.");
   const escapado = (await c.call("fnameescape", [caminho])) as string;
   await c.command(`edit ${escapado}`);
+  // A linha vem do quadro de traceback clicado no terminal: abrir o arquivo e
+  // deixar a pessoa procurando a linha do erro seria metade do favor.
+  if (typeof linha === "number" && Number.isInteger(linha) && linha > 0) {
+    await c.command(`${linha}`);
+    await c.command("normal! zz");
+  }
   await c.command("startinsert");
 }
 

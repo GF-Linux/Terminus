@@ -95,12 +95,12 @@ export async function lerArquivo(arquivo: string): Promise<string> {
   // fora, quem escolhe o nome não é quem abre.
   const info = await fs.stat(arquivo);
   if (!info.isFile()) {
-    throw new Error(`${path.basename(arquivo)} não é um arquivo comum — a Bancada não abre.`);
+    throw new Error(`${path.basename(arquivo)} não é um arquivo comum — o Terminus não abre.`);
   }
   if (info.size > TETO_LEITURA) {
     const mb = (info.size / 1024 / 1024).toFixed(1);
     throw new Error(
-      `${path.basename(arquivo)} tem ${mb} MB e passa do teto de 32 MB — a Bancada não abre.`,
+      `${path.basename(arquivo)} tem ${mb} MB e passa do teto de 32 MB — o Terminus não abre.`,
     );
   }
   return fs.readFile(arquivo, "utf8");

@@ -4,7 +4,7 @@ import { FundoAnimado, type Junta } from "./fundo.js";
 /**
  * Wallpaper e tema (ADR 0010).
  *
- * A Bancada tem uma regra dura desde a ADR 0005: a casca é monocromática **para
+ * O Terminus tem uma regra dura desde a ADR 0005: a casca é monocromática **para
  * que** as quatro bases do cromatograma sejam a cor mais forte da tela. Papel de
  * parede é exatamente o tipo de coisa que quebra isso — então ele entra com três
  * limites, e os três são a decisão, não detalhe:
@@ -77,7 +77,7 @@ export class Aparencia {
 
   constructor(
     private readonly fundo: HTMLElement,
-    private readonly api: typeof window.bancada,
+    private readonly api: typeof window.terminus,
     /** Avisa a tela de Configurações quando se descobre que a imagem é animada. */
     private readonly aoMudar?: () => void,
   ) {
