@@ -294,6 +294,25 @@ button:disabled{opacity:.35; cursor:default}
 
 .editorHost{flex:1; min-height:0; overflow:hidden; background:var(--bg); user-select:text}
 .editorHost:not(.ativo){display:none}
+
+/* Motor Neovim (ADR 0025): o Neovim ocupa a área de edição, e as peças da casca
+   que competem por ela — abas, trilha, tela vazia e o host do CodeMirror — somem.
+   A limpeza real desses módulos é a Fatia 3; por ora só se escondem. */
+.motor-neovim #abas,
+.motor-neovim #trilha,
+.motor-neovim #vazio,
+.motor-neovim .editorHost{display:none !important}
+/* O papel de parede Jared-Linux atrás do editor: o mesmo `fundo.png` do Konsole,
+   já esmaecido e dissolvido para a esquerda no próprio arquivo. O xterm roda com
+   fundo transparente (ver neovim.ts), então a figura aparece por trás do texto —
+   resolução de tela, não de grade. `background-color` fica embaixo para o
+   contraste não depender da imagem carregar. */
+#neovimHost{flex:1; min-height:0; overflow:hidden;
+  background-color:var(--bg);
+  background-image:url("../../../media/fundo-jared.png");
+  background-size:cover; background-position:center right; background-repeat:no-repeat}
+#neovimHost .xterm, #neovimHost .xterm-viewport{background:transparent !important}
+#neovimHost .xterm{height:100%; padding:4px 0 4px 8px}
 .vazio{flex:1; display:grid; place-content:center; gap:6px; background:var(--bg); text-align:center;
   font-size:13px; color:var(--fg60)}
 .vazio.oculto{display:none}
@@ -319,6 +338,22 @@ button:disabled{opacity:.35; cursor:default}
 .painelTerm{flex:none; width:400px; min-width:220px; background:var(--chrome);
   display:flex; flex-direction:column; overflow:hidden}
 .painelTerm.oculto{display:none}
+
+/* Doca do terminal (ADR 0025): com o cromatograma fora, o terminal deixou de
+   ser preso à direita. O #centro troca a direção do flex conforme a doca, e o
+   painel troca entre medir largura (nas laterais) e altura (no rodapé). */
+.centro{flex:1; min-width:0; min-height:0; display:flex; overflow:hidden}
+.centro > .stage{flex:1; min-width:0; min-height:0}
+.centro[data-doca="direita"]{flex-direction:row}
+.centro[data-doca="esquerda"]{flex-direction:row-reverse}
+.centro[data-doca="baixo"]{flex-direction:column}
+.centro[data-doca="baixo"] > .painelTerm{width:auto; min-width:0; height:320px; min-height:120px}
+/* o divisor do terminal vira horizontal quando a doca é o rodapé */
+.centro[data-doca="baixo"] > #divTerm{width:auto; height:5px; cursor:ns-resize}
+.centro[data-doca="baixo"] > #divTerm::after{left:0; right:0; top:2px; bottom:auto; width:auto; height:1px}
+/* botões de doca no cabeçalho do painel */
+.ptabs .doca{font-size:13px; line-height:1}
+.ptabs .doca.on{color:var(--fg)}
 
 /* Alvo de arraste de 5px com a aparência de uma borda de 1px: a linha fica na
    cor de sempre e o resto é área de pegada, senão acertar 1px no trackpad do
@@ -373,6 +408,25 @@ button:disabled{opacity:.35; cursor:default}
 .sbar .r{margin-left:auto; display:flex; gap:16px}
 .sbar button{font-size:11px; color:var(--fg60)}
 .sbar button:hover, .sbar button.on{color:var(--fg)}
+/* A marca do dono na barra de estado (ADR 0025). Abre no navegador do sistema —
+   nenhum link abre dentro da janela do aplicativo. */
+.sbar .gh{display:flex; align-items:center; gap:6px; color:var(--fg60);
+  text-decoration:none; font-size:11px; cursor:pointer}
+.sbar .gh:hover{color:var(--fg)}
+.sbar .gh svg{width:13px; height:13px; fill:currentColor; stroke:none}
+
+/* Painel de plugins do Neovim (ADR 0025) — o que era "Extensions". */
+.buscaPlugin{padding:8px 12px 6px}
+.buscaPlugin input{width:100%; background:var(--bg); border:1px solid var(--line);
+  color:var(--fg); font:inherit; font-size:12px; padding:4px 8px; outline:none; border-radius:2px}
+.buscaPlugin input:focus{border-color:var(--fg36)}
+.contaPlugin{padding:2px 12px 8px; font-size:10px; color:var(--fg36);
+  font-family:var(--mono); letter-spacing:.04em}
+.plugin{display:flex; align-items:baseline; gap:8px; padding:3px 12px; cursor:pointer}
+.plugin:hover{background:var(--hover)}
+.plugin .pt2{font-size:12px; color:var(--fg74)}
+.plugin.on .pt2{color:var(--fg)}
+.plugin .dim{margin-left:auto; font-size:10px; color:var(--fg36); font-family:var(--mono)}
 
 /* xterm: fundo transparente para valer o fundo do painel. A barra dele sai pela
    regra geral lá de cima, como todas as outras. */

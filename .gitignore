@@ -28,3 +28,6 @@ tools/comparativo-fantasma/.fronteira-entrada.ts
 tools/comparativo-fantasma/.recados-empacotado.mjs
 tools/comparativo-fantasma/.copilot.bloco.mjs
 tools/comparativo-fantasma/ws/analise.py
+
+# configuração local do Claude Code (por máquina, não do projeto)
+.claude/

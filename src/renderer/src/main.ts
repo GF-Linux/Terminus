@@ -1,9 +1,9 @@
 import type {
-  Catalogo,
   EstadoTrilha,
   TopicoTrilha,
   Vestimenta,
   NoArquivo,
+  PluginNvim,
   ProjetoAberto,
   Resultado,
 } from "../../shared/tipos.js";
@@ -11,6 +11,7 @@ import { definirCatalogo } from "./completar.js";
 import { VistaCromatograma } from "./cromatograma.js";
 import { Aparencia, TEMAS } from "./aparencia.js";
 import { Editor } from "./editor.js";
+import { VistaNeovim } from "./neovim.js";
 import { Mascote } from "./mascote.js";
 import { Paleta, type ItemPaleta } from "./paleta.js";
 import {
@@ -21,13 +22,6 @@ import {
   limparArquivo,
 } from "./servidor.js";
 import { TerminalSaida } from "./terminal.js";
-
-/* -------------------------------------------------------------------------
-   P1.3 — o painel da Bancada segue pausado a pedido do autor (26/07), enquanto
-   a estrutura é definida. O catálogo já está carregado e verificado; o que falta
-   é decidir a forma da navegação, não os dados.
-   ------------------------------------------------------------------------- */
-const BANCADA_PAUSADA = true;
 
 const api = window.bancada;
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -84,7 +78,6 @@ interface AbaAb1 {
 const estaSuja = (a: Aba): boolean => a.conteudo !== a.gravado;
 
 let projeto: ProjetoAberto | null = null;
-let catalogo: Catalogo | null = null;
 const abas: Aba[] = [];
 let ativa: number = -1;
 const ab1s: AbaAb1[] = [];
@@ -231,6 +224,102 @@ function ligarDivisor(opcoes: {
   });
 }
 
+/* ============================ doca do terminal ============================ */
+
+/**
+ * A posição do terminal (ADR 0025). Com o cromatograma fora, o terminal deixou
+ * de morar preso à direita: doca no rodapé, à direita ou à esquerda, e a medida
+ * (largura nas laterais, altura no rodapé) é arrastável e lembrada por doca.
+ */
+type Doca = "direita" | "esquerda" | "baixo";
+let doca: Doca = ((): Doca => {
+  const g = localStorage.getItem("bancada.doca");
+  return g === "esquerda" || g === "baixo" ? g : "direita";
+})();
+
+const chaveDaMedida = (d: Doca): string =>
+  d === "baixo" ? "bancada.terminalAltura" : "bancada.terminalLargura";
+const medidaPadrao = (d: Doca): number => (d === "baixo" ? 320 : 400);
+const medidaMinima = (d: Doca): number => (d === "baixo" ? 120 : 220);
+const tetoDaMedida = (d: Doca): number =>
+  d === "baixo" ? $("centro").clientHeight - 160 : window.innerWidth - 480;
+
+/** Aplica a medida do painel no eixo da doca atual, limpando a do outro eixo —
+ *  senão uma largura lembrada sobreviveria como largura no modo rodapé. */
+function aplicarMedidaTerminal(valor: number): void {
+  const painel = $("painel");
+  const prop = doca === "baixo" ? "height" : "width";
+  const outra = doca === "baixo" ? "width" : "height";
+  const min = medidaMinima(doca);
+  const teto = Math.max(min, tetoDaMedida(doca));
+  painel.style[outra] = "";
+  painel.style[prop] = `${Math.round(Math.min(teto, Math.max(min, valor)))}px`;
+  terminal.reajustar();
+}
+
+function definirDoca(nova: Doca): void {
+  doca = nova;
+  $("centro").dataset["doca"] = nova;
+  localStorage.setItem("bancada.doca", nova);
+  const marcas: [string, Doca][] = [
+    ["btDocaBaixo", "baixo"],
+    ["btDocaDireita", "direita"],
+    ["btDocaEsquerda", "esquerda"],
+  ];
+  for (const [id, d] of marcas) $(id).classList.toggle("on", d === nova);
+  const guardado = Number(localStorage.getItem(chaveDaMedida(nova)));
+  aplicarMedidaTerminal(Number.isFinite(guardado) && guardado > 0 ? guardado : medidaPadrao(nova));
+}
+
+/**
+ * O divisor do terminal, ciente da doca.
+ *
+ * Não usa o `ligarDivisor` genérico porque o eixo muda com a doca (largura nas
+ * laterais, altura no rodapé) e o sinal do arraste também: à direita a medida
+ * cresce indo para a esquerda, à esquerda o contrário, no rodapé indo para cima.
+ * Ler `doca` no momento do arraste mantém um divisor só para as três posições.
+ */
+function ligarDivisorTerminal(): void {
+  const divisor = $("divTerm");
+  divisor.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    divisor.setPointerCapture(ev.pointerId);
+    divisor.classList.add("arrastando");
+    document.body.style.cursor = doca === "baixo" ? "ns-resize" : "ew-resize";
+
+    const mover = (e: PointerEvent): void => {
+      const r = $("painel").getBoundingClientRect();
+      const valor =
+        doca === "baixo"
+          ? r.bottom - e.clientY
+          : doca === "esquerda"
+            ? e.clientX - r.left
+            : r.right - e.clientX;
+      aplicarMedidaTerminal(valor);
+    };
+    const soltar = (): void => {
+      divisor.classList.remove("arrastando");
+      document.body.style.cursor = "";
+      divisor.removeEventListener("pointermove", mover);
+      divisor.removeEventListener("pointerup", soltar);
+      divisor.removeEventListener("pointercancel", soltar);
+      const prop = doca === "baixo" ? "height" : "width";
+      localStorage.setItem(
+        chaveDaMedida(doca),
+        String(parseFloat($("painel").style[prop]) || medidaPadrao(doca)),
+      );
+    };
+    divisor.addEventListener("pointermove", mover);
+    divisor.addEventListener("pointerup", soltar);
+    divisor.addEventListener("pointercancel", soltar);
+  });
+
+  divisor.addEventListener("dblclick", () => {
+    aplicarMedidaTerminal(medidaPadrao(doca));
+    localStorage.setItem(chaveDaMedida(doca), String(medidaPadrao(doca)));
+  });
+}
+
 /* ============================ lateral ============================ */
 
 /**
@@ -270,24 +359,42 @@ const editor = new Editor({
       sincronizarComServidor(aba);
     }
   },
-  aoMoverCursor: ({ linha, coluna }) => {
-    $("posicao").textContent = `Ln ${linha}, Col ${coluna}`;
+  aoMoverCursor: () => {
+    // Linha/coluna saiu da barra de estado (ADR 0025): quem diz onde o cursor
+    // está é a statusline do Neovim, que é o motor.
   },
   aoSalvar: () => void salvar(),
   aoRodar: () => void rodar(),
   aoImportar: (linhas) => avisar(`import acrescentado: ${linhas.join(" · ")}`),
 });
 
-/** Aviso passageiro na barra de estado, para edições que acontecem fora da
- *  vista — hoje só o import automático. */
-let avisoPendente: number | undefined;
+/* ===================== motor Neovim (ADR 0025) =====================
+   Fatia 1: o Neovim é o editor visível. O CodeMirror acima continua existindo
+   por baixo — as abas ainda o alimentam — mas fica escondido pela classe
+   `motor-neovim` na casca; a limpeza dele é a Fatia 3. Aqui só montamos o Neovim
+   sobre a área de edição e mandamos o clique do Explorer abrir lá. A integração
+   fina (Ctrl+S da casca → :w, cursor do Neovim → barra de estado) é a Fatia 2,
+   pelo socket RPC. */
+const MOTOR_NEOVIM = true;
+let vistaNeovim: VistaNeovim | null = null;
+if (MOTOR_NEOVIM) {
+  document.body.classList.add("motor-neovim");
+  const hostNeovim = document.createElement("div");
+  hostNeovim.id = "neovimHost";
+  $("stage").appendChild(hostNeovim);
+  vistaNeovim = new VistaNeovim(hostNeovim, "");
+}
+
+/**
+ * Aviso de algo que aconteceu fora da vista.
+ *
+ * A barra de estado perdeu o campo de recado (ADR 0025), então o aviso vai para
+ * o terminal — visível se o painel estiver aberto, e sem sumir sozinho depois de
+ * cinco segundos. Nada é engolido em silêncio, que era o risco de simplesmente
+ * apagar a função.
+ */
 function avisar(texto: string): void {
-  const alvo = $("estadoExec");
-  alvo.textContent = texto;
-  window.clearTimeout(avisoPendente);
-  avisoPendente = window.setTimeout(() => {
-    alvo.textContent = rodando ? "rodando…" : "pronto";
-  }, 5000);
+  terminal.nota(texto);
 }
 
 /* ============================ aparência ============================ */
@@ -463,14 +570,12 @@ function definirLateral(painel: string): void {
   $("sideT").textContent =
     {
       explorer: "Explorer",
-      extensions: "Extensions",
-      bancada: "Bancada",
+      extensions: "Plugins",
       trilha: "Trilha",
       config: "Configurações",
     }[painel] ?? painel;
 
   const acoes = $("sideAcoes");
-  const corpo = $("lateral");
   acoes.innerHTML = "";
 
   if (painel === "explorer") {
@@ -478,33 +583,92 @@ function definirLateral(painel: string): void {
     // quem sabe se há pasta aberta — e é chamada de novo quando ela abre.
     desenharArvore();
   } else if (painel === "extensions") {
-    // Sem casca do VSCodium não há marketplace (ADR 0003). O ícone ficou porque
-    // o autor pediu na spec P1.3; o painel diz a verdade sobre o que há atrás.
-    corpo.innerHTML = `<div class="aviso"><b>Sem marketplace</b>
-      A Bancada não usa a casca do VSCodium, então não há extensões de terceiros
-      para instalar. O que seria extensão aqui é o próprio catálogo do Biopython,
-      que vive na barra de atividades como item de primeira classe.</div>`;
+    // O antigo "Extensions" (que só sabia dizer que não havia marketplace) virou
+    // o navegador de plugins do Neovim (ADR 0025): o motor tem plugin demais para
+    // se descobrir de cor, e `:Lazy` é uma tela dentro do editor. Aqui a lista
+    // fica na lateral, filtrável e clicável, como numa IDE.
+    void desenharPlugins();
   } else if (painel === "trilha") {
     void desenharTrilha();
-  } else if (painel === "bancada") {
-    if (BANCADA_PAUSADA) {
-      const c = catalogo;
-      corpo.innerHTML = `<div class="aviso"><b>Pausado</b>
-        A estrutura deste painel está em definição.<br><br>
-        ${
-          c
-            ? `O catálogo já está carregado: <code>${c.task_count}</code> tarefas e
-               <code>${c.entry_count}</code> funções verificadas contra o Biopython
-               <code>${esc(c.biopython_version)}</code>.`
-            : `<span style="color:var(--T)">O catálogo não carregou.</span>
-               Rode <code>python3 tools/build_catalog.py</code>.`
-        }</div>`;
-    } else {
-      desenharCatalogo();
-    }
   } else {
     void desenharConfiguracoes();
   }
+}
+
+/* --------------------------- painel de plugins --------------------------- */
+
+/** Os plugins que o lazy.nvim conhece, para não ter de decorar o que existe. */
+let pluginsCache: PluginNvim[] | null = null;
+
+async function desenharPlugins(filtro = ""): Promise<void> {
+  const corpo = $("lateral");
+
+  if (!pluginsCache) {
+    corpo.innerHTML = `<div class="aviso">perguntando ao Neovim…</div>`;
+    const r = await api.neovim.plugins();
+    if (!r.ok) {
+      corpo.innerHTML = `<div class="aviso"><b>Não consegui listar</b>${esc(r.erro)}</div>`;
+      return;
+    }
+    pluginsCache = r.valor;
+  }
+
+  const alvo = filtro.trim().toLowerCase();
+  const lista = alvo ? pluginsCache.filter((p) => p.nome.toLowerCase().includes(alvo)) : pluginsCache;
+  const carregados = pluginsCache.filter((p) => p.carregado).length;
+
+  corpo.innerHTML =
+    `<form class="buscaPlugin" autocomplete="off">
+       <input id="filtroPlugin" type="text" spellcheck="false" placeholder="filtrar plugins"
+              value="${esc(filtro)}" aria-label="Filtrar plugins" />
+     </form>
+     <div class="contaPlugin">${lista.length} de ${pluginsCache.length} · ${carregados} carregados</div>` +
+    lista
+      .map(
+        (p) =>
+          `<div class="plugin${p.carregado ? " on" : ""}" data-plugin="${esc(p.dir)}"
+                title="${esc(p.url || p.dir)}">
+             <span class="pt2">${esc(p.nome)}</span>
+             <span class="dim">${p.carregado ? "carregado" : "sob demanda"}</span>
+           </div>`,
+      )
+      .join("");
+
+  // Filtrar não relista: o cache é a resposta do Neovim, e refazer a pergunta a
+  // cada tecla faria a lateral piscar.
+  const campo = document.getElementById("filtroPlugin") as HTMLInputElement | null;
+  if (campo) {
+    campo.addEventListener("input", () => {
+      const pos = campo.selectionStart;
+      void desenharPlugins(campo.value).then(() => {
+        const novo = document.getElementById("filtroPlugin") as HTMLInputElement | null;
+        novo?.focus();
+        if (pos !== null) novo?.setSelectionRange(pos, pos);
+      });
+    });
+  }
+
+  // Clicar abre a pasta do plugin no Explorer: é onde estão o README e o código,
+  // que é o que se quer ver depois de achar o nome.
+  for (const el of corpo.querySelectorAll<HTMLElement>(".plugin")) {
+    el.addEventListener("click", () => {
+      const dir = el.dataset["plugin"];
+      if (dir) void abrirPastaDoPlugin(dir);
+    });
+  }
+}
+
+/** Abre a pasta de um plugin como projeto — o README e o código ficam à mão. */
+async function abrirPastaDoPlugin(dir: string): Promise<void> {
+  const r = await api.entrarNaPasta(dir);
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
+  await assumirProjeto(r.valor);
+  painelLateral = "explorer";
+  definirLateral("explorer");
 }
 
 /* ------------------------- painel de configurações ------------------------ */
@@ -1105,21 +1269,6 @@ async function desenharConfigMascote(): Promise<void> {
   });
 }
 
-/** O navegador de catálogo, preservado atrás de BANCADA_PAUSADA. */
-function desenharCatalogo(): void {
-  const c = catalogo;
-  if (!c) return;
-  $("lateral").innerHTML = c.tasks
-    .map(
-      (t) =>
-        `<button class="row" data-tarefa="${esc(t.id)}"><span class="ch">&#9656;</span>
-         <span class="nome">${esc(t.title)}</span>
-         <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg36)">${t.entries.length}</span>
-        </button>`,
-    )
-    .join("");
-}
-
 function desenharArvore(): void {
   // Só pinta se o Explorer for o painel visível. Sem isto, qualquer coisa que
   // abrisse arquivo — o traceback clicável, o Ctrl+P, o "praticar" da trilha —
@@ -1610,7 +1759,7 @@ function desenharAbas(): void {
     : "";
   $("tituloDoc").textContent = a
     ? `${a.nome}${estaSuja(a) ? " •" : ""}${projeto ? ` — ${projeto.nome}` : ""}`
-    : "Bancada";
+    : "Terminus";
   $("editorHost").classList.toggle("ativo", ativa >= 0);
   $("vazio").classList.toggle("oculto", ativa >= 0);
 }
@@ -1618,6 +1767,20 @@ function desenharAbas(): void {
 async function abrirArquivo(caminho: string): Promise<void> {
   // Antes de olhar as abas do editor: `.ab1` nunca abre lá desde a ADR 0006.
   if (EXT_CROMATOGRAMA.test(caminho)) return abrirCromatograma(caminho);
+
+  // ADR 0025: o motor é o Neovim. Abrir arquivo = pedir ao Neovim `edit` +
+  // `startinsert` por RPC (Fatia 2), então o clique já deixa a pessoa escrevendo.
+  // Caminho absoluto, então o `cd` da pasta não interfere.
+  if (MOTOR_NEOVIM && vistaNeovim) {
+    const r = await api.neovim.abrir(caminho);
+    if (!r.ok) {
+      terminal.erro(`${r.erro}\r\n`);
+      abrirPainel();
+    } else {
+      vistaNeovim.focar();
+    }
+    return;
+  }
 
   const jaAberta = abas.findIndex((a) => a.caminho === caminho);
   if (jaAberta >= 0) {
@@ -1718,7 +1881,6 @@ function definirRodando(v: boolean): void {
   rodando = v;
   ($("btRodar") as HTMLButtonElement).disabled = v;
   ($("btParar") as HTMLButtonElement).disabled = !v;
-  $("estadoExec").textContent = v ? "rodando…" : "pronto";
   // A linha de comando apaga em vez de desabilitar: desabilitada ela perderia o
   // foco, e com ele o Ctrl+C que interrompe o que está rodando.
   $("linhaCmd").classList.toggle("ocupada", v);
@@ -2071,9 +2233,14 @@ $("btParar").addEventListener("click", () => api.parar());
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
 $("btPainel").addEventListener("click", () => alternarPainel());
-$("btMascote").addEventListener("click", () => {
-  mascote.alternar();
-  $("btMascote").classList.toggle("on", mascote.estaVisivel());
+// O botão do mascote saiu da barra de estado (ADR 0025). A Fern continua no
+// código, sem porta na casca — o destino dela é decisão em aberto.
+
+// A marca do dono, à direita da barra: abre no navegador do sistema, porque o
+// `setWindowOpenHandler` da janela recusa abrir link aqui dentro.
+$("linkGithub").addEventListener("click", (ev) => {
+  ev.preventDefault();
+  window.open(`https://github.com/${$("nomeGithub").textContent?.trim() ?? ""}`, "_blank");
 });
 
 // Janela menor não pode deixar o mascote fora da tela.
@@ -2185,16 +2352,13 @@ async function iniciar(): Promise<void> {
   // Os dois painéis da ADR 0006. O teto deixa sempre um pedaço utilizável de
   // editor: um painel que pode engolir a tela inteira recria o problema que
   // esta mudança veio resolver.
-  ligarDivisor({
-    divisor: $("divTerm"),
-    painel: $("painel"),
-    eixo: "largura",
-    padrao: 400,
-    min: 220,
-    max: () => window.innerWidth - 480,
-    chave: "bancada.larguraTerminal",
-    aoMudar: () => terminal.reajustar(),
-  });
+  // O divisor do terminal é ciente da doca (ADR 0025); os botões do cabeçalho
+  // trocam a posição, e a doca salva é aplicada agora.
+  ligarDivisorTerminal();
+  $("btDocaBaixo").addEventListener("click", () => definirDoca("baixo"));
+  $("btDocaDireita").addEventListener("click", () => definirDoca("direita"));
+  $("btDocaEsquerda").addEventListener("click", () => definirDoca("esquerda"));
+  definirDoca(doca);
   ligarDivisor({
     divisor: $("divCromo"),
     painel: $("painelCromo"),
@@ -2211,7 +2375,6 @@ async function iniciar(): Promise<void> {
     (motivo) => {
       // Sem language server o editor continua inteiro — só perde os avisos.
       terminal.erro(`language server indisponível: ${motivo}\r\n`);
-      $("ambiente").textContent = "sem análise de tipos";
     },
   );
 
@@ -2236,36 +2399,27 @@ async function iniciar(): Promise<void> {
   }
   desenharArvore();
 
+  // O Neovim nasceu na home; aponta ele para a corrida aberta (ADR 0025).
+  if (MOTOR_NEOVIM && vistaNeovim && projeto) api.neovim.cd(projeto.raiz);
+
   // A linha de comando precisa saber onde está antes de alguém digitar, e o
   // histórico é lido do config.json — não do localStorage, ver `config.ts`.
   await sincronizarPastaCmd();
   const h = await api.historicoDeComandos();
   if (h.ok) historicoCmd = h.valor;
 
+  // O catálogo do Biopython ainda alimenta o autocomplete do CodeMirror, que
+  // segue por baixo (ADR 0025, Fatia 3 removerá os dois). Falha aqui não é mais
+  // digna de abrir o terminal: o motor é o Neovim.
   const c = await api.catalogo();
-  if (c.ok) {
-    catalogo = c.valor;
-    // O catálogo chega depois do editor existir; a fonte de autocomplete lê
-    // deste ponto, então basta avisá-la.
-    definirCatalogo(c.valor);
-  } else {
-    terminal.erro(`${c.erro}\r\n`);
-    abrirPainel();
-  }
+  if (c.ok) definirCatalogo(c.valor);
 
   // O mascote entra por último: é companhia, e nada do resto depende dele.
   await mascote.iniciar(api);
-  $("btMascote").classList.toggle("on", mascote.estaVisivel());
 
-  // A barra de estado mostra o ambiente detectado, nunca um valor escrito à mão.
-  const v = await api.versoes();
-  if (v.ok) {
-    const { biopython, blast, tracy, python } = v.valor;
-    $("ambiente").textContent = `Biopython ${biopython} · BLAST+ ${blast} · Tracy ${tracy}`;
-    $("pyver").textContent = `Python ${python}`;
-  } else {
-    $("ambiente").textContent = "ambiente não detectado";
-  }
+  // O ambiente do laboratório (Biopython · BLAST+ · Tracy · Python) saiu da
+  // barra de estado com a virada da ADR 0025: o Terminus não é mais a IDE do
+  // laboratório, e essas versões eram informação de lá.
 }
 
 void iniciar();

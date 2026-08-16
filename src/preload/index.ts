@@ -16,6 +16,7 @@ import type {
   FalaMascote,
   LugarNoCodigo,
   NoArquivo,
+  PluginNvim,
   ProjetoAberto,
   RespostaComando,
   RespostaMascote,
@@ -253,6 +254,39 @@ const api = {
     escolher: (): Promise<Resultado<EstadoAparencia | null>> =>
       ipcRenderer.invoke("aparencia:escolher"),
     tirar: (): Promise<Resultado<EstadoAparencia>> => ipcRenderer.invoke("aparencia:tirar"),
+  },
+
+  /**
+   * O motor de edição (ADR 0025): o `nvim` de verdade, rodando por PTY no
+   * processo principal. Esta ponte só transporta bytes — teclado sobe, ANSI
+   * desce — e não interpreta nada. O canal de controle (`:edit`, `:w`) é o
+   * socket msgpack-RPC, não esta superfície.
+   */
+  neovim: {
+    iniciar: (cwd: string, cols: number, rows: number): void =>
+      ipcRenderer.send("neovim:iniciar", cwd, cols, rows),
+    enviar: (dados: string): void => ipcRenderer.send("neovim:enviar", dados),
+    /** Abre um arquivo no Neovim e entra em modo de escrita (por RPC). */
+    abrir: (caminho: string): Promise<Resultado<void>> =>
+      ipcRenderer.invoke("neovim:abrir", caminho),
+    /** Aponta o diretório de trabalho do Neovim para a pasta dada. */
+    cd: (pasta: string): void => ipcRenderer.send("neovim:cd", pasta),
+    /** Os plugins instalados, perguntados ao lazy.nvim — alimenta o painel lateral. */
+    plugins: (): Promise<Resultado<PluginNvim[]>> => ipcRenderer.invoke("neovim:plugins"),
+    redimensionar: (cols: number, rows: number): void =>
+      ipcRenderer.send("neovim:redimensionar", cols, rows),
+    parar: (): void => ipcRenderer.send("neovim:parar"),
+    /** Saída crua do Neovim rumo ao xterm. Devolve como cancelar a assinatura. */
+    aoSaida: (ouvinte: (dados: string) => void): (() => void) => {
+      const wrap = (_: unknown, dados: string): void => ouvinte(dados);
+      ipcRenderer.on("neovim:saida", wrap);
+      return () => ipcRenderer.off("neovim:saida", wrap);
+    },
+    aoEncerrar: (ouvinte: (codigo: number) => void): (() => void) => {
+      const wrap = (_: unknown, codigo: number): void => ouvinte(codigo);
+      ipcRenderer.on("neovim:encerrou", wrap);
+      return () => ipcRenderer.off("neovim:encerrou", wrap);
+    },
   },
 
   janela: {

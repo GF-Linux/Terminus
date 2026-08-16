@@ -67,6 +67,22 @@ import {
   prepararExercicio,
 } from "./trilha.js";
 import { estaRodando, pararScript, pararTudo, rodarComando, rodarScript } from "./execucao.js";
+import {
+  enviarNeovim,
+  iniciarNeovim,
+  pararNeovim,
+  redimensionarNeovim,
+} from "./neovim.js";
+import {
+  abrirNoNeovim,
+  abrirTerminalNeovim,
+  cdNeovim,
+  pluginsNeovim,
+  desfazerNeovim,
+  refazerNeovim,
+  resetarControle,
+  salvarNeovim,
+} from "./controle.js";
 import { ServidorPython } from "./lsp.js";
 import {
   abrirProjeto,
@@ -270,6 +286,39 @@ function ligarZoom(alvo: BrowserWindow): void {
   });
 }
 
+/**
+ * Os atalhos que a casca é dona (ADR 0025), interceptados **antes** de virarem
+ * tecla no Neovim.
+ *
+ * O porquê de interceptar em vez de deixar passar: o LazyVim mapeia `<C-s>` como
+ * `<Esc>:w`, que grava mas **joga a pessoa para fora do modo de escrita**. A
+ * casca captura o Ctrl+S aqui, chama o `write` por RPC (que não mexe no modo) e
+ * `preventDefault` para o Neovim nunca ver a tecla. O resto do teclado — todos os
+ * outros `Ctrl+…` que o Neovim usa — continua fluindo direto para ele.
+ *
+ * `before-input-event` é o mesmo lugar do zoom: chega antes de qualquer campo da
+ * interface, então vale com o foco no editor, na árvore ou na conversa.
+ */
+function ligarAtalhosNeovim(alvo: BrowserWindow): void {
+  alvo.webContents.on("before-input-event", (evento, entrada) => {
+    if (entrada.type !== "keyDown" || !entrada.control || entrada.alt || entrada.meta) return;
+    const tecla = entrada.key.toLowerCase();
+    if (tecla === "s") {
+      evento.preventDefault();
+      void salvarNeovim().catch(() => {
+        /* sem editor aberto ainda, ou socket em pé de guerra: nada a gravar */
+      });
+    } else if (tecla === "z") {
+      evento.preventDefault();
+      void (entrada.shift ? refazerNeovim() : desfazerNeovim()).catch(() => {});
+    } else if (entrada.code === "Backquote") {
+      // Ctrl+` : a resposta ao Alt+t que o KDE rouba. Abre o terminal do Neovim.
+      evento.preventDefault();
+      void abrirTerminalNeovim().catch(() => {});
+    }
+  });
+}
+
 function criarJanela(): void {
   janela = new BrowserWindow({
     width: 1340,
@@ -296,6 +345,7 @@ function criarJanela(): void {
   });
 
   ligarZoom(janela);
+  ligarAtalhosNeovim(janela);
 
   // A opção `icon:` do construtor não bastou nesta máquina (a propriedade
   // _NET_WM_ICON ficava vazia). Setar explicitamente resolve, e o aviso no
@@ -895,6 +945,45 @@ function registrarPonte(): void {
   );
   ipcMain.on("chat:parar", () => pararScript("chat"));
 
+  // O motor de edição (ADR 0025): o Neovim por PTY. A interface manda o tamanho
+  // já ajustado à área; a saída volta pelo mesmo `sender`, e o processo é único.
+  ipcMain.on("neovim:iniciar", (e, cwd: unknown, cols: unknown, rows: unknown) => {
+    // Neovim novo, socket novo: a conexão de controle antiga aponta para um
+    // socket morto e precisa recomeçar na próxima chamada.
+    resetarControle();
+    iniciarNeovim({
+      cwd: typeof cwd === "string" ? cwd : "",
+      cols: typeof cols === "number" ? cols : 80,
+      rows: typeof rows === "number" ? rows : 24,
+      aoSaida: (d) => e.sender.send("neovim:saida", d),
+      aoSair: (c) => e.sender.send("neovim:encerrou", c),
+    });
+  });
+
+  // Abrir arquivo é da casca (ADR 0025): manda `edit` + `startinsert` por RPC,
+  // então o clique no Explorer já deixa a pessoa escrevendo — sem a escapada por
+  // teclas da Fatia 1, e sem depender do modo em que o cursor estava.
+  ipcMain.handle(
+    "neovim:abrir",
+    seguro((_e, caminho: unknown) => {
+      if (typeof caminho !== "string") throw new Error("Caminho inválido.");
+      return abrirNoNeovim(caminho);
+    }),
+  );
+  ipcMain.on("neovim:cd", (_e, pasta: unknown) => {
+    if (typeof pasta === "string") void cdNeovim(pasta).catch(() => {});
+  });
+  ipcMain.handle("neovim:plugins", seguro(() => pluginsNeovim()));
+  ipcMain.on("neovim:enviar", (_e, dados: unknown) => {
+    if (typeof dados === "string") enviarNeovim(dados);
+  });
+  ipcMain.on("neovim:redimensionar", (_e, cols: unknown, rows: unknown) => {
+    if (typeof cols === "number" && typeof rows === "number") {
+      redimensionarNeovim(cols, rows);
+    }
+  });
+  ipcMain.on("neovim:parar", () => pararNeovim());
+
   ipcMain.on("janela:minimizar", () => janela?.minimize());
   ipcMain.on("janela:alternar-maximo", () =>
     janela?.isMaximized() ? janela.unmaximize() : janela?.maximize(),
@@ -919,6 +1008,7 @@ void app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   pararTudo();
+  pararNeovim();
   servidor?.parar();
   if (process.platform !== "darwin") app.quit();
 });

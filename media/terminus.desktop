@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Terminus
+GenericName=Editor
+Comment=Casca de IDE com o Neovim como motor — de terminal e fim
+Exec=terminus %f
+Icon=terminus
+Terminal=false
+Categories=Development;IDE;
+MimeType=text/plain;text/x-python;
+# O Plasma casa a janela ao lançador por esta chave — sem ela, a barra de
+# tarefas mostra um ícone genérico mesmo com a janela tendo ícone próprio.
+StartupWMClass=Terminus
+Keywords=neovim;editor;terminal;codigo;
