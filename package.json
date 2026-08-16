@@ -1,7 +1,7 @@
 {
-  "name": "bancada",
-  "productName": "Bancada",
-  "description": "Ambiente de análise para quem é alfabetizado em Python e trabalha com dado biológico.",
+  "name": "terminus",
+  "productName": "Terminus",
+  "description": "Casca de IDE com o Neovim como motor. De terminal e fim.",
   "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
@@ -28,12 +28,15 @@
     "@lezer/highlight": "^1.2.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
+    "neovim": "^5.4.0",
+    "node-pty": "^1.1.0",
     "pyright": "^1.1.411"
   },
   "optionalDependencies": {
     "@github/copilot-language-server": "^1.527.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@types/node": "^22.10.5",
     "electron": "^33.3.1",
     "electron-vite": "^2.3.0",

@@ -321,3 +321,17 @@ export interface EdicaoSugerida {
   ate: number;
   texto: string;
 }
+
+/**
+ * Um plugin do Neovim, como o lazy.nvim o descreve (ADR 0025).
+ *
+ * Alimenta o painel lateral que substituiu o "Extensions": o Neovim tem plugin
+ * demais para quem está começando descobrir sozinho, e `:Lazy` é uma tela dentro
+ * do editor. Na lateral a lista fica clicável, como numa IDE.
+ */
+export interface PluginNvim {
+  nome: string;
+  url: string;
+  dir: string;
+  carregado: boolean;
+}
