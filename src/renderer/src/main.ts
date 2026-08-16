@@ -12,7 +12,8 @@ import { VistaCromatograma } from "./cromatograma.js";
 import { Aparencia, TEMAS } from "./aparencia.js";
 import { Editor } from "./editor.js";
 import { VistaNeovim } from "./neovim.js";
-import { Mascote } from "./mascote.js";
+import urlMarca from "../../../media/marca.png";
+import urlIcone from "../../../media/icon.png";
 import { Paleta, type ItemPaleta } from "./paleta.js";
 import {
   aoImportarDoServidor,
@@ -401,16 +402,20 @@ function avisar(texto: string): void {
 
 const aparencia = new Aparencia($("fundoTela"), api, () => desenharConfigAparencia());
 
+/* ============================ marca ============================ */
+
+// O sigilo entra por import, não por caminho no HTML: em desenvolvimento o
+// servidor do Vite devolveria o index.html no lugar do arquivo (medido:
+// content-type text/html), e o ícone simplesmente não aparecia.
+($("imgMarca") as HTMLImageElement).src = urlMarca;
+($("imgMarcaGrande") as HTMLImageElement).src = urlIcone;
+
 /* ============================ mascote ============================ */
 
-/** Companhia, não ferramenta (ADR 0008). Só recebe o **tipo** do evento. */
-const mascote = new Mascote(
-  $("mascote"),
-  (texto) => avisar(texto),
-  // Auditar a memória dela é abrir o Markdown no editor de sempre — sem tela de
-  // edição nova, e com Ctrl+S valendo como em qualquer arquivo (ADR 0009).
-  (caminho) => void abrirArquivo(caminho),
-);
+// O widget flutuante saiu com a virada da ADR 0025: o Terminus é casca de
+// editor, e a companhia de bancada era do produto anterior. O código da Fern
+// (conversa e memória) continua no processo principal, sem porta na casca —
+// o destino dela é decisão em aberto, não um resto esquecido aqui.
 
 /* ============================ cromatograma ============================ */
 
@@ -482,7 +487,6 @@ async function mostrarAb1(aba: AbaAb1): Promise<void> {
   }
   vistaAb1.mostrar(r.valor);
   avisar(`${aba.nome}: ${r.valor.resumo.bases} bases`);
-  mascote.reagir("cromatograma");
 }
 
 function trocarAb1(i: number): void {
@@ -731,16 +735,12 @@ async function desenharConfiguracoes(): Promise<void> {
       <b class="sep">Aparência</b>
       <div id="cfgAparencia"></div>
 
-      <b class="sep">Mascote</b>
-      <div id="cfgMascote"></div>
-
       <b class="sep">Interpretador</b>
       <p class="dim">Ainda fixo no código (<code>src/main/ambiente.ts</code>):
          tenta o env <code>easycontig-demo</code> do miniforge e cai para
          <code>/usr/bin/python3</code>.</p>
     </div>`;
 
-  void desenharConfigMascote();
   desenharConfigAparencia();
 
   const marca = document.getElementById("cfgLigado") as HTMLInputElement | null;
@@ -1051,7 +1051,6 @@ async function corrigir(topicoId: string, exercicioId: string): Promise<void> {
   abrirPainel();
   terminal.comando(projeto?.nome ?? "", `corrigir ${topicoId}/${exercicioId}`);
   definirRodando(true);
-  mascote.reagir("rodando");
   corrigindo = `${topicoId}/${exercicioId}`;
   origemDaExecucao = "script";
   api.rodar(r.valor.verificador, [r.valor.teste, r.valor.arquivo]);
@@ -1198,75 +1197,6 @@ function desenharConfigAparencia(): void {
   };
   ligarDeslize("apEscurecer", "escurecer", 0.01);
   ligarDeslize("apDesfoque", "desfoque", 1);
-}
-
-/**
- * A seção do mascote em Configurações.
- *
- * Diz três coisas na cara, porque são as três que importam: que a conversa sai
- * da máquina, **o que exatamente sai** (a fala e o resumo — nada do que está
- * aberto), e onde mora o sprite, que é arte pessoal e fica fora do repositório.
- */
-async function desenharConfigMascote(): Promise<void> {
-  const alvo = document.getElementById("cfgMascote");
-  if (!alvo) return;
-
-  const r = await api.mascote.estado();
-  if (!r.ok) {
-    alvo.innerHTML = `<p class="dim">${esc(r.erro)}</p>`;
-    return;
-  }
-  const m = r.valor;
-
-  alvo.innerHTML = `
-    <p class="dim">Companhia de bancada. Reage ao trabalho sem rede nenhuma;
-       conversar, sim, sai da máquina.</p>
-    ${
-      m.temChave
-        ? `<label class="chave">
-             <input type="checkbox" id="cfgMascoteLigado" ${m.ligado ? "checked" : ""}>
-             <span>Conversa ${m.ligado ? "ligada" : "desligada"}</span>
-           </label>`
-        : `<p class="dim">Sem chave — a conversa usa a mesma do texto fantasma.</p>`
-    }
-    <label class="campoNome">
-      <span>Nome</span>
-      <input id="cfgMascoteNome" value="${esc(m.nome)}" maxlength="40" spellcheck="false">
-    </label>
-    <div class="linhas">
-      <div><span>modelo</span><code>${esc(m.modelo)}</code></div>
-      <div><span>lê</span><code>${m.temContexto ? esc(m.arquivoContexto) : "nada — o resumo não existe"}</code></div>
-      <div><span>sprite</span><code>${
-        m.quadros.length ? `${m.quadros.length} quadros em ${esc(m.pastaSprite)}` : "nenhum — usando o desenho de reserva"
-      }</code></div>
-    </div>
-    <div class="alerta">O mascote <b>não</b> vê arquivo aberto, caminho, código nem
-      saída do terminal. A conversa leva só o que você escreve e o resumo do
-      <code>contexto.md</code> — escrito à mão, fora de qualquer repositório.</div>`;
-
-  const marca = document.getElementById("cfgMascoteLigado") as HTMLInputElement | null;
-  marca?.addEventListener("change", async () => {
-    await api.mascote.ligar(marca.checked);
-    await mascote.recarregar();
-    void desenharConfigMascote();
-  });
-
-  // O nome grava ao sair do campo ou no Enter — não a cada tecla, que gravaria
-  // arquivo a cada letra digitada.
-  const campoNome = document.getElementById("cfgMascoteNome") as HTMLInputElement | null;
-  const gravarNome = async (): Promise<void> => {
-    if (!campoNome || campoNome.value.trim() === m.nome) return;
-    await api.mascote.nomear(campoNome.value);
-    await mascote.recarregar();
-    avisar(`o mascote agora se chama ${campoNome.value.trim()}`);
-  };
-  campoNome?.addEventListener("blur", () => void gravarNome());
-  campoNome?.addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter") {
-      ev.preventDefault();
-      campoNome.blur();
-    }
-  });
 }
 
 function desenharArvore(): void {
@@ -1870,7 +1800,6 @@ async function salvar(): Promise<void> {
   a.gravado = conteudo;
   editor.marcarGravado();
   desenharAbas();
-  mascote.reagir("gravou");
 }
 
 /* ============================ execução ============================ */
@@ -1900,7 +1829,6 @@ async function rodar(): Promise<void> {
   abrirPainel();
   terminal.comando(projeto?.nome ?? "", `python -u ${a.nome}`);
   definirRodando(true);
-  mascote.reagir("rodando");
   origemDaExecucao = "script";
   api.rodar(a.caminho);
 }
@@ -1922,7 +1850,6 @@ api.aoExecutar((e) => {
       // prompt seguinte já é o aviso de que acabou. "concluído" só faz sentido
       // para o ▶, onde não há prompt nenhum reaparecendo.
       else if (origemDaExecucao === "script") terminal.nota("\r\nconcluído");
-      mascote.reagir(bem ? "ok" : "erro");
       // Se o que rodou era uma correção da trilha, o código de saída é a nota.
       if (origemDaExecucao === "script") void concluirCorrecao(bem);
       break;
@@ -1930,7 +1857,6 @@ api.aoExecutar((e) => {
     case "falha":
       definirRodando(false);
       terminal.erro(`\r\n${e.mensagem}\r\n`);
-      mascote.reagir("erro");
       break;
   }
 });
@@ -2018,7 +1944,6 @@ async function executarLinha(linha: string): Promise<void> {
   if (r.valor.rodando) {
     origemDaExecucao = "comando";
     definirRodando(true);
-    mascote.reagir("rodando");
   }
 }
 
@@ -2243,8 +2168,6 @@ $("linkGithub").addEventListener("click", (ev) => {
   window.open(`https://github.com/${$("nomeGithub").textContent?.trim() ?? ""}`, "_blank");
 });
 
-// Janela menor não pode deixar o mascote fora da tela.
-window.addEventListener("resize", () => mascote.reancorar());
 
 // Atalhos globais, nos mesmos gestos do VSCodium — é o que a mão já sabe.
 window.addEventListener("keydown", (ev) => {
@@ -2414,8 +2337,6 @@ async function iniciar(): Promise<void> {
   const c = await api.catalogo();
   if (c.ok) definirCatalogo(c.valor);
 
-  // O mascote entra por último: é companhia, e nada do resto depende dele.
-  await mascote.iniciar(api);
 
   // O ambiente do laboratório (Biopython · BLAST+ · Tracy · Python) saiu da
   // barra de estado com a virada da ADR 0025: o Terminus não é mais a IDE do
