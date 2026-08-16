@@ -19,10 +19,10 @@
       <button class="c2" id="btMinimizar" title="Minimizar"></button>
       <button class="c3" id="btMaximizar" title="Maximizar"></button>
     </div>
-    <!-- A marca: pico de cromatograma que é também o acento do cursor. -->
+    <!-- A marca: o sigilo Jared-Linux. O pico de cromatograma saiu com a ADR
+         0025 — era a marca do produto anterior. -->
     <span class="marca" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><path d="M2.6 16.4h4.5l2-4.3L12 3.2l2.9 8.9 2 4.3h4.5"/>
-        <path d="M12 19.1v2.5" stroke-width="2.6"/></svg>
+      <img id="imgMarca" alt="">
     </span>
     <div class="doc" id="tituloDoc">Terminus</div>
   </div>
@@ -66,8 +66,7 @@
       <div class="editorHost" id="editorHost"></div>
       <div class="vazio" id="vazio">
         <span class="marcaGrande" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M2.6 16.4h4.5l2-4.3L12 3.2l2.9 8.9 2 4.3h4.5"/>
-            <path d="M12 19.1v2.5" stroke-width="2.6"/></svg>
+          <img id="imgMarcaGrande" alt="">
         </span>
         <p>Nenhum arquivo aberto.</p>
         <p class="dim">Abra uma pasta de corrida no Explorer.</p>
@@ -123,10 +122,6 @@
     </div><!-- /centro -->
 
   </div>
-
-  <!-- Mascote: flutua por cima da área de escrita, arrastável e dispensável.
-       Fica fora de .main para não ser recortado por nenhum painel. -->
-  <div class="mascote" id="mascote"></div>
 
   <!-- A barra de estado ficou com o essencial (ADR 0025): o terminal continua
        clicável, e à direita a marca do dono. O que saiu — ambiente do Biopython,

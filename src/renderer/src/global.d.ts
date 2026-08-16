@@ -7,4 +7,13 @@ declare global {
   }
 }
 
+/** Imagens importadas como URL (o Vite resolve em desenvolvimento e no build).
+ *  Referenciar `../../media/x.png` direto no HTML **não** funciona no modo de
+ *  desenvolvimento: o caminho sai da raiz do Vite e o servidor devolve o
+ *  index.html no lugar do arquivo. */
+declare module "*.png" {
+  const url: string;
+  export default url;
+}
+
 export {};

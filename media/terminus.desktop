@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=Terminus
-GenericName=Editor
-Comment=Casca de IDE com o Neovim como motor — de terminal e fim
+GenericName=Editor e terminal
+Comment=Uma ponte amigável para o terminal do Linux — Neovim com casca clicável
 Exec=terminus %f
 Icon=terminus
 Terminal=false

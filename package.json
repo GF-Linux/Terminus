@@ -1,8 +1,8 @@
 {
   "name": "terminus",
   "productName": "Terminus",
-  "description": "Casca de IDE com o Neovim como motor. De terminal e fim.",
-  "version": "0.1.0",
+  "description": "Uma ponte amigável para o terminal do Linux: casca clicável com o Neovim como motor.",
+  "version": "0.0.1",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "author": "Gustavo Freitas",
