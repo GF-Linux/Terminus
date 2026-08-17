@@ -13,9 +13,10 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.1.** Primeira versão pública, e é cedo. Roda a partir do
+> **Estado: v0.0.2.** Primeira versão pública, e é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
+> O que mudou em cada versão está em [Atualizações](#atualizações).
 
 ---
 
@@ -131,6 +132,30 @@ Lista honesta, porque v0.0.1 quer dizer isso:
 - **`E325: ATTENTION`** ao abrir arquivo: era swap file órfão. O `edit` vem por
   RPC, que é não-interativo, então o prompt travava o comando. O Terminus
   responde a isso sozinho no arranque.
+
+---
+
+## Atualizações
+
+### v0.0.2 — 17/08/2026
+
+1. O layout foi corrigido: a casca inteira passou para a paleta Jared-Linux —
+   editor `#0c0e16`, barras `#14161f`, lateral `#171a26`, texto `#d7d9ea`.
+2. O motivo: a casca ainda usava o cinza do produto que este repositório já foi,
+   e ficava um esquema de cor brigando com o outro na mesma tela.
+3. A lateral era duas cores: a coluna de ícones estava num tom e o painel ao
+   lado em outro. Agora é uma só.
+4. O Neovim acompanha: dentro do Terminus o tema dele é recolorido para a mesma
+   paleta. Fora do Terminus, continua como você o deixou.
+5. O papel de parede parou de esticar quando a janela não está em tela cheia.
+
+### v0.0.1 — 16/08/2026
+
+1. Primeira versão pública.
+2. O Neovim passa a ser o motor de edição, dentro da casca.
+3. `Ctrl+S` grava sem tirar do modo de escrita; `Ctrl+Z` desfaz.
+4. Terminal com doca no rodapé, à direita ou à esquerda.
+5. Lista de plugins do `lazy.nvim` na lateral.
 
 ---
 
