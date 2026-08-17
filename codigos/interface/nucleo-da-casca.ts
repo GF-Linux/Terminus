@@ -8,17 +8,11 @@ import { VistaNeovim } from "./vista-do-neovim.js";
 import { TerminalSaida } from "./tela-do-terminal.js";
 import urlIcone from "../../media/icon.png";
 
-//* A ÚNICA porta para o sistema. Tudo que sai da tela passa por aqui.
-export const api = window.terminus;
-
-//* Acha um elemento da página pelo id, e ESTOURA se ele não existir.
-//* O estouro é de propósito: id que sumiu do HTML vira erro na hora de abrir, e
-//* não uma tela meio montada que ninguém entende.
-export const $ = <T extends HTMLElement>(id: string): T => {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`elemento #${id} não existe na pagina.html`);
-  return el as T;
-};
+//! `$` e `api` mudaram de casa para `base-da-tela.ts`, que é o que a janela do
+//! terminal solto também usa (ADR 0031). Ficam reexportados aqui para nenhum
+//! import antigo precisar mudar — este arquivo continua sendo a porta da casca.
+export { $, api } from "./base-da-tela.js";
+import { $, api } from "./base-da-tela.js";
 
 
 /** As aspas contam tanto quanto os sinais de maior e menor: o nome do arquivo

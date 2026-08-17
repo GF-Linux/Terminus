@@ -1,10 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  ComoRodar,
   EstadoAparencia,
   EventoExecucao,
+  Fluxo,
   NoArquivo,
   PluginNvim,
   ProjetoAberto,
+  ProjetoNovo,
   RespostaComando,
   Resultado,
 } from "../compartilhado/tipos.js";
@@ -39,6 +42,14 @@ const api = {
   /** Pasta da linha de comando ou, na falta dela, a última que ficou aberta. */
   projetoInicial: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:inicial"),
+  /** Botão de fluxo (ADR 0027): cria a pasta do molde e já a deixa aberta.
+   *  `null` quando a pessoa cancelou o diálogo de onde criar. */
+  novoProjeto: (fluxo: Fluxo): Promise<Resultado<ProjetoNovo | null>> =>
+    ipcRenderer.invoke("projeto:novo", fluxo),
+  /** Botão Rodar (ADR 0030): a linha que roda esta pasta, ou a frase do que
+   *  falta. NÃO executa — quem executa é a linha de comando de sempre. */
+  comoRodar: (raiz: string, fluxo: Fluxo): Promise<Resultado<ComoRodar>> =>
+    ipcRenderer.invoke("projeto:como-rodar", raiz, fluxo),
   listar: (dir: string): Promise<Resultado<NoArquivo[]>> => ipcRenderer.invoke("projeto:listar", dir),
   /** Todos os arquivos do projeto, em caminho relativo — alimenta o Ctrl+P. */
   arquivosDoProjeto: (raiz: string): Promise<Resultado<string[]>> =>
@@ -59,7 +70,12 @@ const api = {
     ipcRenderer.invoke("caminho:excluir", alvo),
 
   parar: (): void => ipcRenderer.send("exec:parar"),
-  rodando: (): Promise<boolean> => ipcRenderer.invoke("exec:rodando"),
+  //! O tipo era `Promise<boolean>` e o handler do outro lado é embrulhado em
+  //! `seguro()`, que devolve `Resultado`. Ninguém chamava, então a mentira
+  //! dormiu — até a janela do terminal chamar e receber `{ok:true,valor:false}`,
+  //! que é um OBJETO, e portanto sempre verdadeiro. A trava do terminal nascia
+  //! ligada e nenhuma linha rodava (ADR 0032).
+  rodando: (): Promise<Resultado<boolean>> => ipcRenderer.invoke("exec:rodando"),
 
   /**
    * A linha de comando (ADR 0020). A saída chega pelo mesmo `aoExecutar` de
@@ -118,6 +134,18 @@ const api = {
       const wrap = (_: unknown, codigo: number): void => ouvinte(codigo);
       ipcRenderer.on("neovim:encerrou", wrap);
       return () => ipcRenderer.off("neovim:encerrou", wrap);
+    },
+  },
+
+  /** O terminal em janela própria (ADR 0031). */
+  terminal: {
+    soltar: (): void => ipcRenderer.send("terminal:soltar"),
+    devolver: (): void => ipcRenderer.send("terminal:devolver"),
+    estaSolto: (): Promise<Resultado<boolean>> => ipcRenderer.invoke("terminal:esta-solto"),
+    /** Avisa a casca quando o terminal saiu ou voltou, para ela esconder ou
+     *  mostrar o painel. Vale só na janela da casca. */
+    aoMudar: (ouvinte: (solto: boolean) => void): void => {
+      ipcRenderer.on("terminal:solto", (_, solto: boolean) => ouvinte(solto));
     },
   },
 

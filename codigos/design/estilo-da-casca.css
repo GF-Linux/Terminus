@@ -61,7 +61,10 @@ button:disabled{opacity:.35; cursor:default}
 
 .ide{height:100%; background:var(--bg); display:grid; grid-template-rows:35px 1fr 22px}
 
-/* barra de título — LIMPA: só os controles em círculo (P1.2) */
+/* barra de título (ADR 0027) — fluxo à esquerda, controles da janela à direita.
+   A ordem dentro dos círculos também mudou: minimizar, maximizar, fechar. Fechar
+   é o último porque agora ele é o canto da tela, e o canto é onde o mouse para
+   sozinho — o gesto que não tem volta não pode ser o mais fácil de acertar. */
 .tbar{background:var(--chrome); border-bottom:1px solid var(--line); display:flex; align-items:center;
   padding:0 12px; gap:12px; -webkit-app-region:drag}
 .lights{display:flex; gap:8px; -webkit-app-region:no-drag}
@@ -69,6 +72,25 @@ button:disabled{opacity:.35; cursor:default}
 .lights .c1{background:#ff5f57}.lights .c2{background:#febc2e}.lights .c3{background:#28c840}
 .lights button:hover{filter:brightness(1.25)}
 .tbar .doc{margin:0 auto; font-size:12px; color:var(--fg52)}
+
+/* o botão de fluxo. Fica sempre visível e sempre com um rótulo: um ícone
+   sozinho não responde "que linguagem é esta pasta", que é metade do que ele
+   serve para dizer. */
+.tbar .fluxo{-webkit-app-region:no-drag; display:flex; align-items:center; gap:6px;
+  height:22px; padding:0 9px; border-radius:11px; border:1px solid var(--line);
+  color:var(--fg52); font-size:11px; letter-spacing:.02em; background:transparent}
+.tbar .fluxo svg{width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.6;
+  stroke-linecap:round}
+.tbar .fluxo:hover{background:var(--sel); color:var(--fg); border-color:var(--acento)}
+/* Com linguagem reconhecida o chip acende: é o estado, não decoração. */
+.tbar .fluxo.marcado{color:var(--acento); border-color:var(--acento)}
+
+/* Rodar (ADR 0030). O triângulo é cheio, ao contrário do ícone do fluxo: um é
+   ação, o outro é estado, e a mão precisa distinguir sem ler. */
+.tbar .rodar svg{fill:currentColor; stroke:none}
+/* Desligado é DESLIGADO: sem pasta ou sem linguagem, o botão não finge que dá.
+   `pointer-events:none` para o cursor também dizer isso, e não só a cor. */
+.tbar .rodar:disabled{opacity:.32; pointer-events:none}
 
 /* 24px numa barra de 35: o sigilo precisa de área para ser reconhecido. O
    arquivo já vem enquadrado no rosto e na auréola — a figura inteira, reduzida a
@@ -347,3 +369,15 @@ button:disabled{opacity:.35; cursor:default}
   color:var(--fg60)}
 .cfg .tema:hover{color:var(--fg); background:var(--hover)}
 .cfg .tema.on{color:var(--fg); background:var(--sel); border-color:var(--focus)}
+
+/* ------------------- o terminal em janela própria (ADR 0031) ---------------
+   A mesma folha, a mesma marcação, mas aqui o painel É a janela: sem doca, sem
+   divisor, sem largura de 400px guardada da casca. Só o que muda é o tamanho —
+   as cores, a fonte e a linha de comando continuam idênticas às de dentro, que
+   é o ponto de soltar o terminal e não abrir outro programa. */
+body.soTerminal{height:100vh; background:var(--chrome); overflow:hidden}
+body.soTerminal .painelTerm{width:100%; height:100vh; min-width:0; max-width:none}
+/* A barra do topo vira a área de arrastar da janela: ela não tem moldura de
+   sistema do lado de dentro, e sem isto a janela não se move. */
+body.soTerminal .ptabs{-webkit-app-region:drag}
+body.soTerminal .ptabs button{-webkit-app-region:no-drag}

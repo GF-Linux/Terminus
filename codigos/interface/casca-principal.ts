@@ -18,7 +18,17 @@ import {
   atualizarRecentes, comecarNovo, comecarRenomear, desenharArvore, escolherProjeto,
   excluir, fecharMenu, paleta,
 } from "./arvore-de-arquivos.js";
-import { definirHistorico, definirRodando, sincronizarPastaCmd } from "./linha-de-comando.js";
+import {
+  definirHistorico, definirRodando, ligarLinhaDeComando, sincronizarPastaCmd,
+} from "./linha-de-comando.js";
+
+// A linha de comando não conhece mais a casca (ADR 0031): recebe a tela onde
+// escrever e um jeito de perguntar qual pasta está aberta. É a primeira coisa
+// feita, antes de qualquer clique poder chegar nela.
+ligarLinhaDeComando(terminal, () => estado.projeto);
+// Importado pelo efeito: o módulo do fluxo liga os próprios botões ao carregar
+// (ADR 0027). `detectarFluxo` é o que a partida chama depois de abrir a pasta.
+import { detectarFluxo } from "./fluxo-de-projeto.js";
 
 
 $("act").addEventListener("click", (ev) => {
@@ -91,6 +101,16 @@ $("lateral").addEventListener("contextmenu", (ev) => {
   }
 });
 
+// O terminal em janela própria (ADR 0031). Com ele solto, o painel daqui fecha:
+// duas cópias do mesmo terminal na tela ao mesmo tempo só confundem qual é a que
+// recebe o que se digita.
+$("btSoltarTerminal").addEventListener("click", () => api.terminal.soltar());
+api.terminal.aoMudar((solto) => {
+  $("btSoltarTerminal").classList.toggle("on", solto);
+  definirPainel(!solto);
+  if (solto) avisar("terminal aberto em janela própria — feche a janela para trazer de volta");
+});
+
 $("btParar").addEventListener("click", () => api.parar());
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
@@ -114,6 +134,14 @@ window.addEventListener("keydown", (ev) => {
       ev.preventDefault();
       paleta.fechar();
     }
+    return;
+  }
+
+  // F5 roda o projeto, que é o gesto que a mão já tem de qualquer IDE. É o mesmo
+  // caminho do botão Rodar da barra — um só lugar decide a linha (ADR 0030).
+  if (ev.key === "F5") {
+    ev.preventDefault();
+    $("btRodar").click();
     return;
   }
 
@@ -213,6 +241,10 @@ async function iniciar(): Promise<void> {
 
   // O Neovim nasceu na home; aponta ele para a corrida aberta (ADR 0025).
   if (estado.projeto) api.neovim.cd(estado.projeto.raiz);
+
+  // O chip da barra responde "que linguagem é esta pasta" já na abertura, sem
+  // esperar alguém clicar (ADR 0027).
+  void detectarFluxo();
 
   // A linha de comando precisa saber onde está antes de alguém digitar, e o
   // histórico é lido do config.json — não do localStorage, ver `config.ts`.

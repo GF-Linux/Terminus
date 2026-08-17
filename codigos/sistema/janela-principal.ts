@@ -3,7 +3,7 @@ import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EventoExecucao, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
+import type { EventoExecucao, Fluxo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
 import {
   comandosRecentes,
   esquecerComandos,
@@ -48,6 +48,11 @@ import {
   listarTudo,
   renomear,
 } from "./arquivos-do-projeto.js";
+import { criarProjeto, NOME_DO_FLUXO } from "./molde-de-projeto.js";
+import { comoRodar } from "./como-rodar-o-projeto.js";
+import {
+  devolverTerminal, janelasVivas, ligarAvisoDeFechamento, soltarTerminal, terminalEstaSolto,
+} from "./janela-do-terminal.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
 
@@ -236,6 +241,11 @@ function criarJanela(): void {
   janela.on("closed", () => {
     pararNeovim();
     resetarControle();
+    //! E o terminal solto vai junto (ADR 0031). Ele é um painel do Terminus que
+    //! saiu para outra janela, não um programa separado: deixado vivo, ficaria
+    //! uma janela órfã sem editor por trás — e, pior, o `window-all-closed`
+    //! nunca dispararia, então o aplicativo não terminaria de fechar.
+    devolverTerminal();
   });
 
   // Nenhum link abre dentro da janela do aplicativo: documentação vai para o
@@ -351,6 +361,54 @@ function registrarPonte(): void {
       return entrarNaPasta(pasta);
     }),
   );
+  /**
+   * O botão de fluxo (ADR 0027): escolher a linguagem e dizer onde, e a pasta
+   * nasce pronta com o arquivo principal aberto.
+   *
+   * `showSaveDialog` e não `showOpenDialog`: o diálogo de salvar já pergunta
+   * ONDE e COM QUE NOME de uma vez, que são as duas coisas que faltam. Com o de
+   * abrir seria escolher a pasta-mãe numa tela e digitar o nome em outra.
+   */
+  ipcMain.handle(
+    "projeto:novo",
+    seguro(async (_e, fluxo: Fluxo) => {
+      if (!janela) throw new Error("Janela não disponível.");
+      if (fluxo !== "cpp" && fluxo !== "python" && fluxo !== "csharp") {
+        throw new Error("Fluxo desconhecido.");
+      }
+
+      const r = await dialog.showSaveDialog(janela, {
+        title: `Novo projeto ${NOME_DO_FLUXO[fluxo]}`,
+        buttonLabel: "Criar aqui",
+        defaultPath: path.join(ultimaPasta() ?? homedir(), `projeto-${fluxo}`),
+        properties: ["createDirectory"],
+      });
+      if (r.canceled || !r.filePath) return null;
+
+      const principal = await criarProjeto(r.filePath, fluxo);
+      const projeto = await entrarNaPasta(r.filePath);
+      return { projeto, principal, fluxo };
+    }),
+  );
+
+  /**
+   * O botão Rodar (ADR 0030): que linha roda o que está nesta pasta.
+   *
+   * Não executa nada — devolve a linha, e quem a executa é o mesmo caminho da
+   * linha de comando. Assim o que aparece na tela é exatamente o que rodou, e o
+   * histórico do ↑ recebe a linha como se tivesse sido digitada.
+   */
+  ipcMain.handle(
+    "projeto:como-rodar",
+    seguro((_e, raiz: string, fluxo: Fluxo) => {
+      if (typeof raiz !== "string" || raiz.length === 0) throw new Error("Sem pasta aberta.");
+      if (fluxo !== "cpp" && fluxo !== "python" && fluxo !== "csharp") {
+        throw new Error("Marque a linguagem no botão de fluxo primeiro.");
+      }
+      return comoRodar(raiz, fluxo);
+    }),
+  );
+
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listar(dir)));
   ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarTudo(raiz)));
 
@@ -463,6 +521,10 @@ function registrarPonte(): void {
   );
 
   ipcMain.on("exec:parar", () => pararScript());
+  //! Estava na ponte desde sempre e SEM handler do outro lado: ninguém chamava,
+  //! então ninguém viu. A janela do terminal solto (ADR 0031) chama na partida,
+  //! para nascer sabendo se já há algo rodando — e foi assim que apareceu.
+  ipcMain.handle("exec:rodando", seguro(() => estaRodando()));
 
   /**
    * A linha de comando do terminal (ADR 0020).
@@ -480,7 +542,9 @@ function registrarPonte(): void {
    */
   ipcMain.handle(
     "exec:comando",
-    seguro((e, linha: unknown) => {
+    //! O `_e` não é mais usado: a saída vai para todas as janelas, e não para
+    //! quem pediu (ADR 0031).
+    seguro((_e, linha: unknown) => {
       if (typeof linha !== "string") throw new Error("Comando inválido.");
       // Recusado antes de qualquer análise: quebra de linha aqui é a única forma
       // de uma caixa de texto de uma linha esconder um segundo comando.
@@ -500,9 +564,12 @@ function registrarPonte(): void {
 
       if (estaRodando()) throw new Error("Já há algo em execução. Pare antes de rodar outro.");
 
-      rodarComando(pronto.programa, pronto.args, cwd, (evento: EventoExecucao) =>
-        e.sender.send("exec:evento", evento),
-      );
+      //! A saída vai para TODAS as janelas vivas, e não só para quem pediu
+      //! (ADR 0031). Com o terminal solto, mandar rodar pelo botão da casca
+      //! imprimiria numa tela escondida — o comando rodava e ninguém via.
+      rodarComando(pronto.programa, pronto.args, cwd, (evento: EventoExecucao) => {
+        for (const j of janelasVivas(janela)) j.webContents.send("exec:evento", evento);
+      });
       return { pasta: cwd, rodando: true, nota: pronto.nota ?? null };
     }),
   );
@@ -574,6 +641,27 @@ function registrarPonte(): void {
     }
   });
   ipcMain.on("neovim:parar", () => pararNeovim());
+
+  //? O terminal solto (ADR 0031)
+  //! `soltar` abre (ou traz para frente); `devolver` fecha. Fechar a janela pela
+  //! decoração do sistema tem o mesmo efeito de "devolver" — quem fecha não pode
+  //! ficar sem terminal e sem saber como trazer de volta.
+  ipcMain.on("terminal:soltar", () => {
+    if (!janela) return;
+    soltarTerminal(
+      janela,
+      path.join(__dirname_, "..", "preload"),
+      path.join(__dirname_, "..", "renderer"),
+      process.env["ELECTRON_RENDERER_URL"],
+    );
+    janela.webContents.send("terminal:solto", true);
+  });
+  ipcMain.on("terminal:devolver", () => devolverTerminal());
+  ipcMain.handle("terminal:esta-solto", seguro(() => terminalEstaSolto()));
+
+  ligarAvisoDeFechamento(() => {
+    if (janela && !janela.isDestroyed()) janela.webContents.send("terminal:solto", false);
+  });
 
   ipcMain.on("janela:minimizar", () => janela?.minimize());
   ipcMain.on("janela:alternar-maximo", () =>

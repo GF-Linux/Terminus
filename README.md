@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.2.** Primeira versão pública, e é cedo. Roda a partir do
+> **Estado: v0.0.3.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -105,12 +105,11 @@ src/renderer/   a casca: árvore, terminal, plugins, temas
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.1 quer dizer isso:
+Lista honesta, porque v0.0.3 ainda quer dizer isso:
 
 - **Não está empacotado.** Roda do repositório; não há AppImage nem RPM.
 - **Testado numa máquina só** — Fedora 44, KDE em Wayland. Nunca rodou em GNOME,
   em X11 puro, em outra distribuição, no macOS nem no Windows.
-- **Terminal em janela separada** — o botão foi removido até existir de verdade.
 - **Renomear pela árvore não avisa o Neovim**: o buffer aberto continua
   apontando para o nome antigo; reabra o arquivo depois de renomear.
 - **Sem busca em arquivos pela casca** — use a do Neovim (`<space>/` no LazyVim).
@@ -136,6 +135,32 @@ Lista honesta, porque v0.0.1 quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.3 — 17/08/2026
+
+1. Os botões de fechar, minimizar e maximizar saíram do canto esquerdo e foram
+   para a direita. O canto esquerdo é o primeiro lugar onde a mão chega, e ali
+   estava o botão que fecha o aplicativo — nada que se usa.
+2. No lugar que sobrou entrou o **botão de fluxo**: ele diz qual linguagem a
+   pasta aberta é, e cria projeto novo em C++, Python ou C#. O molde traz o
+   mínimo que faz o código rodar, e nada além disso.
+3. O molde de C++ traz um `compile_flags.txt`. É o arquivo que ninguém lembra de
+   criar, e sem ele o servidor de linguagem sublinha código correto: medido, 3
+   erros falsos viram 0.
+4. Entrou o **botão Rodar**, e o F5. Ele não roda nada por conta própria: olha a
+   pasta, diz qual é a linha, e manda pela linha de comando — o que aparece na
+   tela é exatamente o que rodou. Quando não dá para saber, ele diz o que falta
+   em vez de chutar um comando que vai falhar.
+5. O **terminal agora sai para uma janela própria**, pelo botão no cabeçalho
+   dele. Fechar a janela devolve o terminal para a casca. Era a metade que
+   faltava da doca, que já mudava o terminal de lugar dentro da janela.
+6. **Conserto:** o terminal travava na primeira linha que rodasse alguma coisa e
+   depois recusava tudo com "há algo rodando". Ninguém na interface escutava o
+   fim do processo desde a virada para o Neovim, então a trava ligava e não
+   desligava mais. A saída dos programas também não aparecia, pelo mesmo motivo.
+7. **Conserto:** a janela do terminal nascia travada. A ponte prometia um
+   `boolean` e entregava um objeto, e objeto é sempre verdadeiro em JavaScript.
+   O tipo estava errado desde sempre; ninguém tinha chamado aquilo até agora.
 
 ### v0.0.2 — 17/08/2026
 
