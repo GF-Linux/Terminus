@@ -281,6 +281,13 @@ function criarJanela(): void {
 
   janela.once("ready-to-show", () => janela?.show());
 
+  // O Neovim morre com a janela que o mostrava. Sem isto ele seguiria vivo até o
+  // `window-all-closed`, escrevendo para uma interface que já não existe.
+  janela.on("closed", () => {
+    pararNeovim();
+    resetarControle();
+  });
+
   // Nenhum link abre dentro da janela do aplicativo: documentação vai para o
   // navegador do sistema.
   janela.webContents.setWindowOpenHandler(({ url }) => {
@@ -627,12 +634,28 @@ function registrarPonte(): void {
     // Neovim novo, socket novo: a conexão de controle antiga aponta para um
     // socket morto e precisa recomeçar na próxima chamada.
     resetarControle();
+
+    /**
+     * Só manda para a interface se ela ainda existir.
+     *
+     * **Isto é a correção de um erro visto na tela ao fechar o aplicativo:**
+     * `TypeError: Object has been destroyed`. Fechar a janela destrói a
+     * `WebContents`, mas o PTY do Neovim continua vivo por alguns milissegundos e
+     * ainda emite bytes — a sequência de saída dele, inclusive. O `send` para um
+     * objeto destruído lança, e no processo principal isso vira caixa de erro em
+     * cima do usuário, depois de ele já ter mandado fechar.
+     */
+    const alvo = e.sender;
+    const mandar = (canal: string, carga: unknown): void => {
+      if (!alvo.isDestroyed()) alvo.send(canal, carga);
+    };
+
     iniciarNeovim({
       cwd: typeof cwd === "string" ? cwd : "",
       cols: typeof cols === "number" ? cols : 80,
       rows: typeof rows === "number" ? rows : 24,
-      aoSaida: (d) => e.sender.send("neovim:saida", d),
-      aoSair: (c) => e.sender.send("neovim:encerrou", c),
+      aoSaida: (d) => mandar("neovim:saida", d),
+      aoSair: (c) => mandar("neovim:encerrou", c),
     });
   });
 
