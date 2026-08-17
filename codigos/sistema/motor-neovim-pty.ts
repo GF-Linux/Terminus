@@ -10,7 +10,7 @@ import * as path from "node:path";
 //!    terminal do sistema. A casca só transporta bytes.
 //! 3. Aqui HÁ PTY — a digitação vai para o Neovim e o cursor é dele. É o oposto
 //!    da tela do terminal da casca, que não tem PTY.
-//! 4. ⚠️ Exige node-pty compilado para o ABI do Electron (`npx electron-rebuild
+//! 4. Exige node-pty compilado para o ABI do Electron (`npx electron-rebuild
 //!    -f -w node-pty`). Sem compilador C++ na máquina, nada disto sobe.
 //! 5. `--listen <socket>` abre o canal de controle msgpack-RPC. Quem o usa é o
 //!    `controle-neovim-rpc.ts`.
