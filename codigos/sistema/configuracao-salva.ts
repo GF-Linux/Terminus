@@ -2,18 +2,15 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-/**
- * Configuração do Terminus: `~/.config/terminus/config.json`, com permissão
- * 0600.
- *
- * O que mora aqui é o que a **casca** guarda entre sessões — aparência, pastas
- * abertas antes, histórico da linha de comando. Configuração do editor não
- * passa por aqui: essa é do Neovim, em `~/.config/nvim`.
- *
- * Não é `localStorage` de propósito: caminho de projeto e linha de comando
- * digitada são dado sensível o bastante para merecer um arquivo com dono.
- */
-
+//? CONFIGURAÇÃO SALVA — Decisão sobre onde a casca guarda o que lembra 16/08/2026
+//!
+//! 1. O arquivo é `~/.config/terminus/config.json`, com permissão 0600.
+//! 2. Guarda o que a CASCA lembra entre sessões: aparência, pastas abertas
+//!    antes, histórico da linha de comando.
+//! 3. Configuração do editor NÃO passa por aqui — essa é do Neovim, em
+//!    `~/.config/nvim`, e a casca não finge ser dona dela.
+//! 4. Não é `localStorage` de propósito: caminho de projeto e comando digitado
+//!    são dado sensível o bastante para merecer arquivo com dono.
 const PASTA = path.join(os.homedir(), ".config", "terminus");
 const ARQUIVO = path.join(PASTA, "config.json");
 
@@ -89,6 +86,7 @@ const APARENCIA_PADRAO = {
 
 export type Aparencia = typeof APARENCIA_PADRAO;
 
+//* Lê a aparência gravada (tema, papel de parede, escurecimento, zoom).
 export function lerAparencia(): Aparencia {
   const a = ler().aparencia ?? {};
   return {
@@ -104,6 +102,7 @@ export function lerAparencia(): Aparencia {
   };
 }
 
+//* Grava só os campos de aparência que mudaram, mantendo o resto.
 export function gravarAparencia(parcial: Partial<Aparencia>): Aparencia {
   const c = ler();
   c.aparencia = { ...lerAparencia(), ...parcial };
@@ -111,7 +110,8 @@ export function gravarAparencia(parcial: Partial<Aparencia>): Aparencia {
   return lerAparencia();
 }
 
-/** A imagem em `data:` URL — o renderizador não tem acesso ao disco. */
+//* Lê a imagem de fundo e devolve como `data:` URL.
+//* É `data:` porque a interface não tem acesso ao disco (ver a ponte).
 export function lerWallpaper(): string | null {
   const caminho = lerAparencia().wallpaper;
   if (!caminho) return null;
@@ -124,6 +124,8 @@ export function lerWallpaper(): string | null {
   }
 }
 
+//* Copia a imagem escolhida para dentro de `~/.config/terminus`.
+//* Copiar, e não apontar: a imagem original pode ser apagada ou movida.
 export function guardarWallpaper(origem: string): Aparencia {
   fs.mkdirSync(PASTA, { recursive: true, mode: 0o700 });
   const destino = path.join(PASTA, `fundo${path.extname(origem).toLowerCase()}`);
@@ -135,6 +137,7 @@ export function guardarWallpaper(origem: string): Aparencia {
   return gravarAparencia({ wallpaper: destino });
 }
 
+//* Remove o papel de parede e apaga a cópia guardada.
 export function tirarWallpaper(): Aparencia {
   const atual = lerAparencia().wallpaper;
   if (atual) fs.rmSync(atual, { force: true });
@@ -159,6 +162,7 @@ export function tirarWallpaper(): Aparencia {
  */
 const MAX_RECENTES = 8;
 
+//* As pastas já abertas, da mais recente para a mais antiga.
 export function pastasRecentes(): string[] {
   return (ler().pastas ?? []).filter((p) => {
     try {
@@ -169,11 +173,12 @@ export function pastasRecentes(): string[] {
   });
 }
 
-/** A pasta a reabrir sozinha: a última que foi aberta e ainda existe. */
+//* A última pasta aberta — é ela que o Terminus reabre sozinho.
 export function ultimaPasta(): string | null {
   return pastasRecentes()[0] ?? null;
 }
 
+//* Põe uma pasta no topo da lista de recentes, sem repetir.
 export function registrarPasta(raiz: string): void {
   const c = ler();
   const antes = (c.pastas ?? []).filter((p) => p !== raiz);
@@ -181,7 +186,7 @@ export function registrarPasta(raiz: string): void {
   gravar(c);
 }
 
-/** Tira uma pasta da lista — o "esquecer" do menu de contexto do recente. */
+//* Tira uma pasta da lista de recentes. NÃO toca no disco.
 export function esquecerPasta(raiz: string): void {
   const c = ler();
   c.pastas = (c.pastas ?? []).filter((p) => p !== raiz);
@@ -203,10 +208,12 @@ export function esquecerPasta(raiz: string): void {
  */
 const MAX_COMANDOS = 200;
 
+//* O histórico da linha de comando, do mais recente para o mais antigo.
 export function comandosRecentes(): string[] {
   return ler().comandos ?? [];
 }
 
+//* Guarda uma linha digitada no histórico.
 export function registrarComando(linha: string): void {
   const c = ler();
   const antes = (c.comandos ?? []).filter((x) => x !== linha);
@@ -214,6 +221,7 @@ export function registrarComando(linha: string): void {
   gravar(c);
 }
 
+//* Apaga o histórico da linha de comando.
 export function esquecerComandos(): void {
   const c = ler();
   delete c.comandos;

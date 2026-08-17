@@ -3,7 +3,7 @@ import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EventoExecucao, ProjetoAberto, Resultado } from "../shared/tipos.js";
+import type { EventoExecucao, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
 import {
   comandosRecentes,
   esquecerComandos,
@@ -18,15 +18,15 @@ import {
   registrarPasta,
   registrarComando,
   ultimaPasta,
-} from "./config.js";
-import { analisar, destinoDoCd } from "./comando.js";
-import { estaRodando, pararScript, pararTudo, rodarComando } from "./execucao.js";
+} from "./configuracao-salva.js";
+import { analisar, destinoDoCd } from "./triagem-de-comando.js";
+import { estaRodando, pararScript, pararTudo, rodarComando } from "./executor-de-comando.js";
 import {
   enviarNeovim,
   iniciarNeovim,
   pararNeovim,
   redimensionarNeovim,
-} from "./neovim.js";
+} from "./motor-neovim-pty.js";
 import {
   abrirNoNeovim,
   abrirTerminalNeovim,
@@ -36,7 +36,7 @@ import {
   refazerNeovim,
   resetarControle,
   salvarNeovim,
-} from "./controle.js";
+} from "./controle-neovim-rpc.js";
 import {
   abrirProjeto,
   criarArquivo,
@@ -47,7 +47,7 @@ import {
   listar,
   listarTudo,
   renomear,
-} from "./projeto.js";
+} from "./arquivos-do-projeto.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,13 +59,9 @@ const RAIZ_APP = app.isPackaged
 
 let janela: BrowserWindow | null = null;
 
-/**
- * Pasta passada na linha de comando: `bancada ~/corridas/18S`.
- *
- * Em desenvolvimento o Electron recebe o script como primeiro argumento, então o
- * candidato é o segundo; empacotado, é o primeiro. Só vale se for pasta que
- * existe — argumento inválido não deve impedir a janela de abrir.
- */
+//* A pasta passada no comando: `terminus ~/projetos/x`.
+//! Em desenvolvimento o próprio diretório do app aparece nos argumentos
+//!   (`electron .`) e é descartado — senão o Terminus abriria a si mesmo.
 function pastaDaLinhaDeComando(): string | null {
   const args = process.argv.slice(app.isPackaged ? 1 : 2);
   // Em desenvolvimento o próprio diretório do aplicativo aparece entre os
@@ -101,6 +97,7 @@ let raizAberta: string | null = null;
  */
 let pastaDoComando: string | null = null;
 
+//* Assume uma pasta como projeto: registra nos recentes e aponta o Neovim.
 async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
   // A leitura da pasta vem primeiro: se ela não existe mais, o erro sobe e a
   // pasta some da lista em vez de ser registrada de novo.
@@ -113,14 +110,9 @@ async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
   return projeto;
 }
 
-/**
- * Recusa apagar a própria pasta de trabalho, ou qualquer pasta acima dela.
- *
- * Trava do lado de cá **de propósito** (ADR 0013): a interface já deixou de
- * oferecer "Excluir" para a raiz, mas isso é uma tela — e uma tela pode voltar a
- * errar. Apagar a pasta aberta é o tipo de acidente que leva junto o trabalho do
- * dia inteiro, então o processo principal também diz não.
- */
+//* Recusa apagar a pasta aberta, ou qualquer pasta acima dela.
+//! A trava fica AQUI, e não só na tela: tela pode voltar a errar, e apagar a
+//!   pasta aberta leva o trabalho do dia inteiro.
 function protegerPastaDeTrabalho(alvo: string): void {
   if (!raizAberta) return;
   const raiz = path.resolve(raizAberta);
@@ -133,25 +125,9 @@ function protegerPastaDeTrabalho(alvo: string): void {
   }
 }
 
-/**
- * A lixeira do sistema alcança este caminho?
- *
- * **Isto existe porque o `shell.trashItem` do Electron mente.** Fora do disco
- * onde a lixeira mora, ele **não** falha: apaga o arquivo de vez e devolve
- * sucesso. O `gio trash`, no mesmo arquivo, recusa com "Trashing on system
- * internal mounts is not supported" — foi assim que a diferença apareceu.
- * Verificado apagando um arquivo em `/tmp`: sumiu do disco e não estava em
- * lixeira nenhuma.
- *
- * Isso importa muito aqui: corrida de sequenciamento chega no laboratório em
- * **pendrive**, e o Terminus prometia na tela que dava para recuperar da lixeira.
- * Promessa falsa sobre arquivo insubstituível é pior que não ter o botão.
- *
- * O teste é o do próprio padrão XDG: a lixeira do usuário vive no disco da pasta
- * pessoal; em qualquer outro dispositivo ela só existe se aquele disco tiver a
- * própria pasta de lixeira. Comparar o número do dispositivo responde isso sem
- * depender de ferramenta externa.
- */
+//* Diz se a lixeira do sistema alcança este caminho.
+//! Existe porque o `shell.trashItem` do Electron MENTE: fora do disco de casa
+//!   ele apaga de vez e devolve sucesso. A tela prometia recuperação.
 function aLixeiraAlcanca(alvo: string): boolean {
   try {
     return statSync(alvo).dev === statSync(app.getPath("home")).dev;
@@ -160,26 +136,9 @@ function aLixeiraAlcanca(alvo: string): boolean {
   }
 }
 
-/**
- * `Ctrl +`, `Ctrl -` e `Ctrl 0` aumentam, diminuem e voltam ao tamanho natural.
- *
- * **Isto não existia** — descoberto em 08/08, quando o autor perguntou como
- * aumentaria a tela. A janela é `frame: false` (ADR 0003), então não há barra de
- * menu, e é da barra de menu que vinham os atalhos de zoom que todo aplicativo
- * Electron ganha de graça. Ninguém tinha reparado porque quem escreveu a casca
- * enxerga bem a 1340×820.
- *
- * **No processo principal, e não num `keymap` do CodeMirror**, de propósito: a
- * pessoa pode estar com o foco no terminal, no editor ou na
- * árvore de arquivos, e "a letra está pequena" não é um problema do editor — é
- * da janela. O `before-input-event` chega antes de qualquer campo da interface.
- *
- * Os três nomes de tecla do aumentar não são zelo: `=` é o que o teclado manda
- * quando se aperta `Ctrl` e a tecla do `+` sem `Shift`, `+` é o do teclado
- * numérico e o do ABNT2, e `Shift+=` é o de layouts onde o `+` exige `Shift`.
- * Escolher um só faria o atalho funcionar em alguns teclados e não em outros —
- * e este é o teclado ABNT2 de quem pediu.
- */
+//* Liga Ctrl+= , Ctrl+- e Ctrl+0 para o tamanho da janela inteira.
+//! Fica no processo principal, e não no editor: "a letra está pequena" é
+//!   problema da janela, e vale com o foco em qualquer painel.
 function ligarZoom(alvo: BrowserWindow): void {
   const LIMITE_MIN = 0.6;
   const LIMITE_MAX = 2.5;
@@ -210,19 +169,9 @@ function ligarZoom(alvo: BrowserWindow): void {
   });
 }
 
-/**
- * Os atalhos que a casca é dona (ADR 0025), interceptados **antes** de virarem
- * tecla no Neovim.
- *
- * O porquê de interceptar em vez de deixar passar: o LazyVim mapeia `<C-s>` como
- * `<Esc>:w`, que grava mas **joga a pessoa para fora do modo de escrita**. A
- * casca captura o Ctrl+S aqui, chama o `write` por RPC (que não mexe no modo) e
- * `preventDefault` para o Neovim nunca ver a tecla. O resto do teclado — todos os
- * outros `Ctrl+…` que o Neovim usa — continua fluindo direto para ele.
- *
- * `before-input-event` é o mesmo lugar do zoom: chega antes de qualquer campo da
- * interface, então vale com o foco no editor, na árvore ou na conversa.
- */
+//* Os atalhos que a CASCA é dona: Ctrl+S, Ctrl+Z, Ctrl+Shift+Z e Ctrl+crase.
+//! Intercepta ANTES de virar tecla no Neovim. O LazyVim mapeia `<C-s>` como
+//!   `<Esc>:w`, que grava e joga a pessoa para fora do modo de escrita.
 function ligarAtalhosNeovim(alvo: BrowserWindow): void {
   alvo.webContents.on("before-input-event", (evento, entrada) => {
     if (entrada.type !== "keyDown" || !entrada.control || entrada.alt || entrada.meta) return;
@@ -243,6 +192,7 @@ function ligarAtalhosNeovim(alvo: BrowserWindow): void {
   });
 }
 
+//* Cria a janela do Terminus, sem moldura, e liga os atalhos dela.
 function criarJanela(): void {
   janela = new BrowserWindow({
     width: 1340,
@@ -304,34 +254,21 @@ function criarJanela(): void {
   if (process.env["ELECTRON_RENDERER_URL"]) {
     void janela.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    void janela.loadFile(path.join(__dirname_, "..", "renderer", "index.html"));
+    void janela.loadFile(path.join(__dirname_, "..", "renderer", "interface", "pagina.html"));
   }
 }
 
-/**
- * A raiz que o processo principal aceita **escrever**: a pasta que o usuário
- * abriu, e só ela. A instalação do Terminus fica de fora — o app não edita o
- * próprio código.
- *
- * Todas são registradas **aqui**, nunca recebidas de quem chama. É essa a
- * diferença para o `dentroDe` de `projeto.ts`, que confia na raiz que o
- * chamador passa junto — quem controla o argumento controla a checagem.
- */
+//* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
 function raizesDeEscrita(): string[] {
   return raizAberta ? [path.resolve(raizAberta)] : [];
 }
 
 
-/**
- * Resolve o caminho e exige que ele caia dentro de uma das raízes dadas.
- * Devolve o caminho já resolvido — use o retorno, não o argumento original, ou
- * a checagem não serve de nada.
- *
- * Os links simbólicos são resolvidos de propósito: sem isso, uma pasta de
- * corrida que traga `resultados.csv` apontando para `~/.bashrc` passaria na
- * comparação de texto e escreveria fora do projeto. Quando o arquivo ainda não
- * existe — gravar cria — resolve-se o diretório pai, que tem de existir.
- */
+//* Resolve um caminho e exige que ele caia dentro das raízes permitidas.
+//! Resolve link simbólico de propósito: sem isso, um atalho dentro do projeto
+//!   apontando para `~/.bashrc` passaria na comparação de texto.
+//! Recusa caminho que começa com `-` ANTES de resolver: viraria opção do
+//!   programa que o recebe.
 function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
   if (typeof alvo !== "string" || alvo.length === 0 || alvo.includes("\0")) {
     throw new Error(`O ${oQue} não é válido.`);
@@ -359,8 +296,7 @@ function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
   );
 }
 
-/** Embrulha um handler para que uma exceção vire erro exibível, não uma
- *  promessa rejeitada silenciosa do outro lado da ponte. */
+//* Embrulha um handler para que exceção vire erro exibível, não promessa perdida.
 function seguro<A extends unknown[], T>(
   fn: (...args: A) => Promise<T> | T,
 ): (...args: A) => Promise<Resultado<T>> {

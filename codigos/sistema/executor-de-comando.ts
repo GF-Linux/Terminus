@@ -2,37 +2,21 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
-import type { EventoExecucao } from "../shared/tipos.js";
-import { acharPython } from "./ambiente.js";
+import type { EventoExecucao } from "../compartilhado/tipos.js";
+import { acharPython } from "./localizador-do-python.js";
 
-/**
- * Executa o script aberto e transmite a saída real.
- *
- * **Sem PTY, e isso é uma escolha forçada.** node-pty é módulo nativo e exige
- * compilar contra o ABI do Electron; a máquina de desenvolvimento (SteamOS) não
- * tem gcc nem make e tem a raiz somente-leitura. Então a saída vem de canos
- * comuns, com `-u` para o Python não bufferizar.
- *
- * O que se perde: programas que checam `isatty` se comportam como se estivessem
- * redirecionados (sem cor, sem barra de progresso reescrevendo a linha), e não há
- * entrada interativa — `input()` trava. Para o caso de uso real, que é rodar um
- * script de análise e ver o stdout, isso basta. Se um dia entrada interativa for
- * necessária, é aqui que node-pty entra, e o requisito passa a ser toolchain nativo.
- *
- * Desde a ADR 0020 este módulo também roda a **linha de comando** digitada no
- * terminal (`rodarComando`). O ▶ e essa linha dividem o mesmo lugar de processo
- * de propósito: um processo por vez significa que o quadrado de parar sempre
- * sabe quem matar, e que a saída no terminal nunca é a mistura de dois programas.
- *
- * ## Dois lugares, desde a ADR 0022
- *
- * O terminal do chat é o **segundo** lugar, e separado por necessidade: quem
- * chama `verboo -p` espera um minuto por uma resposta, e com um lugar só isso
- * deixaria o ▶ desabilitado esse tempo todo — rodar o script enquanto se espera
- * a opinião do modelo é justamente o que se quer poder fazer. Cada lugar tem o
- * seu botão de parar, então a regra "o parar sabe quem matar" continua de pé.
- */
-
+//? EXECUTOR DE COMANDO — Decisão sobre rodar sem PTY 29/07/2026
+//!
+//! 1. A saída vem de canos comuns, não de PTY. node-pty exige compilador
+//!    nativo, e a máquina onde isto nasceu (SteamOS) não tinha.
+//! 2. O que se perde: programa que checa `isatty` não colore a saída, e não há
+//!    entrada interativa — `input()` trava.
+//! 3. `-u` e `PYTHONUNBUFFERED=1` porque sem tty o Python segura o `print` até
+//!    encher o balde, e um `print` antes de um `sleep` longo não aparecia.
+//! 4. UM processo por vez, de propósito: o quadrado de parar sempre sabe quem
+//!    matar, e a saída nunca é a mistura de dois programas.
+//! 5. ⚠️ O motor de edição É outro caminho — esse tem PTY, e mora em
+//!    `motor-neovim-pty.ts`. Aqui é só a linha de comando da casca.
 /**
  * As pastas de binário do usuário que a sessão gráfica **não** tem no PATH.
  *
@@ -83,10 +67,14 @@ const LUGAR: Record<"editor", Lugar> = {
 
 export type Painel = keyof typeof LUGAR;
 
+//* Diz se há um programa em execução agora.
 export function estaRodando(painel: Painel = "editor"): boolean {
   return LUGAR[painel].filho !== null;
 }
 
+//* Roda um script Python e transmite a saída, linha a linha, para a tela.
+//! `-u` e `PYTHONUNBUFFERED=1`: sem tty o Python segura o `print` até encher o
+//!   balde, e um `print` antes de um `sleep` longo não aparecia.
 export function rodarScript(
   arquivo: string,
   emitir: (evento: EventoExecucao) => void,
@@ -138,19 +126,9 @@ export function rodarScript(
   });
 }
 
-/**
- * Roda a linha digitada no terminal (ADR 0020).
- *
- * Diferenças em relação a `rodarScript`, todas deliberadas:
- *
- * - `cwd` é a pasta atual do terminal, que o `cd` move — não a pasta do arquivo
- *   aberto. `pip install` não tem arquivo aberto nenhum.
- * - o `PATH` recebe na frente a pasta do interpretador do laboratório, para que
- *   o `pip` e o interpretador sejam **os do ambiente que a barra de
- *   estado anuncia**, e não homônimos do sistema.
- * - `shell: false` continua valendo. `programa` e `args` já vieram separados por
- *   `comando.ts`; nada aqui é reinterpretado como linha de texto.
- */
+//* Roda o que a pessoa digitou na linha de comando, com o PATH da sessão.
+//! `shell: false`: o programa recebe argumentos separados, e nada de texto é
+//!   reinterpretado por um shell.
 export function rodarComando(
   programa: string,
   args: string[],
@@ -229,6 +207,7 @@ export function rodarComando(
   });
 }
 
+//* Mata o que está rodando neste lugar de processo.
 export function pararScript(painel: Painel = "editor"): void {
   const lugar = LUGAR[painel];
   const alvo = lugar.filho;
@@ -241,7 +220,7 @@ export function pararScript(painel: Painel = "editor"): void {
   }, 3000);
 }
 
-/** Mata tudo o que estiver vivo — o encerramento do aplicativo. */
+//* Mata tudo o que estiver rodando. Usado quando a janela fecha.
 export function pararTudo(): void {
   for (const painel of Object.keys(LUGAR) as Painel[]) pararScript(painel);
 }

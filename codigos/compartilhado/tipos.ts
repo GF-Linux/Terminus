@@ -1,11 +1,8 @@
-/**
- * Tipos compartilhados entre o processo principal, o preload e a interface.
- *
- * Este é o único arquivo importado pelos três lados. Nada aqui pode depender de
- * `electron`, de `node:*` ou do DOM — só descrever a forma dos dados que
- * atravessam a ponte de IPC.
- */
-
+//? TIPOS COMPARTILHADOS — Decisão sobre o que atravessa a ponte 29/07/2026
+//!
+//! 1. É o único arquivo importado pelos três lados (sistema, ponte, interface).
+//! 2. ⚠️ Nada aqui pode depender de `electron`, de `node:*` ou do DOM. Só
+//!    descreve a FORMA dos dados que atravessam a ponte de IPC.
 /** Um nó da árvore de arquivos do projeto aberto. */
 export interface NoArquivo {
   nome: string;

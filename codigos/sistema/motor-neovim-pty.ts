@@ -3,24 +3,17 @@ import { rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import * as path from "node:path";
 
-/**
- * O motor de edição passa a ser o Neovim (ADR 0025).
- *
- * Ele nasce dentro de um pseudo-terminal (node-pty): o `nvim` de verdade se
- * desenha sozinho — cores, plugins, LazyVim, Copilot, tudo funciona como no
- * terminal do sistema — e a casca só transporta bytes entre ele e o xterm do
- * renderizador. É o oposto do `TerminalSaida`, que era tela sem PTY; aqui há
- * PTY, então a digitação vai para o Neovim e o cursor é dele.
- *
- * **Isto exige node-pty compilado para o ABI do Electron** (`electron-rebuild`).
- * Na máquina do Deck isso era impossível (sem gcc); no Jared-Linux (Fedora) o
- * compilador existe. É a razão técnica de a virada morar nesta máquina.
- *
- * `--listen <socket>` abre um canal msgpack-RPC de controle para a próxima fatia:
- * é por ali que o Explorer clicável vai mandar `:edit` e o Ctrl+S da casca vai
- * virar `:w`. Inerte enquanto ninguém conecta.
- */
-
+//? MOTOR NEOVIM (PTY) — Decisão sobre o motor de edição 16/08/2026
+//!
+//! 1. O editor do Terminus é o Neovim de verdade, num pseudo-terminal (node-pty).
+//! 2. Ele se desenha sozinho: cores, plugins, LazyVim e Copilot funcionam como no
+//!    terminal do sistema. A casca só transporta bytes.
+//! 3. Aqui HÁ PTY — a digitação vai para o Neovim e o cursor é dele. É o oposto
+//!    da tela do terminal da casca, que não tem PTY.
+//! 4. ⚠️ Exige node-pty compilado para o ABI do Electron (`npx electron-rebuild
+//!    -f -w node-pty`). Sem compilador C++ na máquina, nada disto sobe.
+//! 5. `--listen <socket>` abre o canal de controle msgpack-RPC. Quem o usa é o
+//!    `controle-neovim-rpc.ts`.
 /** O socket de controle do Neovim desta sessão (Fatia 2). */
 export const SOCKET_NEOVIM = path.join(tmpdir(), "terminus-nvim.sock");
 
@@ -37,6 +30,10 @@ export interface OpcoesNeovim {
   aoSair: (codigo: number) => void;
 }
 
+//* Sobe o Neovim dentro de um pseudo-terminal, na pasta pedida.
+//! Mata o anterior antes: um Neovim por janela, senão dois disputam o socket.
+//! Apaga o socket velho — `nvim --listen` RECUSA subir se o arquivo já existe,
+//!   e um resto de sessão travada deixaria o editor sem abrir, sem dizer por quê.
 export function iniciarNeovim(op: OpcoesNeovim): void {
   pararNeovim();
 
@@ -77,20 +74,23 @@ export function iniciarNeovim(op: OpcoesNeovim): void {
   });
 }
 
-/** Digitação da pessoa (e sequências de controle do xterm) rumo ao Neovim. */
+//* Manda a digitação da pessoa (e as teclas de controle) para o Neovim.
 export function enviarNeovim(dados: string): void {
   proc?.write(dados);
 }
 
+//* Avisa o Neovim que a área mudou de tamanho, em colunas e linhas.
 export function redimensionarNeovim(cols: number, rows: number): void {
   if (proc && cols > 0 && rows > 0) proc.resize(cols, rows);
 }
 
+//* Mata o Neovim desta janela.
 export function pararNeovim(): void {
   proc?.kill();
   proc = null;
 }
 
+//* Diz se há um Neovim vivo agora.
 export function neovimRodando(): boolean {
   return proc !== null;
 }

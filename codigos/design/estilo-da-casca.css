@@ -223,7 +223,7 @@ button:disabled{opacity:.35; cursor:default}
    corte não dar degrau. */
 #neovimHost{flex:1; min-height:0; overflow:hidden;
   background-color:#14161f;
-  background-image:url("../../../media/fundo-jared-v2b.png");
+  background-image:url("../../media/fundo-jared-v2b.png");
   background-size:cover; background-position:right center; background-repeat:no-repeat}
 #neovimHost .xterm, #neovimHost .xterm-viewport{background:transparent !important}
 #neovimHost .xterm{height:100%; padding:4px 0 4px 8px}

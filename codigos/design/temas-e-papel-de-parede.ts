@@ -1,22 +1,16 @@
-import type { EstadoAparencia } from "../../shared/tipos.js";
-import { FundoAnimado, type Junta } from "./fundo.js";
+import type { EstadoAparencia } from "../compartilhado/tipos.js";
+import { FundoAnimado, type Junta } from "./reprodutor-de-papel-de-parede.js";
 
-/**
- * Wallpaper e tema (ADR 0010).
- *
- * O Terminus tem uma regra dura desde a ADR 0005: a casca é monocromática **para
- * que** o código seja o mais legível da tela. Papel de
- * parede é exatamente o tipo de coisa que quebra isso — então ele entra com três
- * limites, e os três são a decisão, não detalhe:
- *
- * 1. só aparece **atrás do editor**. Nunca atrás da
- *    árvore, do terminal ou das abas;
- * 2. nasce escurecido em 82 % e com um desfoque leve. Dá para clarear, mas o
- *    padrão protege o dado;
- * 3. o tema gerado a partir da imagem tem o brilho do fundo **preso** no escuro,
- *    e nunca toca nas quatro bases.
- */
-
+//? TEMAS E PAPEL DE PAREDE — Decisão sobre o fundo atrás do editor 01/08/2026
+//!
+//! 1. A casca é monocromática PARA QUE o código seja o mais legível da tela.
+//!    Papel de parede é exatamente o que quebra isso — então entra com limites.
+//! 2. Só aparece ATRÁS DO EDITOR. Nunca atrás da árvore, do terminal ou das
+//!    barras.
+//! 3. Nasce escurecido em 82% e com desfoque leve. Dá para clarear, mas o padrão
+//!    protege a leitura.
+//! 4. O tema gerado a partir da imagem tem o brilho do fundo PRESO no escuro:
+//!    uma foto clara não pode virar um editor claro.
 /** As cores que um tema pode trocar. As bases A/C/G/T não estão aqui de propósito. */
 const CHAVES = [
   "chrome",
