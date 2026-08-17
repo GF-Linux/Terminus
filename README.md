@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.4.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.5.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -218,7 +218,7 @@ src/renderer/   a casca: árvore, terminal, plugins, temas
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.4 ainda quer dizer isso:
+Lista honesta, porque v0.0.5 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -251,6 +251,13 @@ Lista honesta, porque v0.0.4 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.5 — 17/08/2026
+
+1. **A escrita ganhou contraste.** A área de edição mostrava o papel de parede
+   em cheio, sem nada entre a figura e o texto — a única área da casca sem véu.
+   Era isso que deixava o código com cara de apagado. Agora tem véu, como o
+   resto: a figura continua lá, atrás, e o texto fica na frente.
 
 ### v0.0.4 — 17/08/2026
 
