@@ -56,7 +56,7 @@ nativo).
 # Fedora
 sudo dnf install -y neovim nodejs gcc-c++ make
 
-git clone <este-repositório> terminus
+git clone git@github.com:GF-Linux/Terminus.git terminus
 cd terminus
 npm install
 npx electron-rebuild -f -w node-pty   # compila o node-pty para o ABI do Electron
