@@ -17,7 +17,13 @@ export default defineConfig({
   renderer: {
     root: resolve("codigos"),
     build: {
-      rollupOptions: { input: { index: resolve("codigos/interface/pagina.html") } },
+      rollupOptions: {
+        input: {
+          index: resolve("codigos/interface/pagina.html"),
+          // A segunda janela (ADR 0031). Página própria, entrada própria.
+          terminal: resolve("codigos/interface/pagina-do-terminal.html"),
+        },
+      },
     },
   },
 });

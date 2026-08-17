@@ -12,15 +12,31 @@
 
 <div class="ide">
 
-  <!-- P1.2 — barra de título limpa: só os controles em círculo, sem menu. -->
+  <!-- Barra de título (ADR 0027): o fluxo à esquerda, os controles da janela na
+       outra ponta. Os círculos saíram do canto esquerdo — ali fica o que se usa,
+       não o que fecha o aplicativo. -->
   <div class="tbar" id="tbar">
+    <button class="fluxo" id="btFluxo" title="Linguagem do trabalho — clique para começar um projeto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 8h16M4 16h16"/></svg>
+      <span id="rotuloFluxo">Fluxo</span>
+    </button>
+    <!-- Rodar (ADR 0030): uma linha só, escolhida olhando a pasta. Nasce
+         desligado, e acende quando o fluxo é conhecido. -->
+    <button class="fluxo rodar" id="btRodar" disabled title="Rodar este projeto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5l12 7.5-12 7.5z"/></svg>
+      <span>Rodar</span>
+    </button>
+    <div class="doc" id="tituloDoc">Terminus</div>
     <div class="lights">
-      <button class="c1" id="btFechar" title="Fechar"></button>
       <button class="c2" id="btMinimizar" title="Minimizar"></button>
       <button class="c3" id="btMaximizar" title="Maximizar"></button>
+      <button class="c1" id="btFechar" title="Fechar"></button>
     </div>
-    <div class="doc" id="tituloDoc">Terminus</div>
   </div>
+
+  <!-- Menu do fluxo. Separado do #menu da árvore de propósito: aquele carrega
+       o caminho clicado em data-alvo, e este não tem alvo nenhum. -->
+  <div class="menu oculto" id="menuFluxo"></div>
 
   <div class="main">
 
@@ -74,6 +90,7 @@
           <button id="btDocaBaixo" class="doca" title="Terminal no rodapé">&#9601;</button>
           <button id="btDocaDireita" class="doca" title="Terminal à direita">&#9621;</button>
           <button id="btDocaEsquerda" class="doca" title="Terminal à esquerda">&#9615;</button>
+          <button id="btSoltarTerminal" title="Terminal em janela própria">&#8599;</button>
           <button id="btParar" title="Parar" disabled>&#9632;</button>
           <button id="btLimpar" title="Limpar">&#9645;</button>
           <button id="btFecharPainel" title="Fechar painel">&#10005;</button>

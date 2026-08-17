@@ -379,6 +379,18 @@ export async function assumirProjeto(p: ProjetoAberto): Promise<void> {
   // O terminal volta para a raiz junto: seguir digitando dentro da corrida
   // anterior seria o engano mais fácil de cometer e mais difícil de notar.
   await sincronizarPastaCmd();
+  avisarQueTrocou();
+}
+
+/**
+ * Avisa o resto da casca que a pasta aberta é outra (ADR 0027).
+ *
+ * É um evento e não uma chamada porque quem escuta — o chip de fluxo da barra —
+ * precisa abrir projeto, e abrir projeto é daqui. Chamar de volta fecharia um
+ * ciclo entre os dois módulos; o evento deixa a seta apontando só para um lado.
+ */
+function avisarQueTrocou(): void {
+  window.dispatchEvent(new CustomEvent("terminus:projeto-trocou"));
 }
 
 //* Abre o diálogo do sistema para escolher a pasta.
@@ -401,6 +413,7 @@ export function fecharProjeto(): void {
   avisar(`${nome ?? "pasta"} fechada — nada foi apagado`);
   // O prompt mostrava o nome da pasta; sem ela, mostra o caminho de verdade.
   pintarPrompt();
+  avisarQueTrocou();
 }
 
 //* Abre uma pasta da lista de recentes, sem passar pelo diálogo.

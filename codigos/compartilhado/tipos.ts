@@ -18,6 +18,28 @@ export interface ProjetoAberto {
   filhos: NoArquivo[];
 }
 
+/**
+ * A linguagem do trabalho aberto (ADR 0027).
+ *
+ * Existe porque o botão de fluxo precisa dizer para o Terminus o que está sendo
+ * escrito — e não só criar arquivo e sumir. É o que a barra de título mostra.
+ */
+export type Fluxo = "cpp" | "python" | "csharp";
+
+/** O que volta do botão Rodar (ADR 0030): a linha, e por que é essa. */
+export interface ComoRodar {
+  linha: string;
+  porque: string;
+}
+
+/** O que volta de "Novo projeto": a pasta já aberta e o arquivo para editar. */
+export interface ProjetoNovo {
+  projeto: ProjetoAberto;
+  /** Caminho absoluto do `main.cpp` / `main.py` — a casca já abre este. */
+  principal: string;
+  fluxo: Fluxo;
+}
+
 /** Eventos que o processo principal empurra para a interface. */
 export type EventoExecucao =
   | { tipo: "saida"; texto: string }

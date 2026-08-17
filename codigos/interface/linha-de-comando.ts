@@ -1,7 +1,29 @@
 //! A linha de comando do terminal. Sem shell: o que se digita vira programa e
 //! argumentos separados, e metacaractere é recusado com explicação.
 
-import { $, api, estado, terminal } from "./nucleo-da-casca.js";
+import type { ProjetoAberto } from "../compartilhado/tipos.js";
+import { $, api } from "./base-da-tela.js";
+import type { TerminalSaida } from "./tela-do-terminal.js";
+
+//? POR QUE ESTE MÓDULO NÃO IMPORTA MAIS A CASCA (ADR 0031)
+//!
+//! 1. A mesma linha de comando roda em DUAS janelas: a casca, e o terminal
+//!    solto. Importar `nucleo-da-casca.js` traria o Neovim junto, e um segundo
+//!    Neovim brigaria pelo socket do primeiro.
+//! 2. Então as duas coisas que vinham de lá — a tela onde escrever e qual é a
+//!    pasta aberta — passam a ENTRAR por `ligarLinhaDeComando`.
+//! 3. A pasta entra como FUNÇÃO, e não como valor: ela muda quando se abre
+//!    outra pasta, e um valor copiado na partida ficaria velho no prompt.
+let terminal!: TerminalSaida;
+let projetoAberto: () => ProjetoAberto | null = () => null;
+
+export function ligarLinhaDeComando(
+  tela: TerminalSaida,
+  projeto: () => ProjetoAberto | null = () => null,
+): void {
+  terminal = tela;
+  projetoAberto = projeto;
+}
 
 
 /**
@@ -23,6 +45,49 @@ export function definirRodando(v: boolean): void {
   // ele o Ctrl+C que interrompe o que está rodando.
   $("linhaCmd").classList.toggle("ocupada", v);
 }
+
+//? A SAÍDA DO PROCESSO — Decisão sobre o terminal que travava 17/08/2026
+//!
+//! 1. O processo principal empurra tudo por `exec:evento`: o que o programa
+//!    escreve, o erro dele, e o FIM. Depois da virada da ADR 0025, ninguém na
+//!    interface assinava esse evento — a assinatura saiu junto com o ▶ do editor
+//!    antigo e não foi religada aqui.
+//! 2. Consequência medida: `definirRodando(false)` só existia na partida. A
+//!    PRIMEIRA linha que nascesse um processo deixava a trava ligada para
+//!    sempre, e da segunda em diante toda linha ouvia "há algo rodando — pare
+//!    antes". O ■ também não soltava: ele manda parar, mas quem desliga a trava
+//!    é o "fim", que não chegava.
+//! 3. E a saída do programa não aparecia na tela, pelo mesmo motivo.
+//! 4. Um defeito só, com duas caras. Por isso a correção é uma assinatura só.
+api.aoExecutar((e) => {
+  switch (e.tipo) {
+    case "saida":
+      terminal.escrever(e.texto);
+      break;
+    case "erro":
+      terminal.erro(e.texto);
+      break;
+    case "falha":
+      //! Falha é o processo que nem chegou a nascer (programa que não existe,
+      //! sem permissão). Solta a trava: não há o que parar.
+      terminal.erro(`${e.mensagem}\r\n`);
+      definirRodando(false);
+      break;
+    case "fim":
+      //! Código 0 não vira linha na tela: o comum não merece recado. O que é
+      //! maior que 0, e o sinal que matou, viram — senão o programa morre em
+      //! silêncio e parece que rodou.
+      //! Código NEGATIVO também não vira: é o errno de um processo que nem
+      //! nasceu, e o "falha" logo acima já disse a frase certa. Medido: um
+      //! comando que não existe mostrava "comando não encontrado" e, na linha
+      //! seguinte, "saiu com código -2" — o mesmo fato contado duas vezes, a
+      //! segunda em número que não quer dizer nada para quem lê.
+      if (e.sinal) terminal.nota(`interrompido (${e.sinal})`);
+      else if (e.codigo !== null && e.codigo > 0) terminal.nota(`saiu com código ${e.codigo}`);
+      definirRodando(false);
+      break;
+  }
+});
 
 /**
  * O terminal deixou de ser só tela.
@@ -54,9 +119,10 @@ let rascunhoCmd = "";
 //* O nome curto da pasta atual, para o prompt.
 export function rotuloDaPasta(): string {
   if (!pastaCmd) return "~";
-  if (estado.projeto && (pastaCmd === estado.projeto.raiz || pastaCmd.startsWith(estado.projeto.raiz + "/"))) {
-    const dentro = pastaCmd.slice(estado.projeto.raiz.length).replace(/^\//, "");
-    return dentro ? `${estado.projeto.nome}/${dentro}` : estado.projeto.nome;
+  const projeto = projetoAberto();
+  if (projeto && (pastaCmd === projeto.raiz || pastaCmd.startsWith(projeto.raiz + "/"))) {
+    const dentro = pastaCmd.slice(projeto.raiz.length).replace(/^\//, "");
+    return dentro ? `${projeto.nome}/${dentro}` : projeto.nome;
   }
   // Fora da pasta aberta o nome curto mentiria sobre onde o comando vai rodar.
   return pastaCmd.replace(/^\/home\/[^/]+/, "~");
