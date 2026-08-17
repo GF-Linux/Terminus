@@ -43,22 +43,7 @@ export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };
 
 /* ----------------------------- language server ---------------------------- */
 
-/* ------------------------------- cromatograma ----------------------------- */
-
 /* ------------------------------ texto fantasma ---------------------------- */
-
-/* -------------------------------- trilha ---------------------------------- */
-
-/**
- * Quantas vezes o exercício foi feito, quando foi a última e em que roupas.
- *
- * Não é "concluído": repetir é o método, não fracasso (ADR 0016).
- */
-export interface RegistroTrilha {
-  vezes: number;
-  ultima: string;
-  roupas: string[];
-}
 
 /* ------------------------------ aparência --------------------------------- */
 
@@ -77,8 +62,6 @@ export interface EstadoAparencia {
   /** Zoom da janela inteira, como fator. 1 é o tamanho natural. */
   zoom: number;
 }
-
-/* ------------------------------- mascote ---------------------------------- */
 
 /**
  * Um plugin do Neovim, como o lazy.nvim o descreve (ADR 0025).

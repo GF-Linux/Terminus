@@ -15,7 +15,7 @@ import { acharPython } from "./ambiente.js";
  * reinterpretar. Consequência: `|`, `>`, `&&` e afins não têm efeito e são
  * recusados com explicação, em vez de virarem argumento literal e produzirem um
  * erro sem sentido (`ls: não é possível acessar '|'`). Quem realmente precisa de
- * pipe pede um shell por escrito: `bash -c "ls | grep .ab1"`.
+ * pipe pede um shell por escrito: `bash -c "ls | grep .py"`.
  *
  * **Não há PTY** (node-pty é módulo nativo e este Deck não tem gcc/make; ver
  * `execucao.ts`). Programa que espera digitação não trava o Terminus, mas trava a
@@ -181,8 +181,8 @@ const SO_RESPONDE = /^(-v|--version|-h|--help|--list-models|--doctor)$/;
 /**
  * Expande `*` e `?` contra o disco.
  *
- * Sem shell isto não vem de graça, e sem isto `ls *.ab1` numa pasta de corrida
- * — o comando mais provável do dia — devolveria "arquivo não encontrado: *.ab1".
+ * Sem shell isto não vem de graça, e sem isto `ls *.py` numa pasta
+ * — dos mais prováveis do dia — devolveria "arquivo não encontrado: *.py".
  * Segue o padrão do bash sem `nullglob`: **padrão que não casa nada fica como
  * está**, para o programa reclamar do que a pessoa realmente digitou. Casa um
  * segmento de caminho por vez e não atravessa `.` inicial, também como o bash.

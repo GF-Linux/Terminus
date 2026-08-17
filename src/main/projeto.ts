@@ -76,7 +76,7 @@ export async function listarTudo(raiz: string): Promise<string[]> {
 }
 
 /** Extensões que o editor abre como texto. O resto precisa de visualizador
- *  próprio — `.ab1` é o caso que importa, e ainda não existe. */
+ *  próprio. */
 const TEXTO = new Set([".py", ".txt", ".md", ".fasta", ".fa", ".fastq", ".csv", ".tsv", ".json", ".xml", ".cfg", ".toml", ".yaml", ".yml"]);
 
 export function ehTexto(arquivo: string): boolean {

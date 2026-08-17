@@ -9,30 +9,32 @@
    (#f0f0f0) com canal alfa para todo primeiro plano, borda, hover
    e seleção, sobre DOIS fundos (#141414 casca / #181818 editor).
 
-   Decidido em 29/07: fidelidade total. A casca não tem acento verde.
-   O verde existe só no cromatograma, onde é dado.
    ============================================================ */
 :root{
-  --chrome:#141414;      /* titleBar, activityBar, sideBar, statusBar, panel, aba inativa */
-  --bg:#181818;          /* editor, aba ativa, breadcrumb */
-  --line:#f0f0f013;      /* TODAS as bordas — token único, 7,5% */
-  --linehl:#262626;      /* linha atual do editor */
-  --fg:#f0f0f0;          /* texto ativo */
-  --fg74:#f0f0f0bd;      /* texto normal, lateral, painel inativo */
-  --fg60:#f0f0f099;      /* barra de estado, comentário */
-  --fg52:#f0f0f084;      /* título da janela */
-  --fg36:#f0f0f05c;      /* aba inativa, número de linha */
-  --hover:#f0f0f011;
-  --sel:#f0f0f01e;       /* item selecionado na lista */
-  --input:#f0f0f00a;
-  --focus:#f0f0f026;
-  /* acentos do próprio Cursor (família Nord) */
-  --badge:#88c0d0; --btn:#81a1c1; --btnfg:#191c22;
-  /* sintaxe do Cursor Dark */
-  --cmt:#f0f0f099; --str:#e394dc; --kw:#82d2ce; --fn:#efb080;
-  --num:#ebc88d; --var:#d6d6dd; --typ:#efb080;
-  /* as 4 bases — só em dado biológico, nunca na casca */
-  --A:#3fc46b; --C:#4d96ff; --G:#e9b949; --T:#f0574f;
+  /* ============================================================
+     Paleta Jared-Linux (ADR 0025), no lugar do Cursor Dark — que era a
+     identidade do produto anterior. O método é o mesmo: UMA cor de primeiro
+     plano com alfa para texto, borda, hover e seleção. O que muda são os fundos,
+     que agora têm temperatura (azul-noite) em vez de cinza neutro. Era essa
+     mistura que brigava na tela: casca cinza ao lado de painel azul.
+     ============================================================ */
+  --chrome:#14161f;      /* barra de título, estado, painel */
+  --side:#171a26;        /* lateral inteira, ícones inclusive */
+  --bg:#0c0e16;          /* área de escrita e terminal — o mais escuro */
+  --fgbase:215,217,234;  /* #d7d9ea decomposto, para as variações com alfa */
+  --line:rgba(var(--fgbase),.09);
+  --linehl:#1b1f2c;
+  --fg:#d7d9ea;
+  --fg74:rgba(var(--fgbase),.76);
+  --fg60:rgba(var(--fgbase),.60);
+  --fg52:rgba(var(--fgbase),.52);
+  --fg36:rgba(var(--fgbase),.38);
+  --hover:rgba(var(--fgbase),.07);
+  --sel:rgba(var(--fgbase),.12);
+  --input:rgba(var(--fgbase),.05);
+  --focus:rgba(var(--fgbase),.20);
+  --rotulo:#8f95d6;      /* rótulo de seção, nome de campo */
+  --acento:#b9bef2;      /* acento — escasso, como manda a identidade */
   --sans:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
@@ -40,8 +42,8 @@
 
 /* ===================== barras de rolagem: função sem desenho =====================
    Nenhuma barra é pintada em lugar nenhum da casca — nem a do editor, nem a da
-   árvore, nem a do terminal, nem a do cromatograma. A rolagem continua inteira
-   (roda, trackpad, toque, teclado, e o arraste do cromatograma); o que sai é o
+   árvore, nem a do terminal. A rolagem continua inteira (roda, trackpad, toque
+   e teclado); o que sai é o
    traço cinza atravessado no desenho, que era a única linha da interface que não
    significava nada.
 
@@ -85,7 +87,7 @@ button:disabled{opacity:.35; cursor:default}
 .main>*{min-height:0; min-width:0}
 
 /* barra de atividades — Explorer / Plugins / Configurações */
-.act{flex:none; background:var(--chrome); border-right:1px solid var(--line); display:flex;
+.act{flex:none; background:var(--side); border-right:1px solid var(--line); display:flex;
   flex-direction:column; align-items:center; padding:4px 0}
 .act button{width:48px; height:46px; display:grid; place-items:center; color:var(--fg36); position:relative}
 .act button svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.4;
@@ -99,11 +101,11 @@ button:disabled{opacity:.35; cursor:default}
 
 /* lateral */
 /* Sem borda direita própria: quem desenha a linha é o divisor ao lado. */
-.side{flex:none; width:250px; min-width:170px; background:var(--chrome);
+.side{flex:none; width:250px; min-width:170px; background:var(--side);
   display:flex; flex-direction:column; min-height:0; overflow:hidden}
 .side.oculto{display:none}
 .side .hd{display:flex; align-items:center; padding:10px 18px 8px; font-size:11px; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--fg74)}
+  text-transform:uppercase; color:var(--rotulo)}
 .side .hd .acoes{margin-left:auto; display:flex; gap:2px}
 .side .hd .acoes button{width:22px; height:22px; display:grid; place-items:center; border-radius:4px;
   color:var(--fg36)}
@@ -111,71 +113,6 @@ button:disabled{opacity:.35; cursor:default}
 .side .hd .acoes svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.5;
   stroke-linecap:round; stroke-linejoin:round}
 .body{flex:1; min-height:0; overflow-y:auto; padding-bottom:12px; font-size:13px}
-
-/* ===================== trilha de estudo (ADR 0015) ===================== */
-.trilha{padding:4px 0 18px}
-.trilha .fases{display:flex; gap:5px; padding:8px 18px 12px}
-.trilha .fases .tema{flex:1; text-align:center; font-size:12px}
-.trilha .comoUsar{margin:0 18px 12px; padding-bottom:12px; border-bottom:1px solid var(--line);
-  font-size:11.5px; line-height:1.55; color:var(--fg36)}
-.trilha .comoUsar b{color:var(--fg60); font-weight:400}
-.trilha .vestimentas{padding:0 18px 14px; border-bottom:1px solid var(--line); margin-bottom:6px}
-.trilha .rot{display:block; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--fg36); margin:12px 0 6px}
-.trilha .opcoes{display:flex; flex-wrap:wrap; gap:5px}
-.trilha .tema{padding:3px 9px; border-radius:5px; border:1px solid var(--line); font-size:11.5px;
-  color:var(--fg60)}
-.trilha .tema:hover{color:var(--fg); background:var(--hover)}
-.trilha .tema.on{color:var(--fg); background:var(--sel); border-color:var(--focus)}
-.trilha .vestimentas .dim{margin:8px 0 0; font-size:11px; line-height:1.5; color:var(--fg36)}
-
-.degrau{border-bottom:1px solid var(--line)}
-.degrau .cab{display:flex; align-items:center; gap:10px; width:100%; padding:9px 18px;
-  color:var(--fg74); font-size:13px}
-.degrau .cab:hover{background:var(--hover); color:var(--fg)}
-.degrau.aberto .cab{color:var(--fg)}
-.degrau .sem{width:17px; height:17px; flex:none; display:grid; place-items:center; border-radius:50%;
-  border:1px solid var(--line); font-size:10px; font-family:var(--mono); color:var(--fg36)}
-.degrau.aberto .sem{border-color:var(--focus); color:var(--fg60)}
-.degrau .tit{flex:1; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis;
-  white-space:nowrap}
-.degrau .cont{flex:none; font-size:10.5px; font-family:var(--mono); color:var(--fg36)}
-.degrau .cont.ok{color:var(--A)}
-
-.degrau .corpo{padding:0 18px 16px; font-size:12.5px; line-height:1.6; color:var(--fg60)}
-.degrau .abertura{margin:0 0 4px}
-.degrau .conceitos, .degrau .recursos{margin:0; padding-left:16px}
-.degrau .conceitos li, .degrau .recursos li{margin-bottom:3px}
-.degrau .recursos a{color:var(--btn); text-decoration:none}
-.degrau .recursos a:hover{text-decoration:underline}
-.degrau .entrega{margin:14px 0 0; padding-top:10px; border-top:1px solid var(--line);
-  font-size:11px; color:var(--fg36)}
-.degrau .preparo{margin:0; font-size:11.5px; color:var(--fg36); line-height:1.6}
-
-.degrau .ex{padding:9px 0; border-top:1px solid var(--line)}
-.degrau .ex:first-of-type{border-top:0}
-.degrau .ex .assinatura{font-family:var(--mono); font-size:11.5px; color:var(--fn)}
-/* `pre-wrap`: o enunciado pode trazer bloco de exemplo, e ali a quebra de linha
-   é a informação — é o formato do arquivo que se está mostrando. */
-.degrau .ex p{margin:5px 0 7px; color:var(--fg60); white-space:pre-wrap}
-.degrau .ex .acoes{display:flex; gap:14px}
-.degrau .ex .acoes button{font-size:11.5px; color:var(--btn)}
-.degrau .ex .acoes button:hover{text-decoration:underline}
-/* quantas vezes e quando — o que substitui o "concluído" (ADR 0016) */
-.degrau .ex .selo{margin-left:8px; font-size:10.5px; font-family:var(--mono); color:var(--fg36)}
-
-/* o convite para revisitar, no topo do painel */
-.trilha .revisita{margin:12px 18px 4px; padding:10px 12px; border:1px solid var(--line);
-  border-radius:7px; background:var(--input)}
-.trilha .revisita .rot{margin:0 0 4px}
-.trilha .revisita p{margin:0 0 7px; font-size:12px; line-height:1.55; color:var(--fg60)}
-.trilha .revisita b{color:var(--fg); font-weight:400}
-.trilha .revisita button{font-size:11.5px; color:var(--btn)}
-.trilha .revisita button:hover{text-decoration:underline}
-/* Feito: o exercício apaga, não ganha medalha. O que muda é a assinatura. */
-/* Feito não apaga o exercício: ele continua legível, porque refazer é o método.
-   O que muda é o selo com o número de passagens (ADR 0016). */
-.degrau .ex.feito .assinatura{color:var(--A)}
 
 /* pastas já abertas, na tela vazia do Explorer */
 .recentes{margin-top:22px; padding-top:14px; border-top:1px solid var(--line)}
@@ -209,7 +146,7 @@ button:disabled{opacity:.35; cursor:default}
    modal para nomear arquivo seria pesado demais para a tarefa */
 .row input{flex:1; min-width:0; background:var(--input); border:1px solid var(--focus);
   border-radius:3px; color:var(--fg); font:inherit; font-size:13px; padding:1px 5px; outline:none}
-.row input.erro{border-color:var(--T)}
+.row input.erro{border-color:#f0574f}
 
 /* ===================== abertura rápida (Ctrl+P) ===================== */
 .paleta{position:fixed; inset:0; z-index:60; display:flex; justify-content:center;
@@ -246,17 +183,13 @@ button:disabled{opacity:.35; cursor:default}
 .aviso{padding:22px 18px; color:var(--fg36); font-size:12.5px; line-height:1.75}
 .aviso b{color:var(--fg74); font-weight:600; display:block; margin-bottom:8px; font-size:13px}
 .aviso code{font-family:var(--mono); font-size:11.5px; color:var(--fg60)}
-.aviso button.acao{color:var(--btn); margin-top:10px; display:block}
+.aviso button.acao{color:var(--acento); margin-top:10px; display:block}
 .aviso button.acao:hover{text-decoration:underline}
 
 /* ===================== palco ===================== */
 .stage{flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden;
   position:relative; --veu:.82}
 
-/* ===================== papel de parede (ADR 0010) =====================
-   Fica atrás só da área de escrita. As abas, a trilha e o painel do
-   cromatograma continuam opacos por cima — o traço das quatro bases não divide
-   fundo com imagem nenhuma. */
 .fundoTela{position:absolute; inset:0; z-index:0; background-size:cover;
   background-position:center; pointer-events:none; overflow:hidden}
 .fundoTela.oculto{display:none}
@@ -271,50 +204,27 @@ button:disabled{opacity:.35; cursor:default}
 
 /* Com papel de parede, o editor e a tela vazia ficam transparentes; o resto da
    casca, não. */
-.stage > *:not(.fundoTela){position:relative; z-index:2}
-.stage:has(.fundoTela:not(.oculto)) .editorHost,
-.stage:has(.fundoTela:not(.oculto)) .vazio,
-.stage:has(.fundoTela:not(.oculto)) .crumb{background:transparent}
-.stage:has(.fundoTela:not(.oculto)) .cm-editor,
-.stage:has(.fundoTela:not(.oculto)) .cm-gutters{background:transparent !important}
-.tabs{display:flex; align-items:stretch; background:var(--chrome); border-bottom:1px solid var(--line);
-  min-height:35px; overflow-x:auto; scrollbar-width:none; flex:none}
-.tabs::-webkit-scrollbar{display:none}
-/* Sem arquivo aberto não há faixa de abas: uma barra vazia de 35px é ruído que
-   promete conteúdo. Divulgação progressiva. */
-.tabs:empty{display:none}
-.tab{display:flex; align-items:center; gap:9px; padding:0 14px; font-size:13px; color:var(--fg36);
-  background:var(--chrome); border-right:1px solid var(--line); white-space:nowrap; flex:none}
-/* Cursor deixa tab.activeBorderTop transparente: a aba ativa se distingue
-   pelo fundo e pelo texto, sem traço colorido. */
-.tab.on{background:var(--bg); color:var(--fg)}
-.tab .x{color:var(--fg36); font-size:13px; padding:0 2px}
-.tab .x:hover{color:var(--fg)}
-.tab .sujo{width:7px; height:7px; border-radius:50%; background:var(--fg60); display:block}
-
-.crumb{padding:4px 16px; font-size:11.5px; color:var(--fg60); background:var(--bg); flex:none}
-.crumb span{color:var(--fg36)}
-.crumb:empty{display:none}
-
-.editorHost{flex:1; min-height:0; overflow:hidden; background:var(--bg); user-select:text}
-.editorHost:not(.ativo){display:none}
-
-/* Motor Neovim (ADR 0025): o Neovim ocupa a área de edição, e as peças da casca
+.stage > *:not(.fundoTela){position:relative; z-index:2}.stage:has(.fundoTela:not(.oculto)) .vazio{background:transparent}/* Motor Neovim (ADR 0025): o Neovim ocupa a área de edição, e as peças da casca
    que competem por ela — abas, trilha, tela vazia e o host do CodeMirror — somem.
    A limpeza real desses módulos é a Fatia 3; por ora só se escondem. */
-.motor-neovim #abas,
-.motor-neovim #trilha,
-.motor-neovim #vazio,
-.motor-neovim .editorHost{display:none !important}
+.motor-neovim #abas, .motor-neovim #trilha, .motor-neovim #vazio{display:none !important}
 /* O papel de parede Jared-Linux atrás do editor: o mesmo `fundo.png` do Konsole,
    já esmaecido e dissolvido para a esquerda no próprio arquivo. O xterm roda com
    fundo transparente (ver neovim.ts), então a figura aparece por trás do texto —
    resolução de tela, não de grade. `background-color` fica embaixo para o
    contraste não depender da imagem carregar. */
+/* O papel de parede Jared-Linux. A imagem já vem pronta — escura à esquerda,
+   onde fica o texto, dissolvendo na figura à direita —, então aqui não há
+   tingimento nem camada: é só mostrá-la.
+
+   `cover` e não `100% 100%`: com medida fixa a imagem ESTICA quando a janela não
+   está em tela cheia e a figura deforma. `cover` preenche em qualquer tamanho
+   mantendo a proporção. O `background-color` é o tom escuro da imagem, para o
+   corte não dar degrau. */
 #neovimHost{flex:1; min-height:0; overflow:hidden;
-  background-color:var(--bg);
-  background-image:url("../../../media/fundo-jared.png");
-  background-size:cover; background-position:center right; background-repeat:no-repeat}
+  background-color:#14161f;
+  background-image:url("../../../media/fundo-jared-v2b.png");
+  background-size:cover; background-position:right center; background-repeat:no-repeat}
 #neovimHost .xterm, #neovimHost .xterm-viewport{background:transparent !important}
 #neovimHost .xterm{height:100%; padding:4px 0 4px 8px}
 .vazio{flex:1; display:grid; place-content:center; gap:6px; background:var(--bg); text-align:center;
@@ -323,27 +233,12 @@ button:disabled{opacity:.35; cursor:default}
 .vazio p{margin:0}
 .vazio .dim{color:var(--fg36); font-size:12px}
 
-/* ===================== painéis e divisores (ADR 0006) =====================
-   Duas regiões, cada uma no formato do que ela mostra:
-
-   - o cromatograma é uma faixa DEITADA embaixo do editor — o traço é longo em x
-     e curto em y, e a leitura é rolando para a direita;
-   - o terminal fica EM PÉ à direita — a saída cresce para baixo e o editor não
-     perde altura quando ela aparece.
-
-   As duas medidas são arrastáveis e ficam guardadas entre sessões. */
-/* A altura mínima é casada com o piso do traço em cromatograma.ts: abaixo dela
-   o desenho passaria a caber só com barra de rolagem vertical. */
-.painelCromo{flex:none; height:320px; min-height:260px; background:var(--chrome);
-  display:flex; flex-direction:column; overflow:hidden}
-.painelCromo.oculto{display:none}
-
 /* Sem borda própria: quem desenha a linha é o divisor, senão saem duas coladas. */
 .painelTerm{flex:none; width:400px; min-width:220px; background:var(--chrome);
   display:flex; flex-direction:column; overflow:hidden}
 .painelTerm.oculto{display:none}
 
-/* Doca do terminal (ADR 0025): com o cromatograma fora, o terminal deixou de
+/* Doca do terminal (ADR 0025): o terminal deixou de
    ser preso à direita. O #centro troca a direção do flex conforme a doca, e o
    painel troca entre medir largura (nas laterais) e altura (no rodapé). */
 .centro{flex:1; min-width:0; min-height:0; display:flex; overflow:hidden}
@@ -357,19 +252,12 @@ button:disabled{opacity:.35; cursor:default}
 .centro[data-doca="baixo"] > #divTerm::after{left:0; right:0; top:2px; bottom:auto; width:auto; height:1px}
 /* botões de doca no cabeçalho do painel */
 .ptabs .doca{font-size:13px; line-height:1}
-.ptabs .doca.on{color:var(--fg)}
-
-/* Alvo de arraste de 5px com a aparência de uma borda de 1px: a linha fica na
+.ptabs .doca.on{color:var(--fg)}/* Alvo de arraste de 5px com a aparência de uma borda de 1px: a linha fica na
    cor de sempre e o resto é área de pegada, senão acertar 1px no trackpad do
    Deck seria loteria. */
-.divh, .divv{flex:none; background:var(--chrome); position:relative}
-.divh.oculto, .divv.oculto{display:none}
-.divh{height:5px; cursor:ns-resize}
-.divv{width:5px; cursor:ew-resize}
-.divh::after, .divv::after{content:""; position:absolute; background:var(--line)}
-.divh::after{left:0; right:0; top:2px; height:1px}
-.divv::after{top:0; bottom:0; left:2px; width:1px}
-.divh:hover::after, .divv:hover::after, .divh.arrastando::after, .divv.arrastando::after{
+.divv{flex:none; background:var(--chrome); position:relative}.divv.oculto{display:none}
+.divv{width:5px; cursor:ew-resize}.divv::after{content:""; position:absolute; background:var(--line)}
+.divv::after{top:0; bottom:0; left:2px; width:1px}.divv:hover::after, .divv.arrastando::after{
   background:var(--focus)}
 
 .ptabs{display:flex; align-items:center; height:32px; padding:0 8px 0 12px; flex:none;
@@ -386,7 +274,7 @@ button:disabled{opacity:.35; cursor:default}
    do prompt que a saída já usa, para os dois lerem como a mesma coisa. */
 .linhaCmd{flex:none; display:flex; align-items:baseline; gap:8px; padding:4px 12px 10px;
   font-family:var(--mono); font-size:12px; line-height:1.5}
-.promptCmd{flex:none; color:var(--kw); white-space:nowrap; max-width:55%;
+.promptCmd{flex:none; color:var(--acento); white-space:nowrap; max-width:55%;
   overflow:hidden; text-overflow:ellipsis}
 .linhaCmd input{flex:1; min-width:0; background:none; border:none; outline:none; padding:0;
   font:inherit; color:var(--fg); caret-color:var(--fg)}
@@ -394,17 +282,6 @@ button:disabled{opacity:.35; cursor:default}
 /* Enquanto algo roda o campo continua clicável (para o Ctrl+C funcionar nele),
    mas apagado: quem olha vê que não é a vez dele. */
 .linhaCmd.ocupada .promptCmd, .linhaCmd.ocupada input{opacity:.45}
-
-/* abas do painel do cromatograma — um .ab1 por aba, no tom das abas do editor
-   mas na altura do painel */
-.pabas{display:flex; align-items:center; min-width:0; overflow-x:auto; scrollbar-width:none}
-.pabas::-webkit-scrollbar{display:none}
-.pabas .pt{display:flex; align-items:center; gap:8px; text-transform:none; letter-spacing:0;
-  font-size:12px; font-family:var(--mono); cursor:pointer}
-.pabas .pt:hover{color:var(--fg74)}
-.pabas .pt.on{color:var(--fg)}
-.pabas .x{color:var(--fg36); font-size:11px; padding:0 2px}
-.pabas .x:hover{color:var(--fg)}
 
 /* barra de estado */
 .sbar{background:var(--chrome); border-top:1px solid var(--line); display:flex; align-items:center;
@@ -436,241 +313,6 @@ button:disabled{opacity:.35; cursor:default}
    regra geral lá de cima, como todas as outras. */
 .xterm .xterm-viewport{background:transparent !important}
 
-/* ===================== comentários marcados =====================
-   O gesto é o do Better Comments; as cores, não. Cada uma já existe no realce
-   do Cursor Dark, para nenhuma cor nova competir com as quatro bases do
-   cromatograma (ADR 0005). Ver src/renderer/src/comentarios.ts.
-
-   O seletor precisa alcançar os filhos: o CodeMirror aninha o span do realce
-   de sintaxe DENTRO do span da marca, e a cor declarada no filho vence a do
-   pai por herança, `!important` ou não. (Foi o que enganou na primeira versão:
-   só o `line-through` aparecia, porque decoração de texto atravessa os
-   descendentes e cor não.) */
-.cm-com-alerta,   .cm-com-alerta *   {color:var(--T)    !important; font-style:normal} /* !    */
-.cm-com-duvida,   .cm-com-duvida *   {color:var(--kw)   !important; font-style:normal} /* ?    */
-.cm-com-destaque, .cm-com-destaque * {color:var(--str)  !important; font-style:normal} /* *    */
-.cm-com-todo,     .cm-com-todo *     {color:var(--num)  !important; font-style:normal} /* TODO */
-.cm-com-riscado,  .cm-com-riscado *  {color:var(--fg36) !important}                    /* //   */
-.cm-com-riscado{text-decoration:line-through}
-
-/* ===================== autocomplete do catálogo ===================== */
-/* Sem `overflow:hidden` aqui: o CodeMirror renderiza o painel de detalhe como
-   FILHO desta caixa, posicionado ao lado. Recortar o excedente some com ele —
-   e some de um jeito traiçoeiro, porque `getBoundingClientRect` continua
-   relatando a geometria certa. O arredondamento fica no `ul`. */
-.cm-tooltip.cm-tooltip-autocomplete{background:var(--chrome); border:1px solid var(--line);
-  border-radius:6px; box-shadow:0 14px 36px -14px #000}
-.cm-tooltip-autocomplete > ul{max-height:18em; font-family:var(--mono); font-size:12.5px;
-  border-radius:5px}
-.cm-tooltip-autocomplete > ul > li{padding:3px 10px; display:flex; align-items:baseline; gap:10px;
-  color:var(--fg74)}
-.cm-tooltip-autocomplete > ul > li[aria-selected]{background:var(--sel); color:var(--fg)}
-.cm-completionLabel{white-space:nowrap}
-.cm-completionMatchedText{text-decoration:underline; text-underline-offset:2px;
-  text-decoration-color:var(--fg36); color:var(--fg)}
-.cm-completionDetail{margin-left:auto; font-style:normal; font-size:11px; color:var(--fg36);
-  max-width:26em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-
-/* o painel de detalhe — é o que diferencia esta fonte de um language server */
-.cm-tooltip.cm-completionInfo{background:var(--chrome); border:1px solid var(--line);
-  border-radius:6px; padding:0; margin-left:6px; max-width:34em}
-.cm-info-bancada{padding:10px 12px; font-family:var(--sans); font-size:12.5px; line-height:1.6}
-.cm-info-bancada .cam{font-family:var(--mono); font-size:11px; color:var(--fg36); margin-bottom:6px}
-.cm-info-bancada .ass{font-family:var(--mono); font-size:11.5px; color:var(--fn);
-  white-space:pre-wrap; word-break:break-word; margin-bottom:8px}
-.cm-info-bancada .doc{color:var(--fg74); margin-bottom:8px}
-/* a nota de curadoria é o motivo desta fonte existir: destacada, não rodapé */
-.cm-info-bancada .nota{color:var(--fg); border-left:2px solid var(--fg36); padding-left:9px;
-  margin-bottom:8px}
-.cm-info-bancada .dep{color:var(--T); margin-bottom:8px}
-.cm-info-bancada .imp{font-family:var(--mono); font-size:11px; color:var(--kw);
-  white-space:pre-wrap; border-top:1px solid var(--line); padding-top:8px}
-
-/* ===================== cromatograma =====================
-   O único lugar do aplicativo com cor saturada. A casca é monocromática
-   justamente para que as quatro bases sejam as cores mais fortes da tela
-   (ADR 0005) — aqui a cor é dado, não decoração. */
-/* Quem decide se aparece é o painel (ADR 0006): aqui dentro ele sempre ocupa
-   tudo o que o painel der. */
-.cromatogramaHost{flex:1; min-height:0; min-width:0; background:var(--bg); display:flex}
-.cromatograma{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
-
-/* Cabeçalho enxuto: numa faixa de 320px cada linha de casca sai da altura do
-   traço, que é o dado. Título e resumo dividem a mesma linha do painel. */
-.cromatograma .cabecalho{display:flex; align-items:baseline; gap:12px; padding:6px 14px;
-  border-bottom:1px solid var(--line); flex:none; min-width:0}
-.cromatograma .titulo{color:var(--fg); font-size:12.5px; white-space:nowrap}
-.cromatograma .resumo{color:var(--fg36); font-size:11px; font-family:var(--mono);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-
-/* `grab`/`grabbing`: sem barra desenhada, o cursor é quem conta que dá para
-   arrastar o traço para o lado. */
-.cromatograma .rolagem{flex:1; min-height:0; overflow:auto; cursor:grab}
-.cromatograma .rolagem.arrastando{cursor:grabbing}
-.cromatograma canvas{display:block}
-
-.cromatograma .rodape{display:flex; align-items:center; gap:16px; padding:5px 14px;
-  border-top:1px solid var(--line); font-size:11px; color:var(--fg36); flex:none}
-.cromatograma .legenda{display:flex; gap:14px; align-items:center; font-family:var(--mono)}
-.cromatograma .legenda i{display:inline-block; width:9px; height:9px; border-radius:2px;
-  margin-right:5px; vertical-align:-1px}
-.cromatograma .zoom{margin-left:auto; display:flex; align-items:center; gap:10px}
-.cromatograma .zoom button{width:20px; height:20px; display:grid; place-items:center;
-  border-radius:4px; color:var(--fg36); font-size:13px}
-.cromatograma .zoom button:hover{color:var(--fg); background:var(--hover)}
-.cromatograma .nivel{font-family:var(--mono); min-width:32px; text-align:center}
-
-/* O aviso de falha é uma camada por cima, não uma troca do conteúdo: trocar o
-   HTML levava junto o canvas e os ouvintes, e o próximo .ab1 bom não tinha mais
-   onde ser desenhado. Com abas no painel, abrir um arquivo ruim e depois um bom
-   é gesto comum. */
-.cromatograma.comFalha .cabecalho,
-.cromatograma.comFalha .rolagem,
-.cromatograma.comFalha .rodape{display:none}
-.cromatograma .falhou{flex:1; padding:22px; font-size:12.5px; line-height:1.7; color:var(--fg60);
-  overflow:auto}
-.cromatograma .falhou.oculto{display:none}
-.cromatograma .falhou b{display:block; color:var(--T); margin-bottom:8px; font-size:13px}
-
-/* ===================== mascote (ADR 0008) =====================
-   Pessoal, não profissional. Flutua sobre a área de escrita, não toma espaço
-   dela, e sai da frente com um clique. A casca segue monocromática: a cor que
-   houver aqui vem do sprite do autor, que é dele. */
-.mascote{position:fixed; z-index:40; width:112px; user-select:none;
-  display:flex; flex-direction:column; align-items:center}
-.mascote.oculto{display:none}
-
-.mascote .figura{width:96px; height:96px; background-repeat:no-repeat;
-  background-position:center bottom; background-size:contain; cursor:grab;
-  /* pixel art não pode ser suavizada ao escalar: borra o pixel, que é o desenho */
-  image-rendering:pixelated;
-  animation:mascoteBoia 4.2s ease-in-out infinite}
-.mascote.arrastando .figura{cursor:grabbing; animation:none}
-.mascote .figura:focus-visible{outline:1px solid var(--focus); outline-offset:3px; border-radius:6px}
-
-/* Desenho de reserva, enquanto não há sprite no disco: o erlenmeyer da marca. */
-.mascote .figura.reserva{display:grid; place-items:center}
-.mascote .figura.reserva svg{width:62px; height:62px; fill:none; stroke:var(--fg60);
-  stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round}
-
-@keyframes mascoteBoia{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-4px)}
-}
-@media (prefers-reduced-motion:reduce){
-  .mascote .figura{animation:none}
-}
-
-.mascote .balao{max-width:150px; margin-bottom:6px; padding:5px 9px; border-radius:9px;
-  background:var(--chrome); border:1px solid var(--line); box-shadow:0 10px 26px -14px #000;
-  font-size:11.5px; color:var(--fg74); text-align:center; line-height:1.45}
-.mascote .balao.oculto{display:none}
-
-.mascote .dispensar{position:absolute; top:-2px; right:0; width:18px; height:18px;
-  display:grid; place-items:center; border-radius:50%; background:var(--chrome);
-  border:1px solid var(--line); color:var(--fg36); font-size:10px; opacity:0}
-.mascote:hover .dispensar{opacity:1}
-.mascote .dispensar:hover{color:var(--fg)}
-
-/* a conversa */
-.mascote .conversa{position:absolute; bottom:0; right:calc(100% + 10px); width:340px;
-  max-height:min(72vh,560px); display:flex; flex-direction:column;
-  background:var(--chrome); border:1px solid var(--line); border-radius:9px;
-  box-shadow:0 22px 50px -22px #000; overflow:hidden}
-.mascote .conversa.oculto{display:none}
-.mascote .conversa .cabecalho{display:flex; align-items:center; padding:8px 10px 8px 12px;
-  border-bottom:1px solid var(--line); font-size:11px; letter-spacing:.05em;
-  text-transform:uppercase; color:var(--fg74)}
-.mascote .conversa .verMemoria{margin-left:auto; color:var(--fg36); font-size:10.5px;
-  letter-spacing:.05em; text-transform:uppercase}
-.mascote .conversa .verMemoria:hover{color:var(--fg)}
-.mascote .conversa .fecharConversa{margin-left:12px; color:var(--fg36); font-size:11px}
-.mascote .conversa .fecharConversa:hover{color:var(--fg)}
-
-/* memória: resíduo do produto anterior; as regras somem com a próxima faxina de CSS. */
-.mascote .memoria{flex:1; min-height:60px; overflow-y:auto; padding:8px 10px; font-size:12px}
-.mascote .memoria.oculto{display:none}
-.mascote .falas.oculto{display:none}
-.mascote .memoria .vazia{margin:6px 4px; color:var(--fg36); line-height:1.6}
-.mascote .memoria .arq{display:flex; align-items:center; gap:4px}
-.mascote .memoria .abrir{flex:1; min-width:0; display:flex; align-items:baseline; gap:8px;
-  padding:4px 7px; border-radius:4px; color:var(--fg74)}
-.mascote .memoria .abrir:hover{background:var(--hover); color:var(--fg)}
-.mascote .memoria .abrir .n{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.mascote .memoria .abrir .t{margin-left:auto; flex:none; font-size:10px; color:var(--fg36);
-  font-family:var(--mono)}
-.mascote .memoria .x{flex:none; width:20px; color:transparent; font-size:10px}
-.mascote .memoria .arq:hover .x{color:var(--fg36)}
-.mascote .memoria .x:hover{color:var(--T)}
-
-.mascote .falas{flex:1; min-height:60px; overflow-y:auto; padding:10px 12px;
-  display:flex; flex-direction:column; gap:7px; font-size:12.5px; line-height:1.5}
-.mascote .fala{display:flex}
-.mascote .fala span{padding:5px 9px; border-radius:9px; max-width:88%;
-  white-space:pre-wrap; word-break:break-word}
-.mascote .fala.autor{justify-content:flex-end}
-.mascote .fala.autor span{background:var(--sel); color:var(--fg)}
-/* `resposta`, não `mascote`: a raiz do widget já usa essa classe, e a fala
-   herdava dela `position:fixed` e a largura de 96px. */
-.mascote .fala.resposta span{background:var(--input); color:var(--fg74)}
-.mascote .fala.pensando span{color:var(--fg36)}
-
-/* ---- terminal do chat (ADR 0022) ----
-   A saída não é balão: é terminal. Monoespaçada, largura inteira, sem canto
-   arredondado — a diferença tem que ser óbvia de relance, porque a janela
-   mistura duas coisas que não se falam. */
-.mascote .fala.cmd, .mascote .fala.saida, .mascote .fala.saidaErro{margin:0 -12px}
-.mascote .fala.cmd span, .mascote .fala.saida span, .mascote .fala.saidaErro span{
-  max-width:100%; width:100%; border-radius:0; padding:2px 12px; background:none;
-  font-family:var(--mono); font-size:11px; line-height:1.45; user-select:text}
-.mascote .fala.cmd span{color:var(--kw); padding-top:6px}
-.mascote .fala.saida span{color:var(--fg74)}
-.mascote .fala.saidaErro span{color:var(--T)}
-
-.mascote .linhaChat{display:flex; align-items:baseline; gap:7px; padding:5px 10px 7px;
-  border-top:1px solid var(--line); font-family:var(--mono); font-size:11px}
-.mascote .promptChat{flex:none; color:var(--kw); white-space:nowrap; max-width:45%;
-  overflow:hidden; text-overflow:ellipsis}
-.mascote .linhaChat input{flex:1; min-width:0; background:none; border:none; outline:none;
-  padding:0; font:inherit; color:var(--fg); caret-color:var(--fg)}
-.mascote .linhaChat input::placeholder{color:var(--fg36)}
-.mascote .linhaChat.ocupada .promptChat, .mascote .linhaChat.ocupada input{opacity:.45}
-.mascote .pararChat{flex:none; color:var(--fg36); font-size:10px; padding:0 2px}
-.mascote .pararChat:hover{color:var(--T)}
-.mascote .pararChat.oculto{display:none}
-
-.mascote .entrada{border-top:1px solid var(--line); padding:7px 10px}
-.mascote .entrada textarea{width:100%; resize:none; background:transparent; border:0;
-  color:var(--fg); font:inherit; font-size:12.5px; line-height:1.5; outline:none;
-  max-height:96px}
-.mascote .entrada textarea::placeholder{color:var(--fg36)}
-.mascote .entrada textarea:disabled{color:var(--fg36)}
-
-.mascote .rodape{padding:8px 12px 10px; border-top:1px solid var(--line);
-  font-size:11px; line-height:1.5; color:var(--fg60)}
-.mascote .rodape .dim{color:var(--fg36)}
-.mascote .rodape code{font-family:var(--mono); font-size:10.5px}
-.mascote .rodape .acao{color:var(--btn); margin-top:6px; display:block; font-size:11px}
-.mascote .rodape .acao:hover{text-decoration:underline}
-
-/* ===================== texto fantasma ===================== */
-/* Cinza e itálico: tem de se ler como proposta, não como código escrito. */
-.cm-fantasma{color:var(--fg36); font-style:italic; white-space:pre-wrap}
-
-/* ---------------- correção do código (ADR 0025) ----------------
-   A linha errada não some: ela fica marcada e a proposta aparece embaixo, para
-   quem está aprendendo ver o antes e o depois. A casca é monocromática (ADR
-   0005) e a cor saturada é do cromatograma — por isso a marca aqui é o
-   `--badge`, que já existe, e só no pedaço que muda. */
-.cm-correcao-antes{background:#f0f0f00a; box-shadow:inset 2px 0 0 var(--fg36)}
-.cm-correcao{margin:2px 0 4px; padding:4px 0 4px 10px; border-left:2px solid var(--badge);
-  background:#88c0d00f}
-.cm-correcao-texto{font-family:var(--mono); color:var(--fg74); white-space:pre-wrap;
-  word-break:break-word}
-.cm-correcao-novo{color:var(--badge); background:#88c0d024; border-radius:2px}
-.cm-correcao-teclas{margin-top:3px; font-family:var(--sans); font-size:10.5px;
-  letter-spacing:.02em; color:var(--fg36)}
-
 /* ===================== painel de configurações ===================== */
 .cfg{padding:16px 18px; font-size:12.5px; line-height:1.6; color:var(--fg74)}
 .cfg b{display:block; color:var(--fg); font-size:13px; margin-bottom:6px}
@@ -678,7 +320,7 @@ button:disabled{opacity:.35; cursor:default}
 .cfg .dim{color:var(--fg36); margin:0 0 12px}
 .cfg code{font-family:var(--mono); font-size:11px; color:var(--fg60); word-break:break-all}
 .cfg .chave{display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:12px}
-.cfg .chave input{accent-color:var(--btn)}
+.cfg .chave input{accent-color:var(--acento)}
 .cfg .campoNome{display:flex; align-items:center; gap:8px; margin:10px 0 12px}
 .cfg .campoNome span{color:var(--fg36); min-width:56px; flex:none}
 .cfg .campoNome input{flex:1; min-width:0; background:var(--input); border:1px solid var(--line);
@@ -686,9 +328,7 @@ button:disabled{opacity:.35; cursor:default}
 .cfg .campoNome input:focus{border-color:var(--focus)}
 .cfg .linhas div{display:flex; gap:8px; margin-bottom:4px}
 .cfg .linhas span{color:var(--fg36); min-width:56px; flex:none}
-.cfg .alerta{margin:12px 0; padding:9px 11px; border-left:2px solid var(--T);
-  background:var(--input); color:var(--fg74); font-size:12px}
-.cfg button.acao{color:var(--btn); margin-top:14px; display:block}
+.cfg button.acao{color:var(--acento); margin-top:14px; display:block}
 .cfg button.acao:hover{text-decoration:underline}
 
 /* aparência (ADR 0010) */
@@ -699,7 +339,7 @@ button:disabled{opacity:.35; cursor:default}
 .cfg .deslize{display:flex; align-items:center; gap:10px; margin-top:10px; font-size:12px;
   color:var(--fg60)}
 .cfg .deslize span{min-width:66px; flex:none}
-.cfg .deslize input{flex:1; min-width:0; accent-color:var(--btn)}
+.cfg .deslize input{flex:1; min-width:0; accent-color:var(--acento)}
 .cfg .deslize b{min-width:38px; text-align:right; font-family:var(--mono); font-size:11px;
   color:var(--fg36); font-weight:400}
 .cfg .junta{margin-top:14px}
@@ -712,50 +352,3 @@ button:disabled{opacity:.35; cursor:default}
   color:var(--fg60)}
 .cfg .tema:hover{color:var(--fg); background:var(--hover)}
 .cfg .tema.on{color:var(--fg); background:var(--sel); border-color:var(--focus)}
-
-/* ===================== avisos do pyright ===================== */
-/* Sublinhado ondulado, não fundo colorido: o fundo competiria com a seleção e
-   com a linha atual, e o erro tem de se ler sem tirar o código da frente. */
-.cm-lintRange-error{background:none; text-decoration:underline wavy var(--T);
-  text-decoration-skip-ink:none; text-underline-offset:3px}
-.cm-lintRange-warning{background:none; text-decoration:underline wavy var(--num);
-  text-decoration-skip-ink:none; text-underline-offset:3px}
-.cm-lintRange-info{background:none; text-decoration:underline dotted var(--fg36);
-  text-underline-offset:3px}
-
-/* ---------- o erro escrito na linha (ADR 0026) ----------
-   Mesma convenção do rabisco e da bolinha da margem — --T para erro, --num
-   para aviso — porém em opacidade baixa: quem grita é o código, o recado só
-   precisa ser legível. Fonte sans e menor, para não ser confundido com código.
-   `pointer-events:none` porque clicar no texto do aviso e o cursor ir parar
-   dentro dele seria uma armadilha silenciosa. */
-.cm-recado{margin-left:2ch; font-family:var(--sans); font-size:11px; font-style:normal;
-  letter-spacing:.01em; white-space:pre; pointer-events:none; user-select:none}
-.cm-recado-error{color:#f0574fb3}
-.cm-recado-warning{color:#ebc88db3}
-.cm-recado-info{color:var(--fg36)}
-
-.cm-gutter-lint{width:14px}
-.cm-gutter-lint .cm-gutterElement{padding:0}
-.cm-lint-marker{width:9px; height:9px; margin:auto}
-.cm-lint-marker-error{content:none; background:var(--T); border-radius:50%}
-.cm-lint-marker-warning{content:none; background:var(--num); border-radius:50%}
-.cm-lint-marker-info{content:none; background:var(--fg36); border-radius:50%}
-
-.cm-tooltip.cm-tooltip-lint{background:var(--chrome); border:1px solid var(--line);
-  border-radius:6px; box-shadow:0 12px 32px -14px #000}
-.cm-diagnostic{padding:8px 11px; font-family:var(--sans); font-size:12.5px; line-height:1.55;
-  border-left:2px solid transparent; white-space:pre-wrap; max-width:44em}
-.cm-diagnostic-error{border-left-color:var(--T)}
-.cm-diagnostic-warning{border-left-color:var(--num)}
-.cm-diagnostic-info{border-left-color:var(--fg36)}
-.cm-diagnosticSource{color:var(--fg36); font-size:11px}
-
-.cm-hover-bancada{max-width:44em; max-height:20em; overflow:auto}
-.cm-hover-bancada .doc{font-family:var(--mono); font-size:11.5px; white-space:pre-wrap;
-  color:var(--fg74); margin:0}
-
-/* ===================== CodeMirror ===================== */
-.cm-editor{height:100%; font-family:var(--mono); font-size:12.8px}
-.cm-editor.cm-focused{outline:none}
-.cm-scroller{line-height:1.75; font-family:var(--mono)}

@@ -68,7 +68,6 @@ function gravar(c: ConfigGravada): void {
 const APARENCIA_PADRAO = {
   wallpaper: null as string | null,
   // Escuro por padrão, e isto é regra da ADR 0005 virando número: a casca não
-  // pode competir com as quatro bases do cromatograma. Dá para clarear, mas o
   // ponto de partida protege o dado.
   escurecer: 0.82,
   desfoque: 3,

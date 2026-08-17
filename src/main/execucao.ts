@@ -73,11 +73,12 @@ interface Lugar {
   filho: ChildProcessWithoutNullStreams | null;
 }
 
-const LUGAR: Record<"editor" | "chat", Lugar> = {
-  /** O ▶ e a linha de comando do terminal. */
+/* Era um mapa de dois lugares — o do editor e o do chat da Fern —, porque os
+   dois podiam ter processo próprio ao mesmo tempo. Com a Fern fora, sobrou um;
+   o mapa fica porque a linha de comando ainda pergunta por nome. */
+const LUGAR: Record<"editor", Lugar> = {
+  /** A linha de comando do terminal. */
   editor: { filho: null },
-  /** O terminal do chat (ADR 0022). */
-  chat: { filho: null },
 };
 
 export type Painel = keyof typeof LUGAR;
@@ -89,7 +90,7 @@ export function estaRodando(painel: Painel = "editor"): boolean {
 export function rodarScript(
   arquivo: string,
   emitir: (evento: EventoExecucao) => void,
-  /** Argumentos extras. Usado pela trilha, que roda o verificador passando o
+  /** Argumentos extras, passados ao interpretador depois do arquivo. O
    *  teste e o arquivo do aluno — e não pelo usuário, que não digita comando
    *  aqui: continua não existindo caminho para executar linha arbitrária. */
   extras: string[] = [],
@@ -145,7 +146,7 @@ export function rodarScript(
  * - `cwd` é a pasta atual do terminal, que o `cd` move — não a pasta do arquivo
  *   aberto. `pip install` não tem arquivo aberto nenhum.
  * - o `PATH` recebe na frente a pasta do interpretador do laboratório, para que
- *   `blastn`, `tracy` e o `pip` do env sejam **os do ambiente que a barra de
+ *   o `pip` e o interpretador sejam **os do ambiente que a barra de
  *   estado anuncia**, e não homônimos do sistema.
  * - `shell: false` continua valendo. `programa` e `args` já vieram separados por
  *   `comando.ts`; nada aqui é reinterpretado como linha de texto.

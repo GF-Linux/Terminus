@@ -19,8 +19,7 @@
       <button class="c2" id="btMinimizar" title="Minimizar"></button>
       <button class="c3" id="btMaximizar" title="Maximizar"></button>
     </div>
-    <!-- A marca: o sigilo Jared-Linux. O pico de cromatograma saiu com a ADR
-         0025 — era a marca do produto anterior. -->
+    <!-- A marca: o sigilo Jared-Linux. -->
     <span class="marca" aria-hidden="true">
       <img id="imgMarca" alt="">
     </span>
@@ -55,8 +54,7 @@
          direção do flex conforme a doca (direita / esquerda / baixo). -->
     <div class="centro" id="centro" data-doca="direita">
     <div class="stage" id="stage">
-      <!-- Papel de parede: só atrás da área de escrita, nunca atrás do
-           cromatograma nem da casca (ADR 0010). -->
+      <!-- Papel de parede: só atrás da área de escrita, nunca atrás da casca. -->
       <div class="fundoTela oculto" id="fundoTela"></div>
       <div class="vazio" id="vazio">
         <span class="marcaGrande" aria-hidden="true">
@@ -68,9 +66,9 @@
 
     </div>
 
-    <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão
-         da barra de estado, ou sozinho quando há saída para mostrar. Fica em pé
-         à direita para não disputar altura com o editor nem com o cromatograma. -->
+    <!-- Fechado por padrão: divulgação progressiva. Abre no Ctrl+` , no botão da
+         barra de estado, ou sozinho quando há saída para mostrar. A doca (rodapé,
+         direita ou esquerda) fica lembrada entre sessões. -->
     <div class="divv oculto" id="divTerm" role="separator" aria-orientation="vertical"
          title="Arraste para redimensionar (duplo clique volta ao padrão)"></div>
     <aside class="painelTerm oculto" id="painel">
@@ -102,9 +100,9 @@
   </div>
 
   <!-- A barra de estado ficou com o essencial (ADR 0025): o terminal continua
-       clicável, e à direita a marca do dono. O que saiu — ambiente do Biopython,
-       codificação, versão do Python, o mascote e "Ln, Col" — ou pertencia ao
-       laboratório, ou é o Neovim quem passa a dizer, na statusline dele. -->
+       clicável, e à direita a marca do dono. O que saiu — ambiente do laboratório,
+       codificação, versão do Python e "Ln, Col" — ou pertencia ao produto
+       anterior, ou é o Neovim quem passa a dizer, na statusline dele. -->
   <div class="sbar">
     <button id="btPainel" title="Terminal (Ctrl+`)">Terminal</button>
     <span class="r">
@@ -113,7 +111,7 @@
           0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95
           0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 014 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
           0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        <span id="nomeGithub">juaredbr-cpu</span>
+        <span id="nomeGithub">GF-Linux</span>
       </a>
     </span>
   </div>

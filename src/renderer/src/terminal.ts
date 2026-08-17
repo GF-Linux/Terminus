@@ -55,20 +55,20 @@ export class TerminalSaida {
       scrollback: 5000,
       theme: {
         // Mesmos dois fundos e mesma base com alfa da casca.
-        background: "#141414",
-        foreground: "#f0f0f0bd",
-        cursor: "#f0f0f05c",
-        selectionBackground: "#f0f0f01e",
-        black: "#141414",
+        background: "#14161f",
+        foreground: "#d7d9eac2",
+        cursor: "#b9bef2",
+        selectionBackground: "#d7d9ea1f",
+        black: "#14161f",
         red: "#f0574f",
         green: "#3fc46b",
         yellow: "#e9b949",
-        blue: "#4d96ff",
-        magenta: "#e394dc",
+        blue: "#8f95d6",
+        magenta: "#b9bef2",
         cyan: "#82d2ce",
-        white: "#f0f0f0bd",
-        brightBlack: "#f0f0f05c",
-        brightWhite: "#f0f0f0",
+        white: "#d7d9eac2",
+        brightBlack: "#d7d9ea61",
+        brightWhite: "#d7d9ea",
       },
     });
 
@@ -92,9 +92,9 @@ export class TerminalSaida {
       css.getPropertyValue(nome).trim() || reserva;
     this.term.options.theme = {
       ...this.term.options.theme,
-      background: cor("--chrome", "#141414"),
-      foreground: cor("--fg74", "#f0f0f0bd"),
-      black: cor("--chrome", "#141414"),
+      background: cor("--chrome", "#14161f"),
+      foreground: cor("--fg74", "#d7d9eac2"),
+      black: cor("--chrome", "#14161f"),
     };
   }
 
