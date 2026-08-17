@@ -15,7 +15,7 @@ import { acharPython } from "./localizador-do-python.js";
 //!    encher o balde, e um `print` antes de um `sleep` longo não aparecia.
 //! 4. UM processo por vez, de propósito: o quadrado de parar sempre sabe quem
 //!    matar, e a saída nunca é a mistura de dois programas.
-//! 5. ⚠️ O motor de edição É outro caminho — esse tem PTY, e mora em
+//! 5. O motor de edição É outro caminho — esse tem PTY, e mora em
 //!    `motor-neovim-pty.ts`. Aqui é só a linha de comando da casca.
 /**
  * As pastas de binário do usuário que a sessão gráfica **não** tem no PATH.

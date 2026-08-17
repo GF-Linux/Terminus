@@ -15,7 +15,7 @@ import type {
 //!    Se não está aqui, a interface não faz.
 //! 2. `contextIsolation` ligado e `nodeIntegration` desligado: a interface não
 //!    tem `require`, nem `fs`, nem `child_process`.
-//! 3. ⚠️ Cada item aqui é decisão de segurança, não conveniência. Acrescentar um
+//! 3. Cada item aqui é decisão de segurança, não conveniência. Acrescentar um
 //!    é aumentar o que um defeito na tela consegue alcançar.
 //! 4. `comando()` executa o que a pessoa digitou, e isso já foi proibido aqui.
 //!    A troca foi consciente: ferramenta onde não se instala biblioteca não
