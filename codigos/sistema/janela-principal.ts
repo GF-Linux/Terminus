@@ -53,6 +53,7 @@ import { comoRodar } from "./como-rodar-o-projeto.js";
 import {
   devolverTerminal, janelasVivas, ligarAvisoDeFechamento, soltarTerminal, terminalEstaSolto,
 } from "./janela-do-terminal.js";
+import { ligarKits } from "./kits-embutidos.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
 
@@ -672,6 +673,18 @@ function registrarPonte(): void {
 
 void app.whenReady().then(() => {
   registrarPonte();
+
+  //! As funções embutidas ficam disponíveis no editor antes de a janela abrir
+  //! (ADR 0036). Falhar aqui NÃO impede o Terminus de subir: sem os kits ele
+  //! continua sendo um editor inteiro, e travar a abertura por causa de um
+  //! atalho de escrita seria trocar o essencial pelo acessório.
+  void ligarKits(RAIZ_APP).then((r) => {
+    if (r.erro) console.error("kits embutidos:", r.erro);
+    for (const nome of r.respeitados) {
+      console.warn(`kit não instalado, já existe arquivo seu em ${nome}`);
+    }
+  });
+
   criarJanela();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) criarJanela();

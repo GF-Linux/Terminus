@@ -1,0 +1,56 @@
+{
+  "caixa": {
+    "prefix": "caixa",
+    "description": "Moldura no console, largura automatica",
+    "body": [
+      "void Caixa(params string[] textos)",
+      "{",
+      "    // cada argumento vira uma linha, e o \\\\n de dentro tambem quebra",
+      "    var linhas = new List<string>();",
+      "    foreach (string t in textos)",
+      "        foreach (string l in t.Replace(\"\\\\r\\\\n\", \"\\\\n\").Split('\\\\n'))",
+      "            linhas.Add(l);",
+      "",
+      "    // a largura sai da linha MAIS LONGA, nao do texto inteiro",
+      "    int largura = 0;",
+      "    foreach (string l in linhas)",
+      "        largura = Math.Max(largura, l.Length);",
+      "",
+      "    string traco = new string('─', largura + 2);",
+      "    Console.WriteLine(\\$\"╭{traco}╮\");",
+      "    foreach (string l in linhas)",
+      "        Console.WriteLine(\\$\"│ {l.PadRight(largura)} │\");",
+      "    Console.WriteLine(\\$\"╰{traco}╯\");",
+      "}",
+      "",
+      "Caixa(\"${1:oi}\");$0"
+    ]
+  },
+  "caixaascii": {
+    "prefix": "caixaascii",
+    "description": "Moldura so com + - | (qualquer terminal)",
+    "body": [
+      "void Caixa(params string[] textos)",
+      "{",
+      "    // cada argumento vira uma linha, e o \\\\n de dentro tambem quebra",
+      "    var linhas = new List<string>();",
+      "    foreach (string t in textos)",
+      "        foreach (string l in t.Replace(\"\\\\r\\\\n\", \"\\\\n\").Split('\\\\n'))",
+      "            linhas.Add(l);",
+      "",
+      "    // a largura sai da linha MAIS LONGA, nao do texto inteiro",
+      "    int largura = 0;",
+      "    foreach (string l in linhas)",
+      "        largura = Math.Max(largura, l.Length);",
+      "",
+      "    string traco = new string('-', largura + 2);",
+      "    Console.WriteLine(\\$\"+{traco}+\");",
+      "    foreach (string l in linhas)",
+      "        Console.WriteLine(\\$\"| {l.PadRight(largura)} |\");",
+      "    Console.WriteLine(\\$\"+{traco}+\");",
+      "}",
+      "",
+      "Caixa(\"${1:oi}\");$0"
+    ]
+  }
+}

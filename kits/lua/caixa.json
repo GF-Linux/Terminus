@@ -1,0 +1,37 @@
+{
+  "caixa": {
+    "prefix": "caixa",
+    "description": "Moldura no console, largura automatica",
+    "body": [
+      "local function caixa(...)",
+      "  -- cada argumento vira uma linha, e o \\\\n de dentro tambem quebra",
+      "  local linhas = {}",
+      "  for _, t in ipairs({ ... }) do",
+      "    for l in (tostring(t) .. \"\\\\n\"):gmatch(\"(.-)\\\\n\") do linhas[#linhas + 1] = l end",
+      "  end",
+      "",
+      "  -- conta caracteres, nao bytes: em UTF-8 um acento ocupa dois",
+      "  local function largura_de(s)",
+      "    local n = 0",
+      "    for i = 1, #s do",
+      "      local b = s:byte(i)",
+      "      if b < 0x80 or b >= 0xC0 then n = n + 1 end",
+      "    end",
+      "    return n",
+      "  end",
+      "",
+      "  local largura = 0",
+      "  for _, l in ipairs(linhas) do largura = math.max(largura, largura_de(l)) end",
+      "",
+      "  local traco = (\"─\"):rep(largura + 2)",
+      "  print(\"╭\" .. traco .. \"╮\")",
+      "  for _, l in ipairs(linhas) do",
+      "    print(\"│ \" .. l .. (\" \"):rep(largura - largura_de(l)) .. \" │\")",
+      "  end",
+      "  print(\"╰\" .. traco .. \"╯\")",
+      "end",
+      "",
+      "caixa(\"${1:oi}\")$0"
+    ]
+  }
+}

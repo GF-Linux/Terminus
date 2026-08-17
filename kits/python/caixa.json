@@ -1,0 +1,48 @@
+{
+  "caixa": {
+    "prefix": "caixa",
+    "description": "Moldura no console, largura automatica",
+    "body": [
+      "def caixa(*textos: str) -> None:",
+      "    # cada argumento vira uma linha, e o \\\\n de dentro tambem quebra",
+      "    linhas = [l for t in textos for l in t.replace(\"\\\\r\\\\n\", \"\\\\n\").split(\"\\\\n\")]",
+      "    if not linhas:",
+      "        return",
+      "",
+      "    # a largura sai da linha MAIS LONGA, nao do texto inteiro",
+      "    largura = max(len(l) for l in linhas)",
+      "    traco = \"─\" * (largura + 2)",
+      "",
+      "    print(f\"╭{traco}╮\")",
+      "    for l in linhas:",
+      "        print(f\"│ {l.ljust(largura)} │\")",
+      "    print(f\"╰{traco}╯\")",
+      "",
+      "",
+      "caixa(\"${1:oi}\")$0"
+    ]
+  },
+  "caixaascii": {
+    "prefix": "caixaascii",
+    "description": "Moldura so com + - | (qualquer terminal)",
+    "body": [
+      "def caixa(*textos: str) -> None:",
+      "    # cada argumento vira uma linha, e o \\\\n de dentro tambem quebra",
+      "    linhas = [l for t in textos for l in t.replace(\"\\\\r\\\\n\", \"\\\\n\").split(\"\\\\n\")]",
+      "    if not linhas:",
+      "        return",
+      "",
+      "    # a largura sai da linha MAIS LONGA, nao do texto inteiro",
+      "    largura = max(len(l) for l in linhas)",
+      "    traco = \"-\" * (largura + 2)",
+      "",
+      "    print(f\"+{traco}+\")",
+      "    for l in linhas:",
+      "        print(f\"| {l.ljust(largura)} |\")",
+      "    print(f\"+{traco}+\")",
+      "",
+      "",
+      "caixa(\"${1:oi}\")$0"
+    ]
+  }
+}
