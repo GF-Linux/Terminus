@@ -38,7 +38,7 @@ export class VistaNeovim {
       // pertence ao terminal em vez de parecer um PNG colado num painel — e é
       // resolução de tela, não de grade de caracteres.
       allowTransparency: true,
-      theme: { background: "#00000000", foreground: "#f0f0f0" },
+      theme: { background: "#00000000", foreground: "#d7d9ea" },
     });
 
     this.term.loadAddon(this.fit);

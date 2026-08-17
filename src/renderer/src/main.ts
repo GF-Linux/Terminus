@@ -183,7 +183,7 @@ function ligarDivisor(opcoes: {
 /* ============================ doca do terminal ============================ */
 
 /**
- * A posição do terminal (ADR 0025). Com o cromatograma fora, o terminal deixou
+ * A posição do terminal (ADR 0025). O terminal deixou
  * de morar preso à direita: doca no rodapé, à direita ou à esquerda, e a medida
  * (largura nas laterais, altura no rodapé) é arrastável e lembrada por doca.
  */
@@ -363,7 +363,6 @@ function definirLateral(painel: string): void {
     {
       explorer: "Explorer",
       extensions: "Plugins",
-      trilha: "Trilha",
       config: "Configurações",
     }[painel] ?? painel;
 
@@ -466,7 +465,7 @@ async function abrirPastaDoPlugin(dir: string): Promise<void> {
 /**
  * Configurações da casca.
  *
- * Ficou só a aparência: o texto fantasma, o Copilot e a Fern eram do produto
+ * Ficou só a aparência: o texto fantasma e o Copilot eram do produto
  * anterior e saíram com a ADR 0025. O que configura o editor agora é a config do
  * Neovim, que é dele — e a casca não vai fingir ser dona disso.
  */
@@ -498,8 +497,6 @@ function desenharConfigAparencia(): void {
 
   alvo.innerHTML = `
     <p class="dim">Papel de parede atrás do editor — só ali. As abas, a árvore e o
-       painel do cromatograma seguem opacos: o traço das quatro bases não divide
-       fundo com imagem nenhuma.</p>
 
     ${
       a.imagem
@@ -609,9 +606,8 @@ function desenharConfigAparencia(): void {
 
 function desenharArvore(): void {
   // Só pinta se o Explorer for o painel visível. Sem isto, qualquer coisa que
-  // abrisse arquivo — o traceback clicável, o Ctrl+P, o "praticar" da trilha —
-  // jogava a árvore por cima do painel que estava na tela. Apareceu na trilha
-  // porque lá praticar e corrigir são dois cliques seguidos no mesmo painel.
+  // abrisse arquivo — o traceback clicável, o Ctrl+P — jogava a árvore por cima
+  // do painel que estava na tela.
   if (painelLateral !== "explorer") return;
   const corpo = $("lateral");
   // Sem pasta aberta não há o que criar nem atualizar: o cabeçalho fica vazio.
@@ -679,7 +675,7 @@ function desenharArvore(): void {
         // Qual arquivo está aberto é do Neovim (ADR 0025): a casca deixou de
         // guardar abas, então a árvore não marca mais linha "ativa".
         const aberto = false;
-        const suportado = !/\.(png|jpe?g|gif|webp|pdf|zip|gz|so|bin|ab1)$/i.test(no.nome);
+        const suportado = !/\.(png|jpe?g|gif|webp|pdf|zip|gz|so|bin)$/i.test(no.nome);
         linhas.push(
           editando
             ? `<div class="row" style="padding-left:${recuo + 16}px">
@@ -1250,9 +1246,6 @@ $("btParar").addEventListener("click", () => api.parar());
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
 $("btPainel").addEventListener("click", () => alternarPainel());
-// O botão do mascote saiu da barra de estado (ADR 0025). A Fern continua no
-// código, sem porta na casca — o destino dela é decisão em aberto.
-
 // A marca do dono, à direita da barra: abre no navegador do sistema, porque o
 // `setWindowOpenHandler` da janela recusa abrir link aqui dentro.
 $("linkGithub").addEventListener("click", (ev) => {
@@ -1378,7 +1371,7 @@ async function iniciar(): Promise<void> {
   if (h.ok) historicoCmd = h.valor;
 
 
-  // O ambiente do laboratório (Biopython · BLAST+ · Tracy · Python) saiu da
+  // O ambiente do laboratório saiu da
   // barra de estado com a virada da ADR 0025: o Terminus não é mais a IDE do
   // laboratório, e essas versões eram informação de lá.
 }

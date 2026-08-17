@@ -28,12 +28,8 @@ import type {
  *   controla no terminal.
  * - **fica de pé:** não há shell, então nada de texto é reinterpretado
  *   (`shell: false`, argumentos separados em `comando.ts`); um processo por vez;
- *   e nenhum recurso de IA alcança esta porta — o fantasma, a Fern e o Copilot
- *   falam por canais próprios que só trocam texto, e **nada do que eles
- *   respondem chega aqui sem alguém digitar e apertar Enter**.
- *
- * Esta última linha é a que precisa continuar verdadeira. Se um dia algo sugerir
- * comando na tela, o botão que executa é uma decisão nova, não um detalhe.
+ *   e nenhum recurso de IA alcança esta porta. Se um dia algo sugerir comando na
+ *   tela, o botão que executa é uma decisão nova, não um detalhe.
  */
 const api = {
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>
@@ -86,25 +82,6 @@ const api = {
     const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
     ipcRenderer.on("exec:evento", wrap);
     return () => ipcRenderer.off("exec:evento", wrap);
-  },
-
-  /**
-   * O terminal do chat (ADR 0022) — a linha que mora no painel da Fern, para
-   * chamar o `verboo` sem sair de lá. Canal próprio (`chat:*`) e **lugar de
-   * processo próprio**: o que roda aqui não desabilita o ▶ do editor.
-   *
-   * Note o que **não** existe: nenhum caminho da conversa dela para cá. O que
-   * roda aqui é o que a pessoa digitou, e a saída não volta para a API dela.
-   */
-  chat: {
-    comando: (linha: string): Promise<Resultado<RespostaComando>> =>
-      ipcRenderer.invoke("chat:comando", linha),
-    parar: (): void => ipcRenderer.send("chat:parar"),
-    aoExecutar: (ouvinte: (e: EventoExecucao) => void): (() => void) => {
-      const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
-      ipcRenderer.on("chat:evento", wrap);
-      return () => ipcRenderer.off("chat:evento", wrap);
-    },
   },
 
   /** Wallpaper e tema (ADR 0010). A imagem chega em `data:` URL. */

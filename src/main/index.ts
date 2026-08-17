@@ -145,7 +145,7 @@ function protegerPastaDeTrabalho(alvo: string): void {
  *
  * Isso importa muito aqui: corrida de sequenciamento chega no laboratório em
  * **pendrive**, e o Terminus prometia na tela que dava para recuperar da lixeira.
- * Promessa falsa sobre `.ab1` insubstituível é pior que não ter o botão.
+ * Promessa falsa sobre arquivo insubstituível é pior que não ter o botão.
  *
  * O teste é o do próprio padrão XDG: a lixeira do usuário vive no disco da pasta
  * pessoal; em qualquer outro dispositivo ela só existe se aquele disco tiver a
@@ -170,7 +170,7 @@ function aLixeiraAlcanca(alvo: string): boolean {
  * enxerga bem a 1340×820.
  *
  * **No processo principal, e não num `keymap` do CodeMirror**, de propósito: a
- * pessoa pode estar com o foco no terminal, na conversa da Fern, na trilha ou na
+ * pessoa pode estar com o foco no terminal, no editor ou na
  * árvore de arquivos, e "a letra está pequena" não é um problema do editor — é
  * da janela. O `before-input-event` chega antes de qualquer campo da interface.
  *
@@ -255,9 +255,9 @@ function criarJanela(): void {
     icon: path.join(RAIZ_APP, "media", "icon.png"),
     // Casca própria: a barra de título é desenhada pelo Terminus (ADR 0003).
     frame: false,
-    // #141414 é o fundo da casca no Cursor Dark — evita o flash branco antes
-    // do primeiro quadro.
-    backgroundColor: "#141414",
+    // O fundo da casca na paleta Jared-Linux — evita o flash branco antes do
+    // primeiro quadro.
+    backgroundColor: "#14161f",
     webPreferences: {
       // .mjs, não .js: o electron-vite emite o preload como ESM, e o Electron só
       // aceita preload ESM pela extensão do arquivo (e com sandbox desligado).
@@ -423,8 +423,7 @@ function registrarPonte(): void {
     seguro((_e, arquivo: string) => {
       // Ler **não** é confinado à pasta aberta, e é de propósito: o traceback
       // clicável abre o quadro dentro da biblioteca, o `F12` vai à definição no
-      // site-packages e a auditoria da memória do mascote abre o `.md` em
-      // `~/.config/bancada/fern` (ADR 0009). Fechar aqui quebraria os três.
+      // biblioteca. Fechar aqui quebraria o salto do traceback.
       // O que se protege é o único segredo que existe.
       if (typeof arquivo !== "string" || arquivo.length === 0 || arquivo.includes("\0")) {
         throw new Error("O arquivo não é válido.");
@@ -485,7 +484,7 @@ function registrarPonte(): void {
       });
       if (r.response !== 0) return false;
 
-      // Lixeira, não `unlink`. Numa pasta de corrida pode haver .ab1 insubstituível;
+      // Lixeira, não `unlink`. Numa pasta pode haver arquivo insubstituível;
       // apagar de vez a partir de um clique errado não é reversível.
       if (temLixeira) {
         await shell.trashItem(alvo);
@@ -584,49 +583,6 @@ function registrarPonte(): void {
     seguro(() => esquecerComandos()),
   );
 
-  /**
-   * O terminal do chat (ADR 0022).
-   *
-   * Mesma análise e mesmas travas do terminal de baixo — é o mesmo `comando.ts`,
-   * de propósito: duas linhas de comando com regras diferentes seriam duas
-   * superfícies para auditar em vez de uma. O que muda é só **onde o processo
-   * mora**, para o `verboo` não ocupar o lugar do ▶ pelo minuto que leva.
-   *
-   * A pasta é a mesma do terminal de baixo, e o `cd` de um move o outro. Foi
-   * escolha: dois prompts mostrando pastas diferentes na mesma janela é o tipo
-   * de coisa que faz alguém rodar o comando certo no lugar errado.
-   */
-  ipcMain.handle(
-    "chat:comando",
-    seguro((e, linha: unknown) => {
-      if (typeof linha !== "string") throw new Error("Comando inválido.");
-      if (/[\n\r\0]/.test(linha)) throw new Error("O comando não pode ter quebra de linha.");
-      if (linha.length > 4000) throw new Error("Comando longo demais.");
-
-      const cwd = pastaDoComando ?? homedir();
-      const pronto = analisar(linha, cwd);
-      if (!pronto) return { pasta: cwd, rodando: false, nota: null };
-
-      registrarComando(linha.trim());
-
-      if (pronto.tipo === "cd") {
-        pastaDoComando = destinoDoCd(pronto.args, cwd, homedir());
-        return { pasta: pastaDoComando, rodando: false, nota: null };
-      }
-
-      if (estaRodando("chat")) throw new Error("Já há algo rodando aqui. Pare antes.");
-
-      rodarComando(
-        pronto.programa,
-        pronto.args,
-        cwd,
-        (evento: EventoExecucao) => e.sender.send("chat:evento", evento),
-        "chat",
-      );
-      return { pasta: cwd, rodando: true, nota: pronto.nota ?? null };
-    }),
-  );
-  ipcMain.on("chat:parar", () => pararScript("chat"));
 
   // O motor de edição (ADR 0025): o Neovim por PTY. A interface manda o tamanho
   // já ajustado à área; a saída volta pelo mesmo `sender`, e o processo é único.

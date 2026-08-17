@@ -5,11 +5,11 @@ import { FundoAnimado, type Junta } from "./fundo.js";
  * Wallpaper e tema (ADR 0010).
  *
  * O Terminus tem uma regra dura desde a ADR 0005: a casca é monocromática **para
- * que** as quatro bases do cromatograma sejam a cor mais forte da tela. Papel de
+ * que** o código seja o mais legível da tela. Papel de
  * parede é exatamente o tipo de coisa que quebra isso — então ele entra com três
  * limites, e os três são a decisão, não detalhe:
  *
- * 1. só aparece **atrás do editor**. Nunca atrás do cromatograma, nunca atrás da
+ * 1. só aparece **atrás do editor**. Nunca atrás da
  *    árvore, do terminal ou das abas;
  * 2. nasce escurecido em 82 % e com um desfoque leve. Dá para clarear, mas o
  *    padrão protege o dado;
@@ -41,8 +41,8 @@ type Paleta = Partial<Record<(typeof CHAVES)[number], string>>;
 /**
  * Os temas de fábrica.
  *
- * Todos escuros, e não por gosto: o cromatograma é desenhado sobre o fundo do
- * editor, e um tema claro faria o traço verde da base A sumir no branco.
+ * Todos escuros, e não por gosto: o Neovim roda com fundo transparente por cima
+ * deste, e um tema claro deixaria o realce do código ilegível.
  */
 export const TEMAS: Record<string, { nome: string; paleta: Paleta }> = {
   "cursor-dark": { nome: "Cursor Dark", paleta: {} },
@@ -163,8 +163,8 @@ export class Aparencia {
     const linhas = CHAVES.filter((k) => paleta[k]).map((k) => `  --${k}:${paleta[k]};`);
     this.estilo.textContent = linhas.length ? `:root{\n${linhas.join("\n")}\n}` : "";
 
-    // O cromatograma pinta em canvas: ele lê a cor de fundo do CSS a cada
-    // desenho, então basta avisar que a variável mudou.
+    // O terminal pinta em canvas e lê a cor de fundo do CSS a cada desenho,
+    // então basta avisar que a variável mudou.
     window.dispatchEvent(new CustomEvent("bancada:tema"));
   }
 
