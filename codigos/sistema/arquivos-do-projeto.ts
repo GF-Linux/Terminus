@@ -1,12 +1,11 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { NoArquivo, ProjetoAberto } from "../shared/tipos.js";
+import type { NoArquivo, ProjetoAberto } from "../compartilhado/tipos.js";
 
 /** Pastas que nunca interessam numa pasta de corrida e só poluem a árvore. */
 const IGNORAR = new Set([".git", "__pycache__", ".venv", "node_modules", ".ipynb_checkpoints"]);
 
-/** Um único nível da árvore. Pasta grande não trava a interface porque os
- *  filhos só são lidos quando alguém expande o nó. */
+//* Lista o que há dentro de uma pasta: pastas primeiro, depois arquivos.
 export async function listar(dir: string): Promise<NoArquivo[]> {
   const entradas = await fs.readdir(dir, { withFileTypes: true });
   const nos: NoArquivo[] = [];
@@ -34,6 +33,7 @@ export async function listar(dir: string): Promise<NoArquivo[]> {
   return nos;
 }
 
+//* Abre uma pasta como projeto e devolve o primeiro nível da árvore.
 export async function abrirProjeto(raiz: string): Promise<ProjetoAberto> {
   return { raiz, nome: path.basename(raiz), filhos: await listar(raiz) };
 }
@@ -43,13 +43,9 @@ export async function abrirProjeto(raiz: string): Promise<ProjetoAberto> {
  *  varredura não segurar a janela por minutos. */
 const TETO_VARREDURA = 20_000;
 
-/**
- * Todos os arquivos do projeto, em caminho relativo à raiz, para o Ctrl+P.
- *
- * Percorre em largura para que, se o teto for atingido, o que sobrou seja o
- * nível mais raso — que é onde estão os scripts que se quer abrir, não o fundo
- * de alguma pasta de dados.
- */
+//* Todos os arquivos do projeto, em caminho relativo — alimenta o Ctrl+P.
+//! Varredura em largura com teto de 20 mil: projeto grande não pode pendurar
+//!   a interface.
 export async function listarTudo(raiz: string): Promise<string[]> {
   const achados: string[] = [];
   let fila = [raiz];
@@ -79,6 +75,8 @@ export async function listarTudo(raiz: string): Promise<string[]> {
  *  próprio. */
 const TEXTO = new Set([".py", ".txt", ".md", ".fasta", ".fa", ".fastq", ".csv", ".tsv", ".json", ".xml", ".cfg", ".toml", ".yaml", ".yml"]);
 
+//* Diz se o arquivo é de texto, pela extensão.
+//! Binário é RECUSADO na leitura: abrir um `.png` no editor mostraria lixo.
 export function ehTexto(arquivo: string): boolean {
   return TEXTO.has(path.extname(arquivo).toLowerCase());
 }
@@ -87,6 +85,7 @@ export function ehTexto(arquivo: string): boolean {
  *  disso; um `.csv` de saída bruta chega, e aí a recusa é a resposta certa. */
 const TETO_LEITURA = 32 * 1024 * 1024;
 
+//* Lê um arquivo de texto do disco.
 export async function lerArquivo(arquivo: string): Promise<string> {
   // A extensão diz o que o nome promete, não o que o arquivo é. Sem esta
   // conferência, um `notas.txt` que seja atalho para `/dev/zero` — ou para um
@@ -106,6 +105,7 @@ export async function lerArquivo(arquivo: string): Promise<string> {
   return fs.readFile(arquivo, "utf8");
 }
 
+//* Grava um arquivo de texto no disco.
 export async function gravarArquivo(arquivo: string, conteudo: string): Promise<void> {
   await fs.writeFile(arquivo, conteudo, "utf8");
 }
@@ -138,7 +138,7 @@ function dentroDe(raiz: string, alvo: string): void {
   }
 }
 
-/** Cria o arquivo vazio e devolve o caminho. Falha se já existir. */
+//* Cria um arquivo vazio dentro da pasta aberta.
 export async function criarArquivo(raiz: string, dir: string, nome: string): Promise<string> {
   const alvo = path.join(dir, validarNome(nome));
   dentroDe(raiz, alvo);
@@ -149,6 +149,7 @@ export async function criarArquivo(raiz: string, dir: string, nome: string): Pro
   return alvo;
 }
 
+//* Cria uma pasta dentro da pasta aberta.
 export async function criarPasta(raiz: string, dir: string, nome: string): Promise<string> {
   const alvo = path.join(dir, validarNome(nome));
   dentroDe(raiz, alvo);
@@ -156,6 +157,7 @@ export async function criarPasta(raiz: string, dir: string, nome: string): Promi
   return alvo;
 }
 
+//* Renomeia (ou move) um arquivo ou pasta dentro do projeto.
 export async function renomear(raiz: string, antigo: string, nome: string): Promise<string> {
   const alvo = path.join(path.dirname(antigo), validarNome(nome));
   dentroDe(raiz, antigo);

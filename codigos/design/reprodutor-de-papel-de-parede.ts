@@ -1,37 +1,16 @@
-/**
- * O reprodutor do papel de parede animado (ADR 0011).
- *
- * ## O problema, medido
- *
- * GIF de papel de parede quase nunca é um loop fechado: o último quadro não
- * casa com o primeiro, e a cada volta a tela dá um tranco. No GIF que o autor
- * estava usando, a diferença média por canal entre o último quadro e o primeiro
- * é **11,2**, contra **3,3** entre dois quadros vizinhos — o salto da emenda é
- * 3,4 vezes maior que o movimento normal da animação.
- *
- * Isso quer dizer que **a emenda está no arquivo, não no reprodutor**. Nenhum
- * decodificador conserta; o que se faz é mascarar. É o que este arquivo faz.
- *
- * ## Como
- *
- * Em vez de deixar o `<img>` rodar o GIF sozinho, os quadros são decodificados
- * pelo `ImageDecoder` e desenhados num canvas, o que dá controle sobre a ordem e
- * sobre a mistura entre eles. Três modos:
- *
- *   seco       a volta crua, como o navegador faz. Só serve para GIF que já é
- *              loop fechado — aí não há emenda a esconder.
- *   crossfade  o fim se dissolve no começo. A linha do tempo encurta na largura
- *              da janela de mistura, e os quadros da cauda entram desaparecendo
- *              por cima dos da cabeça. É a costura de loop de sempre, a mesma
- *              que se faz em vídeo.
- *   vai-e-vem  toca de trás para a frente ao chegar no fim. Não existe emenda
- *              porque não existe volta — em compensação o movimento inverte, o
- *              que entrega o truque se houver algo caindo ou andando na cena.
- *
- * Como o fundo é sempre escurecido e quase sempre desfocado (ADR 0010), os
- * quadros são reduzidos na decodificação: nitidez que ninguém vê não vale a
- * memória que custa.
- */
+//? REPRODUTOR DE PAPEL DE PAREDE — Decisão sobre a volta do GIF 01/08/2026
+//!
+//! 1. GIF de papel de parede quase nunca fecha o loop: o último quadro não casa
+//!    com o primeiro e a tela dá um tranco a cada volta.
+//! 2. Medido no GIF do autor: diferença de 11,2 por canal na emenda contra 3,3
+//!    entre quadros vizinhos — o salto é 3,4× o movimento normal.
+//! 3. A emenda está NO ARQUIVO, não no reprodutor. Não se conserta, se mascara.
+//! 4. Por isso os quadros são decodificados pelo `ImageDecoder` e desenhados em
+//!    canvas, em vez de deixar o `<img>` rodar o GIF sozinho.
+//! 5. Três modos: `seco` (volta crua), `crossfade` (o fim dissolve no começo,
+//!    padrão) e `vaivem` (toca de trás para a frente, sem volta).
+//! 6. Os quadros são reduzidos na decodificação: o fundo é escurecido e
+//!    desfocado, então nitidez que ninguém vê não vale a memória.
 
 export type Junta = "seco" | "crossfade" | "vaivem";
 

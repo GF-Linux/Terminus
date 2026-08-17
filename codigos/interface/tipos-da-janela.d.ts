@@ -1,4 +1,4 @@
-import type { ApiTerminus } from "../../preload/index.js";
+import type { ApiTerminus } from "../ponte/ponte-para-a-interface.js";
 
 declare global {
   interface Window {

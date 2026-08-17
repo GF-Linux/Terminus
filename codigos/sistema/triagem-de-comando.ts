@@ -1,29 +1,21 @@
 import { readdirSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { acharPython } from "./ambiente.js";
+import { acharPython } from "./localizador-do-python.js";
 
-/**
- * A linha de comando do terminal (ADR 0020).
- *
- * Até 02/08 o Terminus não tinha onde digitar comando: o terminal era só tela, e
- * `src/preload/index.ts` dizia em comentário para nunca abrir essa porta. O
- * autor foi instalar o pandas para estudar e descobriu que não havia como. A
- * porta abriu — a ADR registra por quê e o que muda.
- *
- * **Não há shell por trás.** `spawn` roda com `shell: false`, o que significa que
- * o programa recebe uma lista de argumentos, e não uma linha de texto para
- * reinterpretar. Consequência: `|`, `>`, `&&` e afins não têm efeito e são
- * recusados com explicação, em vez de virarem argumento literal e produzirem um
- * erro sem sentido (`ls: não é possível acessar '|'`). Quem realmente precisa de
- * pipe pede um shell por escrito: `bash -c "ls | grep .py"`.
- *
- * **Não há PTY** (node-pty é módulo nativo e este Deck não tem gcc/make; ver
- * `execucao.ts`). Programa que espera digitação não trava o Terminus, mas trava a
- * si mesmo esperando um stdin que nunca vem. Por isso os interativos conhecidos
- * são recusados na entrada: é melhor uma frase explicando do que um `htop`
- * pendurado até alguém apertar o quadrado vermelho.
- */
-
+//? TRIAGEM DE COMANDO — Decisão sobre a linha de comando 03/08/2026
+//!
+//! 1. O terminal era só tela. O autor foi instalar o pandas e não havia onde
+//!    digitar. A porta abriu.
+//! 2. NÃO há shell: o `spawn` roda com `shell: false` e o programa recebe uma
+//!    lista de argumentos, não uma linha de texto para reinterpretar.
+//! 3. Por isso `|`, `>`, `&&` e `;` são RECUSADOS com explicação, em vez de
+//!    virarem argumento literal e darem um erro sem sentido.
+//! 4. Quem precisa de pipe pede shell por escrito: `bash -c "ls | grep .py"`.
+//! 5. NÃO há PTY nesta tela: programa interativo (`sudo`, `htop`, `python`
+//!    pelado) trava a si mesmo esperando um stdin que nunca vem, então é
+//!    recusado na entrada.
+//! 6. `pip` é reescrito para `python3 -m pip` — o pip do PATH pode instalar num
+//!    Python e o `import` procurar em outro.
 /* ------------------------------ separar argv ------------------------------ */
 
 /**
@@ -301,10 +293,9 @@ export function traduzir(argv: string[], cwd: string): ComandoPronto {
   return { tipo: "processo", programa: nome, args: alvos };
 }
 
-/**
- * Analisa a linha inteira: separa, recusa o que não roda e traduz.
- * Devolve `null` para linha em branco.
- */
+//* Lê a linha digitada e decide: recusar, virar `cd`, ou rodar um programa.
+//! Recusa metacaractere de shell (`|`, `>`, `&&`, `;`) com explicação, e
+//!   recusa programa interativo, que sem PTY travaria a si mesmo.
 export function analisar(linha: string, cwd: string): ComandoPronto | null {
   if (linha.trim() === "") return null;
 
@@ -321,7 +312,7 @@ export function analisar(linha: string, cwd: string): ComandoPronto | null {
   return argv.length === 0 ? null : traduzir(argv, cwd);
 }
 
-/** Resolve o destino de um `cd`, com as mesmas manhas do shell (`cd` = casa, `-` não). */
+//* Calcula para onde o `cd` vai, incluindo `~`, `..` e caminho relativo.
 export function destinoDoCd(args: string[], cwd: string, casa: string): string {
   if (args.length > 1) throw new Error("cd aceita uma pasta só.");
   const bruto = args[0] ?? casa;

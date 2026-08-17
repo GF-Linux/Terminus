@@ -7,30 +7,23 @@ import type {
   ProjetoAberto,
   RespostaComando,
   Resultado,
-} from "../shared/tipos.js";
+} from "../compartilhado/tipos.js";
 
-/**
- * A única superfície que a interface enxerga do sistema.
- *
- * `contextIsolation` está ligado e `nodeIntegration` desligado: o renderizador
- * não tem `require`, não tem `fs` e não tem `child_process`. Tudo o que ele pode
- * fazer está listado abaixo — e cada item aqui é uma decisão de segurança, não
- * conveniência.
- *
- * **Até a ADR 0020 este comentário dizia "não acrescentar um executar comando
- * arbitrário", e agora `comando()` é exatamente isso.** A troca foi consciente e
- * está registrada: uma IDE onde não se instala biblioteca não serve para estudar,
- * que é o propósito declarado desta. O que a linha tirou de garantia e o que
- * ficou de pé:
- *
- * - **caiu:** a interface deixou de estar limitada a rodar `.py` de dentro da
- *   pasta aberta. Quem controla o renderizador controla o que o usuário
- *   controla no terminal.
- * - **fica de pé:** não há shell, então nada de texto é reinterpretado
- *   (`shell: false`, argumentos separados em `comando.ts`); um processo por vez;
- *   e nenhum recurso de IA alcança esta porta. Se um dia algo sugerir comando na
- *   tela, o botão que executa é uma decisão nova, não um detalhe.
- */
+//? PONTE PARA A INTERFACE — Decisão sobre a única porta para o sistema 29/07/2026
+//!
+//! 1. Tudo que a tela consegue fazer no computador está listado NESTE arquivo.
+//!    Se não está aqui, a interface não faz.
+//! 2. `contextIsolation` ligado e `nodeIntegration` desligado: a interface não
+//!    tem `require`, nem `fs`, nem `child_process`.
+//! 3. ⚠️ Cada item aqui é decisão de segurança, não conveniência. Acrescentar um
+//!    é aumentar o que um defeito na tela consegue alcançar.
+//! 4. `comando()` executa o que a pessoa digitou, e isso já foi proibido aqui.
+//!    A troca foi consciente: ferramenta onde não se instala biblioteca não
+//!    serve para aprender.
+//! 5. O que segura a linha: não há shell (`shell: false`, argumentos separados
+//!    em `triagem-de-comando.ts`), um processo por vez, e nada de IA alcança
+//!    esta porta. Se um dia algo sugerir comando na tela, o botão que executa é
+//!    decisão nova, não detalhe.
 const api = {
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:escolher"),

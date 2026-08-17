@@ -5,19 +5,19 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      rollupOptions: { input: { index: resolve("src/main/index.ts") } },
+      rollupOptions: { input: { index: resolve("codigos/sistema/janela-principal.ts") } },
     },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      rollupOptions: { input: { index: resolve("src/preload/index.ts") } },
+      rollupOptions: { input: { index: resolve("codigos/ponte/ponte-para-a-interface.ts") } },
     },
   },
   renderer: {
-    root: resolve("src/renderer"),
+    root: resolve("codigos"),
     build: {
-      rollupOptions: { input: { index: resolve("src/renderer/index.html") } },
+      rollupOptions: { input: { index: resolve("codigos/interface/pagina.html") } },
     },
   },
 });
