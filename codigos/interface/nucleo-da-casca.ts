@@ -6,7 +6,6 @@
 import type { NoArquivo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
 import { VistaNeovim } from "./vista-do-neovim.js";
 import { TerminalSaida } from "./tela-do-terminal.js";
-import urlMarca from "../../media/marca.png";
 import urlIcone from "../../media/icon.png";
 
 //* A ÚNICA porta para o sistema. Tudo que sai da tela passa por aqui.
@@ -111,10 +110,11 @@ export function avisar(texto: string): void {
   terminal.nota(texto);
 }
 
-//* A marca entra por import, e não por caminho no HTML: em desenvolvimento o
-//* servidor do Vite devolve a página no lugar do arquivo (medido: content-type
-//* text/html) e o ícone simplesmente não aparece.
-($("imgMarca") as HTMLImageElement).src = urlMarca;
+//* A marca da barra de título saiu: a barra é minimalista, e o sigilo já está
+//* no ícone da janela e no papel de parede. Só a tela vazia mantém a figura.
+//! Entra por import, e não por caminho no HTML: em desenvolvimento o servidor
+//!   do Vite devolve a página no lugar do arquivo (medido: content-type
+//!   text/html) e a imagem simplesmente não aparece.
 ($("imgMarcaGrande") as HTMLImageElement).src = urlIcone;
 
 /**
