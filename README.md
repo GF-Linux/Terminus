@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.5.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.6.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -129,13 +129,35 @@ linguagem certa.
 A largura sai da linha mais longa, e vale tanto `caixa("a", "b")` quanto
 `caixa("a\nb")`.
 
+### O comportamento do editor
+
+A outra metade do kit. São ajustes de Neovim que o Terminus liga por você —
+cada um está listado aqui, porque **arquivo de editor muda o comportamento na
+hora**, ao contrário de uma função pronta, que fica inerte até você digitar.
+
+| arquivo | o que faz | interruptor |
+|---|---|---|
+| `erro-na-propria-linha` | o erro aparece escrito na linha, sem precisar rodar | `Espaço+ux` |
+| `linha-longa-nao-arrasta` | linha longa quebra na tela em vez de rolar para o lado | `Espaço+uw` |
+| `marcadores-de-comentario` | `#!` vermelho, `#*` verde, `#?` título — e busca por eles | — |
+| `caixa-de-comentario` | desenha moldura em comentário | `Espaço+cb…` |
+| `rodar-e-setas` | `Espaço+r` roda o arquivo aberto, por linguagem | — |
+| `csharp-um-servidor-so` | evita dois servidores de C# no mesmo arquivo | — |
+| `tema` | recolore o Neovim na paleta da casca, **só dentro do Terminus** | — |
+
+Não entra nada além disso. O painel de comandos, a árvore, o teclado e o resto
+continuam sendo os do seu LazyVim.
+
 **Elas não são cópias.** Moram em `kits/` neste repositório, e o Terminus as
 liga na abertura — atualizar o Terminus atualiza as funções. O que ele escreve
 na sua máquina é só isto:
 
 ```
-~/.config/nvim/snippets/<linguagem>/terminus-*.json     (ligações, não cópias)
+~/.config/nvim/snippets/<linguagem>/terminus-*.json     (as funções prontas)
+~/.config/nvim/lua/plugins/terminus-*.lua               (o comportamento acima)
 ```
+
+São **ligações, não cópias** — atualizar o Terminus atualiza tudo.
 
 Nada mais é criado ou alterado. Se já existir um arquivo seu com esse nome, o
 Terminus **não o toca** e avisa.
@@ -218,7 +240,7 @@ src/renderer/   a casca: árvore, terminal, plugins, temas
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.5 ainda quer dizer isso:
+Lista honesta, porque v0.0.6 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -251,6 +273,30 @@ Lista honesta, porque v0.0.5 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.6 — 17/08/2026
+
+1. **O kit passou a levar o comportamento do editor também**, e não só as
+   funções prontas. Erro escrito na linha, quebra de linha longa, cores dos
+   marcadores, `Espaço+r` e o tema da casca agora vêm com o Terminus, ligados
+   em `~/.config/nvim/lua/plugins/terminus-*.lua`. Cada peça está listada no
+   leia-me — arquivo de editor muda o comportamento na hora, ao contrário de uma
+   função pronta, e nada entra sem estar escrito.
+2. `kits/` ficou dividido em `funcoes/` e `editor/`, porque são duas coisas com
+   riscos diferentes.
+3. **O erro aparece na própria linha**, sem precisar rodar. O que faltava não
+   era o recurso: era o `update_in_insert`, que vinha desligado — e o Terminus
+   vive em modo de escrita, então o diagnóstico nunca se atualizava. `Espaço+ux`
+   liga e desliga.
+4. Em Python, `ruff` e `pyright` diziam a mesma coisa na mesma linha. Cada um
+   ficou com o que é dele; nada deixou de ser detectado.
+5. **O contraste do texto subiu, medido**: `#d7d9ea` (13.76:1) virou `#eaecf7`
+   (16.37:1), e o mesmo para o resto da paleta. O tom não mudou — é o mesmo
+   azul-lavanda, só mais claro.
+6. **O véu da área de escrita virou degradê.** Na v0.0.5 ele era parelho e
+   apagava a ilustração. A figura fica à direita e o código à esquerda: forte
+   onde se escreve, quase nada onde a figura está.
+7. `csharpier` entrou como formatador de C#.
 
 ### v0.0.5 — 17/08/2026
 
