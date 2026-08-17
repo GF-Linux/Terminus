@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.3.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.4.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -48,7 +48,7 @@ comandos do dia a dia; o resto do teclado é do Neovim, intacto.**
 
 ---
 
-## Rodar
+## Como instalar e rodar
 
 Precisa de **Neovim**, **Node** e um compilador C++ (o `node-pty` é módulo
 nativo).
@@ -79,6 +79,119 @@ update-desktop-database ~/.local/share/applications
 
 ---
 
+## O que vem embutido
+
+O Terminus não é só a casca. Ele traz **dev kits**: por linguagem, o molde de
+projeto, o gesto de rodar, e uma biblioteca de funções prontas que cresce
+conforme o uso real pede.
+
+A ideia é a mesma do "Python Dev Kit" do VSCode — com uma diferença: aqui as
+funções nascem de necessidade de verdade, não de catálogo. Cada uma existe
+porque alguém estava travado nela.
+
+### O que já é do Terminus, e o que ainda não é
+
+Lista honesta, porque o kit está começando:
+
+| | vem do Terminus | vem do Neovim (LazyVim + Mason) |
+|---|---|---|
+| funções prontas (`caixa`) | sim, em `kits/` | — |
+| saber a linguagem da pasta | sim, o botão de fluxo | — |
+| criar projeto novo | sim, com o molde de cada linguagem | — |
+| rodar com um gesto | sim, o botão **Rodar** e o `F5` | `Espaço+r` dentro do editor |
+| servidor de linguagem | ainda não | `pyright`, `roslyn`, `clangd` |
+| formatador | ainda não | `ruff`, `csharpier` |
+
+Ou seja: hoje o Terminus embute **as funções, o molde e o gesto de rodar**. O
+servidor de linguagem ainda é o `:LazyExtras` que você liga — está em
+[Ainda não existe](#ainda-não-existe) como próximo passo do kit.
+
+Python, C# e C++ têm molde de projeto pelo botão de fluxo. Lua tem as funções
+prontas, mas ainda não tem molde.
+
+### As funções prontas
+
+Escreva o nome e aperte **Enter** — a função inteira aparece no arquivo, já na
+linguagem certa.
+
+| gatilho | o que dá |
+|---|---|
+| `caixa` | desenha uma moldura em volta do texto, no console |
+| `caixaascii` | a mesma moldura só com `+ - \|`, para terminal sem a fonte |
+
+```
+╭────────────────────────────────────────────╮
+│ 1. Começa com uma letra ou sublinhado ou   │
+│ 2. Começa com uma letra ou sublinhado ou @ │
+╰────────────────────────────────────────────╯
+```
+
+A largura sai da linha mais longa, e vale tanto `caixa("a", "b")` quanto
+`caixa("a\nb")`.
+
+**Elas não são cópias.** Moram em `kits/` neste repositório, e o Terminus as
+liga na abertura — atualizar o Terminus atualiza as funções. O que ele escreve
+na sua máquina é só isto:
+
+```
+~/.config/nvim/snippets/<linguagem>/terminus-*.json     (ligações, não cópias)
+```
+
+Nada mais é criado ou alterado. Se já existir um arquivo seu com esse nome, o
+Terminus **não o toca** e avisa.
+
+---
+
+## Noções básicas de configuração
+
+O Terminus não tem tela de configuração própria de propósito: quem configura é o
+Neovim, e o que se aprende aqui serve fora daqui também. O mínimo para não ficar
+perdido:
+
+### Onde as coisas moram
+
+```
+~/.config/nvim/lua/plugins/     um arquivo por assunto; cada um devolve uma tabela
+~/.config/nvim/lazyvim.json     os "extras" ligados (as linguagens, por exemplo)
+~/.config/nvim/snippets/        as funções prontas (as do Terminus vêm ligadas aqui)
+~/.config/terminus/config.json  o que é da casca: pasta lembrada, tema, histórico
+```
+
+### O gesto que resolve a maioria
+
+- `Espaço` é a tecla de comando. Segure e espere: o menu aparece sozinho e diz
+  o que existe. É assim que se descobre atalho, sem decorar nada.
+- `Espaço l` abre o gerenciador de plugins. Ali se instala, atualiza e remove.
+- `:LazyExtras` liga suporte a uma linguagem inteira de uma vez.
+
+### Acrescentar um plugin
+
+Um arquivo novo em `~/.config/nvim/lua/plugins/`, com o nome do que ele faz:
+
+```lua
+return {
+  { "autor/nome-do-plugin", opts = {} },
+}
+```
+
+Salvou, reabriu, está instalado. Para tirar, apague o arquivo.
+
+### Trocar um ajuste do editor
+
+```lua
+return {
+  {
+    "LazyVim/LazyVim",
+    opts = function()
+      vim.opt.wrap = true        -- linha longa quebra na tela
+      vim.opt.number = true      -- numera as linhas
+    end,
+  },
+}
+```
+
+---
+
 ## Como é feito
 
 **Electron** para a casca, **xterm.js** para a tela, **node-pty** para o
@@ -105,8 +218,11 @@ src/renderer/   a casca: árvore, terminal, plugins, temas
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.3 ainda quer dizer isso:
+Lista honesta, porque v0.0.4 ainda quer dizer isso:
 
+- **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
+  funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
+  `:LazyExtras`. O objetivo é o Terminus fazer isso por quem chega.
 - **Não está empacotado.** Roda do repositório; não há AppImage nem RPM.
 - **Testado numa máquina só** — Fedora 44, KDE em Wayland. Nunca rodou em GNOME,
   em X11 puro, em outra distribuição, no macOS nem no Windows.
@@ -135,6 +251,26 @@ Lista honesta, porque v0.0.3 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.4 — 17/08/2026
+
+1. **Os dev kits saíram do computador do autor.** As funções prontas moram agora
+   em `kits/`, neste repositório, e o Terminus as liga na abertura. Antes elas
+   existiam só numa máquina: quem instalasse o Terminus não as teria.
+2. O que ele escreve na sua máquina está limitado a
+   `~/.config/nvim/snippets/<linguagem>/terminus-*.json`, e são ligações, não
+   cópias — atualizar o Terminus atualiza as funções. Arquivo seu com o mesmo
+   nome não é tocado, e o Terminus avisa.
+3. A primeira função embutida é a `caixa`: desenha uma moldura em volta do texto
+   no console, em Python, C#, C++ e Lua. A largura sai da linha mais longa.
+4. **Linha longa não arrasta mais a tela para o lado.** Ela quebra na tela, com
+   a continuação alinhada e marcada. O arquivo continua com uma linha só — a
+   quebra é só visual. `Espaço+uw` liga e desliga.
+5. A seta passa a andar pelo que se vê: com a linha quebrada, descer uma linha
+   desce uma linha da TELA. Com número na frente (`3j`) continua sendo três
+   linhas do arquivo.
+6. README ganhou **O que vem embutido** e **Noções básicas de configuração**, e
+   "Rodar" virou "Como instalar e rodar".
 
 ### v0.0.3 — 17/08/2026
 

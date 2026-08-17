@@ -1,0 +1,37 @@
+{
+  "caixa": {
+    "prefix": "caixa",
+    "description": "Moldura no console, largura automatica",
+    "body": [
+      "void caixa(const std::string& texto) {",
+      "    // quebra no \\\\n, e mede a linha MAIS LONGA",
+      "    std::vector<std::string> linhas;",
+      "    std::string atual;",
+      "    for (char c : texto) {",
+      "        if (c == '\\\\n') { linhas.push_back(atual); atual.clear(); }",
+      "        else if (c != '\\\\r') atual += c;",
+      "    }",
+      "    linhas.push_back(atual);",
+      "",
+      "    // conta caracteres, nao bytes: em UTF-8 um acento ocupa dois",
+      "    auto largura_de = [](const std::string& s) {",
+      "        std::size_t n = 0;",
+      "        for (unsigned char c : s) if ((c & 0xC0) != 0x80) ++n;",
+      "        return n;",
+      "    };",
+      "",
+      "    std::size_t largura = 0;",
+      "    for (const auto& l : linhas) largura = std::max(largura, largura_de(l));",
+      "",
+      "    std::string traco;",
+      "    for (std::size_t i = 0; i < largura + 2; ++i) traco += \"─\";",
+      "",
+      "    std::cout << \"╭\" << traco << \"╮\\\\n\";",
+      "    for (const auto& l : linhas)",
+      "        std::cout << \"│ \" << l << std::string(largura - largura_de(l), ' ') << \" │\\\\n\";",
+      "    std::cout << \"╰\" << traco << \"╯\\\\n\";",
+      "}",
+      "$0"
+    ]
+  }
+}
