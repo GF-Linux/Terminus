@@ -5,21 +5,31 @@ import "@xterm/xterm/css/xterm.css";
 /**
  * O terminal.
  *
- * xterm.js conforme a ADR 0003, mas **somente como tela**: não há PTY por trás.
- * node-pty é módulo nativo e a máquina de desenvolvimento (SteamOS) não tem gcc
- * nem make, com a raiz somente-leitura. O processo principal roda o script com
- * canos comuns e manda o texto para cá.
+ * xterm.js, e agora com PTY DE VERDADE atrás (`motor-do-shell-pty.ts`, 19/08).
+ * Antes disto era só uma TELA: o processo principal rodava o comando com canos
+ * comuns e mandava o texto para cá.
  *
- * Consequência visível: o cursor não pisca esperando digitação, `input()` trava o
- * script, e programas que checam `isatty` não colorem a saída. Está registrado em
- * src/main/execucao.ts.
+ * O que muda, e por que a mudança existe: sem PTY, todo programa que se pergunta
+ * se fala com um terminal responde "não" e desliga a cor sozinho. Medido:
  *
- * **Desde a ADR 0020 dá para digitar comando — mas não aqui dentro.** O campo é
- * um `<input>` de HTML logo abaixo desta tela (`#linhaCmd`), e `disableStdin`
- * continua ligado. Sem PTY não há eco nem readline do outro lado, então digitar
- * dentro do xterm significaria reimplementar cursor, seleção, colar e
- * acentuação à mão — o campo do sistema já faz tudo isso, e faz certo no
- * teclado do Deck.
+ *     ls --color=auto        por cano  b'alsa\n...'          <- sem cor
+ *                            por PTY   b'\x1b[01;34malsa...'  <- com cor
+ *     sys.stdout.isatty()    por cano  False    por PTY  True
+ *
+ * Era esse o defeito relatado — "o Konsole mostra cor e o Terminus não". Não era
+ * tema, nem xterm.js: era a falta do pseudo-terminal.
+ *
+ * **A digitação agora acontece DENTRO desta tela**, e não mais num `<input>`
+ * abaixo dela. O campo existia porque sem PTY não havia eco nem readline do
+ * outro lado, então escrever no xterm obrigaria a reimplementar cursor,
+ * histórico e edição de linha à mão. Com um shell de verdade quem faz tudo isso
+ * é o `readline` do bash — o mesmo que faz no Konsole, e melhor do que a nossa
+ * cópia fazia: `Tab` completa, `Ctrl+R` procura no histórico, `Ctrl+A`/`Ctrl+E`
+ * andam na linha.
+ *
+ * É o mesmo desenho que a `vista-do-neovim.ts` já usava desde a ADR 0025. Duas
+ * telas, um jeito só: teclado sobe, ANSI desce, e esta classe não interpreta
+ * nada do que passa.
  */
 /**
  * A linha de quadro de um traceback do Python:
@@ -38,20 +48,41 @@ export interface DestinoTraceback {
   linha: number;
 }
 
+export interface OpcoesTerminal {
+  /** Clique num quadro de traceback. Sem isto, o quadro não vira link. */
+  aoAbrirQuadro?: (d: DestinoTraceback) => void;
+  /** O que se digitou, rumo ao shell. Bytes crus, sem interpretação daqui. */
+  aoDigitar?: (dados: string) => void;
+  /** A tela mudou de medida: o shell precisa saber, senão desenha torto. */
+  aoRedimensionar?: (cols: number, rows: number) => void;
+}
+
 export class TerminalSaida {
   private readonly term: Terminal;
   private readonly fit = new FitAddon();
+  private readonly aoRedimensionar: ((cols: number, rows: number) => void) | undefined;
+  /** Última medida avisada ao shell, para não repetir o mesmo aviso. */
+  private ultimaMedida = "";
 
-  constructor(host: HTMLElement, aoAbrirQuadro?: (d: DestinoTraceback) => void) {
+  constructor(host: HTMLElement, opcoes: OpcoesTerminal = {}) {
+    this.aoRedimensionar = opcoes.aoRedimensionar;
     this.term = new Terminal({
       fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
       fontSize: 12,
       lineHeight: 1.5,
-      cursorBlink: false,
-      // Sem PTY não há entrada: deixar o cursor visível prometeria digitação.
-      cursorStyle: "underline",
-      disableStdin: true,
-      convertEol: true,
+      //! Agora há entrada de verdade: o cursor pisca porque ele de fato espera
+      //! digitação. Antes ficava sublinhado e parado justamente para não
+      //! prometer o que não havia.
+      cursorBlink: true,
+      cursorStyle: "block",
+      disableStdin: false,
+      //! FORA. `convertEol` transformava `\n` em `\r\n` porque o texto vinha de
+      //! um cano, onde só há `\n`. Um PTY já manda `\r\n` — converter de novo
+      //! empurraria toda linha uma a mais para baixo, e programa de tela cheia
+      //! (`htop`, `nano`) desenharia em escada.
+      convertEol: false,
+      //! O histórico de rolagem é da tela. Programa de tela cheia usa a tela
+      //! alternativa e não suja este rolo, como no Konsole.
       scrollback: 5000,
       theme: {
         // Mesmos dois fundos e mesma base com alfa da casca.
@@ -76,7 +107,8 @@ export class TerminalSaida {
     this.term.open(host);
     this.ajustar();
 
-    if (aoAbrirQuadro) this.ligarTraceback(aoAbrirQuadro);
+    if (opcoes.aoAbrirQuadro) this.ligarTraceback(opcoes.aoAbrirQuadro);
+    if (opcoes.aoDigitar) this.term.onData(opcoes.aoDigitar);
 
     const ro = new ResizeObserver(() => this.ajustar());
     ro.observe(host);
@@ -165,16 +197,37 @@ export class TerminalSaida {
     } catch {
       /* host sem dimensão ainda */
     }
+    //! O shell precisa saber a medida nova, senão a quebra de linha dele fica na
+    //! antiga. O `ResizeObserver` dispara muito (arrastar o divisor é um evento
+    //! por pixel), então só avisa quando a medida REALMENTE mudou: cada aviso
+    //! vira um SIGWINCH, e programa de tela cheia se redesenha inteiro a cada um.
+    const medida = `${this.term.cols}x${this.term.rows}`;
+    if (medida !== this.ultimaMedida) {
+      this.ultimaMedida = medida;
+      this.aoRedimensionar?.(this.term.cols, this.term.rows);
+    }
+  }
+
+  /** As medidas atuais, para a partida do shell nascer no tamanho certo. */
+  get cols(): number {
+    return this.term.cols;
+  }
+  get rows(): number {
+    return this.term.rows;
+  }
+
+  //* Põe o cursor aqui. Quem abre o painel do terminal vai digitar.
+  focar(): void {
+    this.term.focus();
   }
 
   escrever(texto: string): void {
     this.term.write(texto);
   }
 
-  /** Linha de comando, no tom do protótipo: seta + nome da pasta. */
-  comando(pasta: string, comando: string): void {
-    this.term.write(`\x1b[36m➜ ${pasta}\x1b[0m ${comando}\r\n`);
-  }
+  //! O método `comando()` saiu (19/08). Ele desenhava `➜ pasta` e ecoava a linha
+  //! digitada, porque sem shell ninguém mais faria isso. O bash tem prompt
+  //! próprio — o da pessoa, com as cores e o git dela — e ecoa sozinho.
 
   nota(texto: string): void {
     this.term.write(`\x1b[90m${texto}\x1b[0m\r\n`);

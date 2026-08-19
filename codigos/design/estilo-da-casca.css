@@ -313,16 +313,6 @@ button:disabled{opacity:.35; cursor:default}
 /* linha de comando (ADR 0020) — encostada no fim da saída, sem borda por cima:
    ela é a continuação do terminal, não outro painel. O ➜ repete o mesmo verde
    do prompt que a saída já usa, para os dois lerem como a mesma coisa. */
-.linhaCmd{flex:none; display:flex; align-items:baseline; gap:8px; padding:4px 12px 10px;
-  font-family:var(--mono); font-size:12px; line-height:1.5}
-.promptCmd{flex:none; color:var(--acento); white-space:nowrap; max-width:55%;
-  overflow:hidden; text-overflow:ellipsis}
-.linhaCmd input{flex:1; min-width:0; background:none; border:none; outline:none; padding:0;
-  font:inherit; color:var(--fg); caret-color:var(--fg)}
-.linhaCmd input::placeholder{color:var(--fg36)}
-/* Enquanto algo roda o campo continua clicável (para o Ctrl+C funcionar nele),
-   mas apagado: quem olha vê que não é a vez dele. */
-.linhaCmd.ocupada .promptCmd, .linhaCmd.ocupada input{opacity:.45}
 
 /* barra de estado */
 .sbar{background:var(--chrome); border-top:1px solid var(--line); display:flex; align-items:center;
@@ -399,9 +389,3 @@ button:disabled{opacity:.35; cursor:default}
    divisor, sem largura de 400px guardada da casca. Só o que muda é o tamanho —
    as cores, a fonte e a linha de comando continuam idênticas às de dentro, que
    é o ponto de soltar o terminal e não abrir outro programa. */
-body.soTerminal{height:100vh; background:var(--chrome); overflow:hidden}
-body.soTerminal .painelTerm{width:100%; height:100vh; min-width:0; max-width:none}
-/* A barra do topo vira a área de arrastar da janela: ela não tem moldura de
-   sistema do lado de dentro, e sem isto a janela não se move. */
-body.soTerminal .ptabs{-webkit-app-region:drag}
-body.soTerminal .ptabs button{-webkit-app-region:no-drag}

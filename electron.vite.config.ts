@@ -20,8 +20,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve("codigos/interface/pagina.html"),
-          // A segunda janela (ADR 0031). Página própria, entrada própria.
-          terminal: resolve("codigos/interface/pagina-do-terminal.html"),
+          // A segunda janela da ADR 0031 saiu (19/08): o botão que a abria hoje
+          // abre o Konsole de verdade, e uma página só voltou a bastar.
         },
       },
     },

@@ -29,7 +29,8 @@ O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 | **Abrir arquivo** | um clique, e o cursor já entra em **modo de escrita**. |
 | **`Ctrl+S`** | grava **sem tirar você do modo de escrita** — veja abaixo por que isso importa. |
 | **`Ctrl+Z` / `Ctrl+Shift+Z`** | desfaz e refaz. |
-| **Terminal** | painel próprio, dockável no rodapé, à direita ou à esquerda; a medida fica lembrada. |
+| **Terminal** | um **shell de verdade**, em pseudo-terminal: cor, `htop`, `python` interativo, `sudo`, pipe e `&&`. Dockável no rodapé, à direita ou à esquerda; a medida fica lembrada. |
+| **Botão ↗ do terminal** | abre o **Konsole** na pasta em que o terminal está, com o perfil e as abas que você já configurou. |
 | **Plugins** | a lista do `lazy.nvim` na lateral, filtrável; clicar abre a pasta do plugin. |
 | **Aparência** | papel de parede atrás do editor, temas, zoom com `Ctrl +` / `Ctrl -`. |
 
@@ -137,7 +138,7 @@ hora**, ao contrário de uma função pronta, que fica inerte até você digitar
 
 | arquivo | o que faz | interruptor |
 |---|---|---|
-| `erro-na-propria-linha` | o erro aparece escrito na linha, sem precisar rodar | `Espaço+ux` |
+| `erro-na-propria-linha` | o erro aparece escrito na linha, sem precisar rodar — e o aviso de "variável não usada" espera você sair do modo de escrita, porque quem acabou de declarar ainda não teve chance de usar | `Espaço+ux` |
 | `linha-longa-nao-arrasta` | linha longa quebra na tela em vez de rolar para o lado | `Espaço+uw` |
 | `marcadores-de-comentario` | `#!` vermelho, `#*` verde, `#?` título — e busca por eles | — |
 | `caixa-de-comentario` | desenha moldura em comentário | `Espaço+cb…` |
@@ -216,8 +217,13 @@ return {
 
 ## Como é feito
 
-**Electron** para a casca, **xterm.js** para a tela, **node-pty** para o
-pseudo-terminal, e o **Neovim** como motor — falando por dois canais:
+**Electron** para a casca, **xterm.js** para as telas, **node-pty** para os
+pseudo-terminais, e o **Neovim** como motor.
+
+São **dois** PTYs, com o mesmo desenho: um roda o Neovim (o editor), o outro roda
+o seu shell (o terminal). Nos dois, a casca só transporta bytes — teclado sobe,
+ANSI desce, e ela não interpreta o que passa. O Neovim tem ainda um segundo
+canal:
 
 - **o PTY**, por onde passam as teclas e os bytes que ele desenha;
 - **o socket de controle** (`nvim --listen`, msgpack-RPC), por onde a casca pede
@@ -228,7 +234,15 @@ autocomplete nem LSP. Isso é do Neovim e do ecossistema dele.
 
 Segurança da casca: `contextIsolation` ligado, `nodeIntegration` desligado. A
 interface não tem `require`, `fs` nem `child_process` — toda a superfície está em
-`src/preload/index.ts`.
+`codigos/ponte/ponte-para-a-interface.ts`.
+
+**E o terminal alcança o que você alcança.** É um shell, com a sua conta e as
+suas permissões, igual ao Konsole. Até a v0.0.6 o Terminus recusava `|`, `>`,
+`&&` e programa interativo, e aquilo estava escrito como se fosse uma trava de
+segurança — não era: era consequência de o terminal não ter pseudo-terminal, e
+por isso nem cor ele tinha. A trava que existe de verdade continua de pé, e é
+esta: **nenhum modelo de linguagem escreve nesse terminal.** Nada do que a IA
+sugere chega ali sem passar pelas suas mãos.
 
 ```
 src/main/       processo principal — Neovim (PTY), canal de controle, arquivos
@@ -240,7 +254,7 @@ src/renderer/   a casca: árvore, terminal, plugins, temas
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.6 ainda quer dizer isso:
+Lista honesta, porque v0.0.7 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -253,6 +267,13 @@ Lista honesta, porque v0.0.6 ainda quer dizer isso:
 - **Sem busca em arquivos pela casca** — use a do Neovim (`<space>/` no LazyVim).
 - **Atalhos são poucos e fixos** — o "personalizável" do objetivo ainda é o do
   Neovim, não da casca.
+- **O botão ↗ do terminal chama o `konsole` pelo nome.** Fora do KDE ele não
+  existe, e o botão diz isso em vez de procurar outro terminal — abrir um
+  programa diferente sem avisar seria responder outra pergunta.
+- **O Konsole não é EMBUTIDO na janela**, e não dá para ser: o `konsolepart` é um
+  KPart Qt, que exige aplicativo Qt como hospedeiro, e nesta sessão Wayland não
+  existe XEmbed. O que fica embutido é um terminal equivalente (mesmo shell,
+  mesmo PTY, mesmo `.bashrc`, mesmo `.bash_history`).
 - **Sem testes automatizados** na casca.
 
 ## Armadilhas conhecidas (que custaram tempo)
@@ -273,6 +294,46 @@ Lista honesta, porque v0.0.6 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.7 — 19/08/2026
+
+1. **O terminal virou um terminal de verdade.** O relato foi "o comando de cores
+   não pinta nada aqui, e no Konsole pinta". Medido, e a culpa não era do tema
+   nem do xterm.js: o terminal rodava comando por **canos comuns**, sem
+   pseudo-terminal, e todo programa que se pergunta se fala com um terminal
+   desliga a cor sozinho quando a resposta é não.
+
+   ```
+   ls --color=auto /usr/lib     por cano  b'alsa\n...'           <- sem cor
+                                por PTY   b'\x1b[01;34malsa...'  <- com cor
+   sys.stdout.isatty()          por cano  False    por PTY  True
+   ```
+
+   Aquele desenho nasceu numa máquina sem compilador (o Steam Deck), que não
+   compilava módulo nativo. A trava acabou faz tempo — o `node-pty` já roda o
+   Neovim aqui dentro desde a v0.0.1. Agora ele roda o **seu shell** também.
+
+2. **Junto com a cor vem o resto do terminal**: `htop`, `nano`, `python`
+   interativo, `sudo` pedindo senha, barra de progresso do `pip`, `|`, `>`,
+   `&&`, `;` e `Tab` completando. Sai a linha de comando própria do Terminus e
+   entra a digitação **dentro** da tela, como no Konsole — quem edita a linha
+   passa a ser o `readline` do bash, com `Ctrl+R`, `Ctrl+A` e `Ctrl+E`.
+3. **O botão ↗ agora abre o Konsole**, na pasta em que o terminal está. Ele
+   abria uma segunda janela do Electron, que era uma cópia da nossa própria tela;
+   o Konsole de verdade traz o seu perfil, as suas abas e os seus atalhos.
+4. **O histórico mudou de dono.** Era uma lista nossa no `config.json`; agora é o
+   `~/.bash_history`, o **mesmo** que o Konsole usa — duas listas de "o que eu já
+   digitei" é pior que uma. O que estava guardado no `config.json` é apagado na
+   primeira abertura: comando é dado sensível, e dado sensível esquecido num
+   campo que ninguém mais lê é o pior dos dois mundos.
+5. **O botão Rodar aprendeu C++ sem Makefile.** Ele mandava você para o
+   `Espaço+r` porque o terminal não aceitava `&&`. Agora a linha inteira aparece
+   na tela: `g++ … && /tmp/terminus-…`.
+6. **Kit do editor:** o aviso de "variável não usada" espera você sair do modo de
+   escrita. Declarar `int num = 2;` e ser acusado na mesma tecla é o aviso certo
+   na hora errada — quem acabou de declarar ainda não teve chance de usar. O
+   erro de verdade (tipo errado, nome inexistente) continua aparecendo enquanto
+   se digita.
 
 ### v0.0.6 — 17/08/2026
 

@@ -21,6 +21,7 @@ interface ConfigGravada {
   /** Pastas já abertas, da mais recente para a mais antiga. */
   pastas?: string[];
   /** Linhas digitadas no terminal, da mais recente para a mais antiga. */
+  /** Histórico da linha de comando, até 18/08. Só existe para ser apagado. */
   comandos?: string[];
   aparencia?: {
     /** Arquivo copiado para dentro de ~/.config/terminus, ou null. */
@@ -196,36 +197,35 @@ export function esquecerPasta(raiz: string): void {
 /* --------------------------- histórico do terminal ------------------------ */
 
 /**
- * As linhas já digitadas no terminal (ADR 0020), para a seta ↑.
+ * O histórico da linha de comando SAIU daqui (19/08).
  *
- * Mora aqui pela mesma razão que a lista de pastas recentes: **comando também é
- * dado sensível** — carrega caminho de corrida, nome de amostra, às vezes um
- * endereço de servidor. Fica no `config.json` `0600` e não no `localStorage`,
- * que é um arquivo do Chromium sem permissão restrita e sem dono claro.
+ * Ele existia porque o terminal do Terminus não tinha shell: a seta ↑ era nossa,
+ * então a lista tinha de ser nossa também. Com um shell de verdade quem guarda é
+ * o bash, no `~/.bash_history` — o **mesmo arquivo que o Konsole usa**, o que era
+ * justamente o ponto: duas listas separadas de "o que eu já digitei" é pior que
+ * uma, e a que o `Ctrl+R` procura é a do bash.
  *
- * Repetido não empilha: quem roda `pip list` dez vezes não perde o comando de
- * ontem por causa disso.
+ * A razão de privacidade da ADR 0020 continua valendo, e foi conferida antes de
+ * mexer: **comando é dado sensível** — carrega caminho de corrida, nome de
+ * amostra, às vezes endereço de servidor. Medido nesta máquina:
+ *
+ *     ~/.config/terminus/config.json   -rw------- (0600)
+ *     ~/.bash_history                  -rw------- (0600)
+ *
+ * Mesma proteção. O que mudou foi o dono do arquivo, não o cuidado com ele.
+ *
+ * A função abaixo é o que sobra: **apagar o que ficou para trás**. Sem ela, as
+ * linhas já gravadas seguiriam no `config.json` para sempre, num campo que
+ * ninguém mais lê — dado sensível guardado sem motivo é pior do que dado
+ * sensível em uso, porque ninguém lembra que ele está lá.
  */
-const MAX_COMANDOS = 200;
-
-//* O histórico da linha de comando, do mais recente para o mais antigo.
-export function comandosRecentes(): string[] {
-  return ler().comandos ?? [];
-}
-
-//* Guarda uma linha digitada no histórico.
-export function registrarComando(linha: string): void {
+export function limparHistoricoAntigo(): number {
   const c = ler();
-  const antes = (c.comandos ?? []).filter((x) => x !== linha);
-  c.comandos = [linha, ...antes].slice(0, MAX_COMANDOS);
-  gravar(c);
-}
-
-//* Apaga o histórico da linha de comando.
-export function esquecerComandos(): void {
-  const c = ler();
+  const quantos = c.comandos?.length ?? 0;
+  if (quantos === 0) return 0;
   delete c.comandos;
   gravar(c);
+  return quantos;
 }
 
 /* --------------------------- importar do Twinny --------------------------- */
