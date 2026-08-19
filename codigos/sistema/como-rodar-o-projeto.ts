@@ -83,13 +83,19 @@ async function python(arquivos: string[]): Promise<ComoRodar> {
 
 //? C++
 //!
-//! Aqui o botão NÃO compila por conta própria, e é de propósito: compilar e rodar
-//! são dois comandos, e o terminal do Terminus roda um programa por linha (sem
-//! shell, `&&` é recusado — ver `triagem-de-comando.ts`). Emitir um `bash -c`
-//! escondido faria a linha na tela deixar de ser a linha que rodou.
-//! O `make` resolve os dois passos DENTRO de um programa só, então quando há
-//! Makefile o botão usa ele. Sem Makefile, o caminho certo já existe e é o
-//! Espaço+r do editor, que compila o arquivo aberto e roda o binário.
+//! **Isto mudou em 19/08, e a mudança é consequência do terminal ter virado um
+//! shell de verdade.** Antes estava escrito aqui que o botão não compilava por
+//! conta própria porque "compilar e rodar são dois comandos, e o terminal roda um
+//! programa por linha (sem shell, `&&` é recusado)". Aquilo era verdade, e
+//! deixou de ser: agora o terminal é bash, e `&&` é bash.
+//!
+//! A regra continua sendo a mesma de sempre — **a linha que aparece na tela é a
+//! linha que rodou** (ADR 0030). O que mudou é que agora dá para escrever a
+//! linha inteira, com os dois passos à vista, em vez de mandar a pessoa para
+//! outro caminho.
+//!
+//! O `make` continua ganhando quando existe: ele sabe o que já está compilado, e
+//! recompilar tudo a cada Rodar é lento e some com a razão de haver um Makefile.
 async function cpp(raiz: string, arquivos: string[]): Promise<ComoRodar> {
   const makefile = arquivos.find((a) => a === "Makefile" || a === "makefile");
   if (makefile) {
@@ -100,10 +106,33 @@ async function cpp(raiz: string, arquivos: string[]): Promise<ComoRodar> {
     }
     return { linha: "make", porque: `o ${makefile} não tem alvo "rodar"; isto só compila.` };
   }
-  throw new Error(
-    "Sem Makefile nesta pasta, compilar e rodar são dois comandos, e o terminal " +
-      "roda um por linha. Abra o arquivo e use Espaço+r no editor: ele compila e roda.",
-  );
+
+  const cc = arquivos.filter((a) => /\.(cpp|cc|cxx)$/i.test(a));
+  if (cc.length === 0) throw new Error("Não achei arquivo .cpp nesta pasta, nem Makefile.");
+  if (cc.length > 1) {
+    //! Vários `.cpp` sem Makefile: eles podem ser um programa só (que precisa de
+    //! todos na mesma linha) ou vários programas independentes (que não). Não dá
+    //! para saber olhando os nomes, e compilar o conjunto errado dá erro de
+    //! ligação que não parece com o problema que é.
+    throw new Error(
+      `Há ${cc.length} arquivos .cpp e nenhum Makefile, então não dá para saber se ` +
+        `são um programa só ou vários. Abra o arquivo e use Espaço+r no editor, que ` +
+        `compila e roda o que está aberto.`,
+    );
+  }
+
+  //! O binário vai para `/tmp`, e é o mesmo lugar que o `Espaço+r` do editor usa
+  //! (ADR 0026) — assim os dois caminhos não deixam lixo diferente na pasta de
+  //! quem está estudando. O nome sai do arquivo, para dois projetos abertos não
+  //! sobrescreverem o binário um do outro.
+  const nome = cc[0]!.replace(/\.(cpp|cc|cxx)$/i, "");
+  const binario = `/tmp/terminus-${nome}`;
+  return {
+    linha: `g++ -std=c++17 -Wall -g ${cc[0]} -o ${binario} && ${binario}`,
+    porque:
+      `${cc[0]} é o único .cpp da pasta e não há Makefile — então a linha compila e ` +
+      `roda, nesta ordem. O "&&" faz o programa só rodar se a compilação der certo.`,
+  };
 }
 
 /**

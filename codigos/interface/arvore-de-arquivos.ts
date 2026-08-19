@@ -7,7 +7,6 @@ import {
 } from "./nucleo-da-casca.js";
 import { Paleta, type ItemPaleta } from "./busca-rapida-de-arquivo.js";
 import { ACOES_EXPLORER, painelLateral } from "./barra-lateral.js";
-import { pintarPrompt, sincronizarPastaCmd } from "./linha-de-comando.js";
 
 //* Redesenha a árvore inteira do Explorer.
 //! Só pinta se o Explorer for o painel visível — senão qualquer coisa que abra
@@ -376,10 +375,29 @@ export async function assumirProjeto(p: ProjetoAberto): Promise<void> {
   await atualizarRecentes();
   desenharArvore();
   terminal.nota(`pasta aberta: ${p.raiz}`);
-  // O terminal volta para a raiz junto: seguir digitando dentro da corrida
-  // anterior seria o engano mais fácil de cometer e mais difícil de notar.
-  await sincronizarPastaCmd();
+  // O terminal vai junto: seguir digitando dentro da pasta anterior seria o
+  // engano mais fácil de cometer e mais difícil de notar.
+  await levarTerminalPara(p.raiz);
   avisarQueTrocou();
+}
+
+/**
+ * Leva o terminal para a pasta recém-aberta, escrevendo um `cd` de verdade.
+ *
+ * Desde 19/08 o terminal é um shell com PTY, então a pasta dele é do bash — não
+ * há mais um valor nosso para trocar por dentro. O `cd` aparece na tela como
+ * qualquer linha digitada, e é assim que deve ser: quem lê o rolo depois vê por
+ * que a pasta mudou.
+ *
+ * Com programa rodando na frente, a linha é RECUSADA pelo lado do sistema e o
+ * aviso vem no lugar dela. Escrever `cd` dentro de um `python` interativo ou de
+ * um `sudo` esperando senha seria pior do que não trocar de pasta.
+ */
+async function levarTerminalPara(raiz: string): Promise<void> {
+  const r = await api.shell.irPara(raiz);
+  if (r.ok && !r.valor) {
+    terminal.nota(`o terminal está ocupado — ele continua na pasta anterior (cd '${raiz}' quando terminar)`);
+  }
 }
 
 /**
@@ -411,8 +429,9 @@ export function fecharProjeto(): void {
   desenharArvore();
   if (nome) terminal.nota(`pasta fechada: ${nome} (nada foi apagado)`);
   avisar(`${nome ?? "pasta"} fechada — nada foi apagado`);
-  // O prompt mostrava o nome da pasta; sem ela, mostra o caminho de verdade.
-  pintarPrompt();
+  //! O terminal NÃO é mandado para lugar nenhum ao fechar a pasta. Fechar não é
+  //! um pedido de sair de onde se está: quem estava no meio de um trabalho na
+  //! pasta continua nela, e o Konsole também não se mexeria.
   avisarQueTrocou();
 }
 

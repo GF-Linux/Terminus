@@ -90,23 +90,19 @@
           <button id="btDocaBaixo" class="doca" title="Terminal no rodapé">&#9601;</button>
           <button id="btDocaDireita" class="doca" title="Terminal à direita">&#9621;</button>
           <button id="btDocaEsquerda" class="doca" title="Terminal à esquerda">&#9615;</button>
-          <button id="btSoltarTerminal" title="Terminal em janela própria">&#8599;</button>
-          <button id="btParar" title="Parar" disabled>&#9632;</button>
+          <button id="btSoltarTerminal" title="Abrir o Konsole nesta pasta">&#8599;</button>
           <button id="btLimpar" title="Limpar">&#9645;</button>
           <button id="btFecharPainel" title="Fechar painel">&#10005;</button>
         </span>
       </div>
+      <!-- Aqui dentro se digita, desde 19/08. Havia um <input> logo abaixo,
+           porque sem PTY não existia eco nem readline do outro lado e escrever
+           no xterm obrigaria a reimplementar cursor, histórico e edição de linha
+           à mão. Com um shell de verdade quem faz isso é o readline do bash — o
+           mesmo do Konsole, e com o que a nossa cópia não tinha: Tab completa,
+           Ctrl+R procura no histórico, Ctrl+A e Ctrl+E andam na linha.
+           O botão ■ saiu junto: parar agora é Ctrl+C, dentro do terminal. -->
       <div class="term" id="term"></div>
-      <!-- A linha de comando (ADR 0020). É um <input> de HTML, e não digitação
-           dentro do xterm, de propósito: sem PTY não há eco nem readline do
-           outro lado, então escrever no terminal significaria reimplementar
-           cursor, seleção, colar e acentuação à mão. O campo do sistema já faz
-           tudo isso — inclusive o teclado do Deck. -->
-      <form class="linhaCmd" id="linhaCmd" autocomplete="off">
-        <span class="promptCmd" id="promptCmd">&#10148;</span>
-        <input id="entradaCmd" type="text" spellcheck="false" autocapitalize="off"
-               placeholder="pip install pandas" aria-label="Comando" />
-      </form>
     </aside>
     </div><!-- /centro -->
 

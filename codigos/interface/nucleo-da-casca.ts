@@ -49,11 +49,31 @@ hostNeovim.id = "neovimHost";
 $("stage").appendChild(hostNeovim);
 export const vistaNeovim = new VistaNeovim(hostNeovim, "");
 
-//* A tela do terminal da casca. O clique num quadro de traceback abre o arquivo
-//* na linha do erro.
-export const terminal = new TerminalSaida($("term"), ({ arquivo, linha }) => {
-  void abrirArquivo(arquivo, linha);
+//? O TERMINAL DA CASCA — um shell de verdade (19/08)
+//!
+//! 1. Era uma tela só: o processo principal rodava o comando por canos comuns e
+//!    mandava o texto. Programa nenhum acendia a cor, porque todos perguntam
+//!    `isatty` e recebiam "não". Era esse o relato — cor no Konsole, nenhuma
+//!    aqui.
+//! 2. Agora tem PTY atrás, e por isso as três ligações abaixo existem: o que se
+//!    digita SOBE para o shell, a medida da tela é avisada a ele, e o clique num
+//!    quadro de traceback continua abrindo o arquivo na linha do erro.
+//! 3. As três são a mesma forma que a `vista-do-neovim.ts` já usava. Duas telas,
+//!    um desenho só.
+export const terminal = new TerminalSaida($("term"), {
+  aoAbrirQuadro: ({ arquivo, linha }) => void abrirArquivo(arquivo, linha),
+  aoDigitar: (dados) => shell.aoDigitar(dados),
+  aoRedimensionar: (cols, rows) => api.shell.redimensionar(cols, rows),
 });
+
+//* Para onde vai a tecla digitada no terminal.
+//! É um objeto, e não uma função exportada, pelo mesmo motivo do `estado` acima:
+//!   quem importa uma função não consegue trocá-la. A partida troca isto para
+//!   que, com o shell morto (`exit`, Ctrl+D), a tecla seguinte abra outro em vez
+//!   de sumir num processo que não existe mais.
+export const shell = {
+  aoDigitar: (dados: string): void => api.shell.enviar(dados),
+};
 
 //* Abre um arquivo no Neovim e já entra em modo de escrita.
 //* É o caminho único: clique na árvore, Ctrl+P e traceback chegam todos aqui.
@@ -90,12 +110,14 @@ export function ou<T>(r: Resultado<T>, aoFalhar: T): T {
   return aoFalhar;
 }
 
-//* Abre e fecha o painel do terminal, e ao ABRIR põe o cursor na linha de
-//* comando — quem aperta o atalho vai digitar.
+//* Abre e fecha o painel do terminal, e ao ABRIR põe o cursor DENTRO dele —
+//* quem aperta o atalho vai digitar.
+//! O foco vai para o xterm, e não para um campo abaixo dele: desde 19/08 é o
+//!   próprio terminal que recebe a digitação, como no Konsole.
 export function alternarPainel(): void {
   const abrindo = $("painel").classList.contains("oculto");
   definirPainel(abrindo);
-  if (abrindo) $("entradaCmd").focus();
+  if (abrindo) terminal.focar();
 }
 
 //* Recado de algo que aconteceu fora da vista. Vai para o terminal porque a

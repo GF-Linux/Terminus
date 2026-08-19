@@ -3,11 +3,10 @@ import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EventoExecucao, Fluxo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
+import type { Fluxo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
 import {
-  comandosRecentes,
-  esquecerComandos,
   esquecerPasta,
+  limparHistoricoAntigo,
   gravarAparencia,
   guardarWallpaper,
   lerAparencia,
@@ -16,11 +15,18 @@ import {
   pastasRecentes,
   PASTA_CONFIG,
   registrarPasta,
-  registrarComando,
   ultimaPasta,
 } from "./configuracao-salva.js";
-import { analisar, destinoDoCd } from "./triagem-de-comando.js";
-import { estaRodando, pararScript, pararTudo, rodarComando } from "./executor-de-comando.js";
+import {
+  abrirNoKonsole,
+  enviarAoShell,
+  iniciarShell,
+  linhaDeCd,
+  mandarLinha,
+  pararShell,
+  pastaDoShell,
+  redimensionarShell,
+} from "./motor-do-shell-pty.js";
 import {
   enviarNeovim,
   iniciarNeovim,
@@ -50,9 +56,6 @@ import {
 } from "./arquivos-do-projeto.js";
 import { criarProjeto, NOME_DO_FLUXO } from "./molde-de-projeto.js";
 import { comoRodar } from "./como-rodar-o-projeto.js";
-import {
-  devolverTerminal, janelasVivas, ligarAvisoDeFechamento, soltarTerminal, terminalEstaSolto,
-} from "./janela-do-terminal.js";
 import { ligarKits } from "./kits-embutidos.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
@@ -95,21 +98,12 @@ function pastaDaLinhaDeComando(): string | null {
 /** A pasta de trabalho aberta agora. Guardada aqui para poder ser protegida. */
 let raizAberta: string | null = null;
 
-/**
- * A pasta onde a linha de comando roda (ADR 0020). Começa na pasta aberta,
- * anda com o `cd`, e volta para a raiz sempre que outra pasta é aberta — abrir
- * uma corrida nova e continuar digitando dentro da corrida anterior seria a
- * armadilha mais fácil de cair e mais difícil de perceber.
- */
-let pastaDoComando: string | null = null;
-
 //* Assume uma pasta como projeto: registra nos recentes e aponta o Neovim.
 async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
   // A leitura da pasta vem primeiro: se ela não existe mais, o erro sobe e a
   // pasta some da lista em vez de ser registrada de novo.
   const projeto = await abrirProjeto(raiz);
   raizAberta = raiz;
-  pastaDoComando = raiz;
   // Aponta o Neovim para a pasta junto: o buscador dele nasce no lugar certo.
   void cdNeovim(raiz).catch(() => {});
   registrarPasta(raiz);
@@ -242,11 +236,11 @@ function criarJanela(): void {
   janela.on("closed", () => {
     pararNeovim();
     resetarControle();
-    //! E o terminal solto vai junto (ADR 0031). Ele é um painel do Terminus que
-    //! saiu para outra janela, não um programa separado: deixado vivo, ficaria
-    //! uma janela órfã sem editor por trás — e, pior, o `window-all-closed`
-    //! nunca dispararia, então o aplicativo não terminaria de fechar.
-    devolverTerminal();
+    //! E o shell do terminal também (19/08). Ele é um painel desta janela, não
+    //! um programa separado: deixado vivo, ficaria um bash órfão escrevendo para
+    //! uma interface que já não existe. O Konsole aberto pelo botão ↗ é o
+    //! oposto — aquele é do sistema, e não morre com o Terminus.
+    pararShell();
   });
 
   // Nenhum link abre dentro da janela do aplicativo: documentação vai para o
@@ -521,72 +515,101 @@ function registrarPonte(): void {
     seguro(() => ({ ...tirarWallpaper(), imagem: null })),
   );
 
-  ipcMain.on("exec:parar", () => pararScript());
-  //! Estava na ponte desde sempre e SEM handler do outro lado: ninguém chamava,
-  //! então ninguém viu. A janela do terminal solto (ADR 0031) chama na partida,
-  //! para nascer sabendo se já há algo rodando — e foi assim que apareceu.
-  ipcMain.handle("exec:rodando", seguro(() => estaRodando()));
-
   /**
-   * A linha de comando do terminal (ADR 0020).
+   * O terminal da casca — um shell de verdade, em pseudo-terminal (19/08).
    *
-   * **Aqui não há `confinado`, e é a diferença de fundo em relação a
-   * `exec:rodar`.** Aquele recebe um caminho vindo da árvore de arquivos e só
-   * pode acabar em `.py` dentro da pasta aberta, porque é o Terminus quem monta o
-   * comando. Este recebe uma linha que a pessoa digitou olhando para a tela:
-   * confiná-la seria fingir que o Terminus sabe melhor do que o dono da máquina o
-   * que ele quis instalar. O que sobra de proteção é o que realmente protege —
-   * `shell: false`, sem interpolação de texto — e está em `comando.ts`.
+   * **O que estava aqui antes, e por que saiu.** Havia `exec:comando`, que
+   * recebia a linha digitada, passava pela `triagem-de-comando.ts` (que
+   * recusava `|`, `>`, `&&`, `;` e programa interativo), quebrava em programa +
+   * argumentos e rodava com `shell: false` e canos comuns. Aquilo tinha um
+   * defeito de origem: **sem PTY, programa nenhum acende a cor**, porque todos
+   * checam `isatty` e recebem "não". Foi esse o relato do autor — cor no
+   * Konsole, nenhuma aqui.
    *
-   * Devolve a pasta atual junto porque o `cd` acontece deste lado: quem pergunta
-   * já recebe o prompt novo, sem uma segunda viagem pela ponte.
+   * Aquele desenho nasceu no SteamOS, que não compilava módulo nativo. A trava
+   * acabou: o `node-pty` já roda o Neovim neste mesmo aplicativo desde a ADR
+   * 0025. Então o terminal vira o que o Konsole é, e esta ponte fica com o
+   * mesmo formato da do Neovim: teclado sobe, bytes descem, ninguém interpreta.
+   *
+   * O histórico de comandos também saiu do `config.json`: quem guarda histórico
+   * agora é o bash, no `.bash_history`, compartilhado com o Konsole. Duas
+   * listas separadas de "o que eu já digitei" seria pior que uma.
    */
+  ipcMain.on("shell:iniciar", (e, cwd: unknown, cols: unknown, rows: unknown) => {
+    /**
+     * Só manda para a interface se ela ainda existir.
+     *
+     * Mesma proteção do Neovim, pelo mesmo motivo medido lá: fechar a janela
+     * destrói a `WebContents`, mas o PTY segue vivo por alguns milissegundos e
+     * ainda emite bytes. O `send` para um objeto destruído lança, e no processo
+     * principal isso vira caixa de erro em cima de quem já mandou fechar.
+     */
+    const alvo = e.sender;
+    const mandar = (canal: string, carga: unknown): void => {
+      if (!alvo.isDestroyed()) alvo.send(canal, carga);
+    };
+
+    iniciarShell({
+      cwd: typeof cwd === "string" ? cwd : "",
+      cols: typeof cols === "number" ? cols : 80,
+      rows: typeof rows === "number" ? rows : 24,
+      aoSaida: (d) => mandar("shell:saida", d),
+      aoSair: (c) => mandar("shell:encerrou", c),
+    });
+  });
+
+  ipcMain.on("shell:enviar", (_e, dados: unknown) => {
+    if (typeof dados === "string") enviarAoShell(dados);
+  });
+  ipcMain.on("shell:redimensionar", (_e, cols: unknown, rows: unknown) => {
+    if (typeof cols === "number" && typeof rows === "number") redimensionarShell(cols, rows);
+  });
   ipcMain.handle(
-    "exec:comando",
-    //! O `_e` não é mais usado: a saída vai para todas as janelas, e não para
-    //! quem pediu (ADR 0031).
-    seguro((_e, linha: unknown) => {
-      if (typeof linha !== "string") throw new Error("Comando inválido.");
-      // Recusado antes de qualquer análise: quebra de linha aqui é a única forma
-      // de uma caixa de texto de uma linha esconder um segundo comando.
-      if (/[\n\r\0]/.test(linha)) throw new Error("O comando não pode ter quebra de linha.");
-      if (linha.length > 4000) throw new Error("Comando longo demais.");
+    "shell:pasta",
+    seguro(() => pastaDoShell()),
+  );
 
-      const cwd = pastaDoComando ?? homedir();
-      const pronto = analisar(linha, cwd);
-      if (!pronto) return { pasta: cwd, rodando: false, nota: null };
-
-      registrarComando(linha.trim());
-
-      if (pronto.tipo === "cd") {
-        pastaDoComando = destinoDoCd(pronto.args, cwd, homedir());
-        return { pasta: pastaDoComando, rodando: false, nota: null };
-      }
-
-      if (estaRodando()) throw new Error("Já há algo em execução. Pare antes de rodar outro.");
-
-      //! A saída vai para TODAS as janelas vivas, e não só para quem pediu
-      //! (ADR 0031). Com o terminal solto, mandar rodar pelo botão da casca
-      //! imprimiria numa tela escondida — o comando rodava e ninguém via.
-      rodarComando(pronto.programa, pronto.args, cwd, (evento: EventoExecucao) => {
-        for (const j of janelasVivas(janela)) j.webContents.send("exec:evento", evento);
-      });
-      return { pasta: cwd, rodando: true, nota: pronto.nota ?? null };
+  //? As duas linhas que o Terminus escreve em nome da pessoa
+  //!
+  //! São o botão Rodar e o `cd` de quando se abre outra pasta — e nada além.
+  //! Toda outra tecla que chega ao shell veio do teclado, por `shell:enviar`.
+  //! `mandarLinha` recusa quando há programa na frente (medido pelo `tpgid`),
+  //! e o `false` sobe até a tela: melhor dizer "o terminal está ocupado" do que
+  //! entregar a linha para dentro de um `sudo` que espera senha.
+  ipcMain.handle(
+    "shell:linha",
+    seguro((_e, texto: unknown) => {
+      if (typeof texto !== "string") throw new Error("Linha inválida.");
+      if (/[\n\r\0]/.test(texto)) throw new Error("A linha não pode ter quebra de linha.");
+      return mandarLinha(texto);
     }),
   );
   ipcMain.handle(
-    "exec:pasta",
-    seguro(() => pastaDoComando ?? homedir()),
-  );
-  ipcMain.handle(
-    "exec:historico",
-    seguro(() => comandosRecentes()),
-  );
-  ipcMain.handle(
-    "exec:esquecerHistorico",
-    seguro(() => esquecerComandos()),
+    "shell:ir-para",
+    seguro((_e, pasta: unknown) => {
+      if (typeof pasta !== "string") throw new Error("Pasta inválida.");
+      return mandarLinha(linhaDeCd(pasta));
+    }),
   );
 
+  /**
+   * O botão ↗ do cabeçalho: abre o **Konsole**, na pasta em que o shell está.
+   *
+   * Substitui a segunda janela do Electron da ADR 0031, que era uma cópia da
+   * nossa própria tela. O pedido do autor foi trocar o terminal do Terminus
+   * pelo Konsole; como o Konsole não pode ser embutido nesta janela (KPart é
+   * Qt, a sessão é Wayland, e não existe XEmbed — medido), ele entra por aqui,
+   * inteiro e de verdade.
+   *
+   * `detached` e os canos soltos: sem isso o Konsole seria filho do Terminus e
+   * morreria junto com ele. Uma janela de terminal que fecha quando o editor
+   * fecha não é o Konsole do sistema — é a segunda janela de novo, com outro
+   * nome.
+   */
+  ipcMain.handle(
+    "shell:konsole",
+    seguro(() => abrirNoKonsole()),
+  );
 
   // O motor de edição (ADR 0025): o Neovim por PTY. A interface manda o tamanho
   // já ajustado à área; a saída volta pelo mesmo `sender`, e o processo é único.
@@ -643,27 +666,6 @@ function registrarPonte(): void {
   });
   ipcMain.on("neovim:parar", () => pararNeovim());
 
-  //? O terminal solto (ADR 0031)
-  //! `soltar` abre (ou traz para frente); `devolver` fecha. Fechar a janela pela
-  //! decoração do sistema tem o mesmo efeito de "devolver" — quem fecha não pode
-  //! ficar sem terminal e sem saber como trazer de volta.
-  ipcMain.on("terminal:soltar", () => {
-    if (!janela) return;
-    soltarTerminal(
-      janela,
-      path.join(__dirname_, "..", "preload"),
-      path.join(__dirname_, "..", "renderer"),
-      process.env["ELECTRON_RENDERER_URL"],
-    );
-    janela.webContents.send("terminal:solto", true);
-  });
-  ipcMain.on("terminal:devolver", () => devolverTerminal());
-  ipcMain.handle("terminal:esta-solto", seguro(() => terminalEstaSolto()));
-
-  ligarAvisoDeFechamento(() => {
-    if (janela && !janela.isDestroyed()) janela.webContents.send("terminal:solto", false);
-  });
-
   ipcMain.on("janela:minimizar", () => janela?.minimize());
   ipcMain.on("janela:alternar-maximo", () =>
     janela?.isMaximized() ? janela.unmaximize() : janela?.maximize(),
@@ -673,6 +675,13 @@ function registrarPonte(): void {
 
 void app.whenReady().then(() => {
   registrarPonte();
+
+  //! O histórico da linha de comando mudou de dono (19/08): quem guarda agora é
+  //! o bash. O que já estava no `config.json` é apagado na primeira abertura —
+  //! comando é dado sensível, e dado sensível esquecido num campo que ninguém
+  //! mais lê é o pior dos dois mundos.
+  const antigos = limparHistoricoAntigo();
+  if (antigos > 0) console.log(`histórico antigo da linha de comando apagado (${antigos} linhas)`);
 
   //! As funções embutidas ficam disponíveis no editor antes de a janela abrir
   //! (ADR 0036). Falhar aqui NÃO impede o Terminus de subir: sem os kits ele
@@ -692,7 +701,7 @@ void app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  pararTudo();
+  pararShell();
   pararNeovim();
   if (process.platform !== "darwin") app.quit();
 });

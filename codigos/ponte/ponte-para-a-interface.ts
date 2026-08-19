@@ -2,13 +2,11 @@ import { contextBridge, ipcRenderer } from "electron";
 import type {
   ComoRodar,
   EstadoAparencia,
-  EventoExecucao,
   Fluxo,
   NoArquivo,
   PluginNvim,
   ProjetoAberto,
   ProjetoNovo,
-  RespostaComando,
   Resultado,
 } from "../compartilhado/tipos.js";
 
@@ -20,13 +18,22 @@ import type {
 //!    tem `require`, nem `fs`, nem `child_process`.
 //! 3. Cada item aqui é decisão de segurança, não conveniência. Acrescentar um
 //!    é aumentar o que um defeito na tela consegue alcançar.
-//! 4. `comando()` executa o que a pessoa digitou, e isso já foi proibido aqui.
-//!    A troca foi consciente: ferramenta onde não se instala biblioteca não
-//!    serve para aprender.
-//! 5. O que segura a linha: não há shell (`shell: false`, argumentos separados
-//!    em `triagem-de-comando.ts`), um processo por vez, e nada de IA alcança
-//!    esta porta. Se um dia algo sugerir comando na tela, o botão que executa é
-//!    decisão nova, não detalhe.
+//! 4. `shell.enviar()` manda tecla para um SHELL DE VERDADE (19/08). Isto é a
+//!    maior superfície deste arquivo, e a mudança foi decidida com o autor:
+//!    o terminal do Terminus passa a ter o mesmo alcance que o Konsole tem.
+//! 5. **O que segurava a linha antes não segura mais, e é bom dizer o que era.**
+//!    Até 18/08 não havia shell: a linha digitada era quebrada em programa e
+//!    argumentos (`triagem-de-comando.ts`, apagado), `|`, `>`, `&&` e `;` eram
+//!    recusados, e programa interativo também. Aquilo NÃO era política de
+//!    segurança — era consequência de não haver PTY, e estava escrito como se
+//!    fosse tranca. A tranca de verdade sempre foi outra, e continua de pé:
+//!    **nada de IA alcança esta porta**. Nenhum modelo escreve aqui, nem sugere
+//!    comando com botão que executa. Se um dia isso for proposto, é decisão
+//!    nova e escrita, não detalhe de implementação.
+//! 6. O que a pessoa digita no terminal é o que a pessoa digitaria no Konsole,
+//!    com a mesma conta e as mesmas permissões. Confiná-lo seria fingir que o
+//!    Terminus sabe melhor que o dono da máquina o que ele quis rodar — que é a
+//!    frase que a ADR 0020 já tinha escrito, e agora vale por inteiro.
 const api = {
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:escolher"),
@@ -68,30 +75,6 @@ const api = {
   /** `false` quando o usuário cancelou a confirmação. */
   excluir: (alvo: string): Promise<Resultado<boolean>> =>
     ipcRenderer.invoke("caminho:excluir", alvo),
-
-  parar: (): void => ipcRenderer.send("exec:parar"),
-  //! O tipo era `Promise<boolean>` e o handler do outro lado é embrulhado em
-  //! `seguro()`, que devolve `Resultado`. Ninguém chamava, então a mentira
-  //! dormiu — até a janela do terminal chamar e receber `{ok:true,valor:false}`,
-  //! que é um OBJETO, e portanto sempre verdadeiro. A trava do terminal nascia
-  //! ligada e nenhuma linha rodava (ADR 0032).
-  rodando: (): Promise<Resultado<boolean>> => ipcRenderer.invoke("exec:rodando"),
-
-  /**
-   * A linha de comando (ADR 0020). A saída chega pelo mesmo `aoExecutar` de
-   * sempre; o retorno traz só o que a interface precisa saber na hora: a pasta
-   * (que o `cd` muda), se ficou algo rodando, e a nota de uma reescrita.
-   */
-  comando: (linha: string): Promise<Resultado<RespostaComando>> =>
-    ipcRenderer.invoke("exec:comando", linha),
-  pastaDoComando: (): Promise<Resultado<string>> => ipcRenderer.invoke("exec:pasta"),
-  historicoDeComandos: (): Promise<Resultado<string[]>> => ipcRenderer.invoke("exec:historico"),
-  esquecerComandos: (): Promise<Resultado<void>> => ipcRenderer.invoke("exec:esquecerHistorico"),
-  aoExecutar: (ouvinte: (e: EventoExecucao) => void): (() => void) => {
-    const wrap = (_: unknown, evento: EventoExecucao): void => ouvinte(evento);
-    ipcRenderer.on("exec:evento", wrap);
-    return () => ipcRenderer.off("exec:evento", wrap);
-  },
 
   /** Wallpaper e tema (ADR 0010). A imagem chega em `data:` URL. */
   aparencia: {
@@ -137,15 +120,54 @@ const api = {
     },
   },
 
-  /** O terminal em janela própria (ADR 0031). */
-  terminal: {
-    soltar: (): void => ipcRenderer.send("terminal:soltar"),
-    devolver: (): void => ipcRenderer.send("terminal:devolver"),
-    estaSolto: (): Promise<Resultado<boolean>> => ipcRenderer.invoke("terminal:esta-solto"),
-    /** Avisa a casca quando o terminal saiu ou voltou, para ela esconder ou
-     *  mostrar o painel. Vale só na janela da casca. */
-    aoMudar: (ouvinte: (solto: boolean) => void): void => {
-      ipcRenderer.on("terminal:solto", (_, solto: boolean) => ouvinte(solto));
+  /**
+   * O terminal da casca (19/08): um shell de verdade, num pseudo-terminal.
+   *
+   * Simétrico ao `neovim` acima de propósito — são as duas telas do mesmo
+   * desenho: teclado sobe, ANSI desce, e esta ponte não interpreta nada do que
+   * passa. Quem interpreta é o bash, do outro lado.
+   */
+  shell: {
+    iniciar: (cwd: string, cols: number, rows: number): void =>
+      ipcRenderer.send("shell:iniciar", cwd, cols, rows),
+    enviar: (dados: string): void => ipcRenderer.send("shell:enviar", dados),
+    redimensionar: (cols: number, rows: number): void =>
+      ipcRenderer.send("shell:redimensionar", cols, rows),
+    /** A pasta em que o shell está AGORA, lida do sistema. */
+    pasta: (): Promise<Resultado<string>> => ipcRenderer.invoke("shell:pasta"),
+    /**
+     * Escreve uma linha no terminal, como se a pessoa a tivesse digitado.
+     *
+     * Os dois chamadores são botões da tela: o **Rodar** (ADR 0030) e o **`cd`
+     * de quando se abre outra pasta**. `false` quer dizer que havia programa na
+     * frente e a linha NÃO foi escrita — sem isso o texto entraria dentro do
+     * programa que está rodando, que pode ser um `sudo` esperando senha.
+     */
+    linha: (texto: string): Promise<Resultado<boolean>> =>
+      ipcRenderer.invoke("shell:linha", texto),
+    /** O mesmo, para a pasta: o caminho é protegido no lado do sistema. */
+    irPara: (pasta: string): Promise<Resultado<boolean>> =>
+      ipcRenderer.invoke("shell:ir-para", pasta),
+    /**
+     * O botão ↗: abre o **Konsole de verdade**, na pasta em que este shell está.
+     *
+     * Substitui a segunda janela do Electron da ADR 0031. O pedido do autor era
+     * "trocar o terminal do Terminus pelo Konsole"; embutir o Konsole nesta
+     * janela não é possível (KPart é Qt, a sessão é Wayland, e não há XEmbed —
+     * medido em `motor-do-shell-pty.ts`). Então o Konsole entra inteiro, como
+     * janela do sistema, e quem fica embutido é um terminal equivalente.
+     */
+    emKonsole: (): Promise<Resultado<string>> => ipcRenderer.invoke("shell:konsole"),
+    /** Bytes crus do shell rumo ao xterm. Devolve como cancelar a assinatura. */
+    aoSaida: (ouvinte: (dados: string) => void): (() => void) => {
+      const wrap = (_: unknown, dados: string): void => ouvinte(dados);
+      ipcRenderer.on("shell:saida", wrap);
+      return () => ipcRenderer.off("shell:saida", wrap);
+    },
+    aoEncerrar: (ouvinte: (codigo: number) => void): (() => void) => {
+      const wrap = (_: unknown, codigo: number): void => ouvinte(codigo);
+      ipcRenderer.on("shell:encerrou", wrap);
+      return () => ipcRenderer.off("shell:encerrou", wrap);
     },
   },
 

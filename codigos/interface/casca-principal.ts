@@ -5,7 +5,7 @@
 
 import {
   $, abrirArquivo, alternarPainel, api, avisar, definirPainel, estado,
-  ligarDivisor, terminal,
+  ligarDivisor, shell, terminal,
 } from "./nucleo-da-casca.js";
 import { aparencia } from "./aparencia-da-casca.js";
 import { definirDoca, doca, ligarDivisorTerminal } from "./doca-do-terminal.js";
@@ -18,14 +18,6 @@ import {
   atualizarRecentes, comecarNovo, comecarRenomear, desenharArvore, escolherProjeto,
   excluir, fecharMenu, paleta,
 } from "./arvore-de-arquivos.js";
-import {
-  definirHistorico, definirRodando, ligarLinhaDeComando, sincronizarPastaCmd,
-} from "./linha-de-comando.js";
-
-// A linha de comando não conhece mais a casca (ADR 0031): recebe a tela onde
-// escrever e um jeito de perguntar qual pasta está aberta. É a primeira coisa
-// feita, antes de qualquer clique poder chegar nela.
-ligarLinhaDeComando(terminal, () => estado.projeto);
 // Importado pelo efeito: o módulo do fluxo liga os próprios botões ao carregar
 // (ADR 0027). `detectarFluxo` é o que a partida chama depois de abrir a pasta.
 import { detectarFluxo } from "./fluxo-de-projeto.js";
@@ -101,17 +93,26 @@ $("lateral").addEventListener("contextmenu", (ev) => {
   }
 });
 
-// O terminal em janela própria (ADR 0031). Com ele solto, o painel daqui fecha:
-// duas cópias do mesmo terminal na tela ao mesmo tempo só confundem qual é a que
-// recebe o que se digita.
-$("btSoltarTerminal").addEventListener("click", () => api.terminal.soltar());
-api.terminal.aoMudar((solto) => {
-  $("btSoltarTerminal").classList.toggle("on", solto);
-  definirPainel(!solto);
-  if (solto) avisar("terminal aberto em janela própria — feche a janela para trazer de volta");
+//? O BOTÃO ↗ — Decisão de 19/08: ele abre o KONSOLE
+//!
+//! 1. Era a segunda janela do Electron da ADR 0031: uma cópia da nossa própria
+//!    tela do terminal, com a nossa linha de comando e os nossos limites.
+//! 2. O pedido do autor era o contrário disso — trocar o terminal do Terminus
+//!    pelo Konsole. Embutir o Konsole nesta janela não é possível (o KPart é Qt
+//!    e a sessão é Wayland; medido em `motor-do-shell-pty.ts`), mas ABRIR o
+//!    Konsole de verdade é, e é melhor que a cópia: ele tem as abas, o perfil e
+//!    os atalhos que a pessoa já configurou.
+//! 3. Abre na pasta em que o terminal embutido está AGORA, não na raiz do
+//!    projeto. Continuar de onde se estava é o ponto de sair para outra janela.
+$("btSoltarTerminal").addEventListener("click", () => {
+  void api.shell.emKonsole().then((r) => {
+    if (r.ok) avisar(`Konsole aberto em ${r.valor}`);
+    //! O `konsole` pode não existir na máquina. Dizer isso é melhor do que um
+    //! botão que não faz nada e não explica.
+    else avisar(`não consegui abrir o Konsole: ${r.erro}`);
+  });
 });
 
-$("btParar").addEventListener("click", () => api.parar());
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
 $("btPainel").addEventListener("click", () => alternarPainel());
@@ -191,7 +192,6 @@ $("btMaximizar").addEventListener("click", () => api.janela.alternarMaximo());
 
 async function iniciar(): Promise<void> {
   definirLateral("explorer");
-  definirRodando(false);
 
   // Papel de parede e tema antes de qualquer desenho: trocar de tema depois da
   // primeira pintura faria a tela piscar na cor errada na abertura.
@@ -246,12 +246,38 @@ async function iniciar(): Promise<void> {
   // esperar alguém clicar (ADR 0027).
   void detectarFluxo();
 
-  // A linha de comando precisa saber onde está antes de alguém digitar, e o
-  // histórico é lido do config.json — não do localStorage, ver `config.ts`.
-  await sincronizarPastaCmd();
-  const h = await api.historicoDeComandos();
-  if (h.ok) definirHistorico(h.valor);
+  //? A PARTIDA DO SHELL (19/08)
+  //!
+  //! 1. Por ÚLTIMO, e depois de `definirDoca`: o shell nasce com o número de
+  //!    colunas e linhas da tela, e antes da doca ser aplicada a tela ainda não
+  //!    tem a medida final. Nascer torto significaria a primeira tela do bash
+  //!    quebrada, que é a primeira coisa que a pessoa vê.
+  //! 2. Na pasta aberta, ou na home quando não há pasta — a mesma regra que o
+  //!    Neovim segue logo acima.
+  //! 3. O histórico não é lido de lugar nenhum: quem guarda é o bash, no
+  //!    `.bash_history`, o MESMO que o Konsole usa. Antes havia uma lista nossa
+  //!    no `config.json`, e duas listas de "o que eu já digitei" é pior que uma.
+  api.shell.aoSaida((d) => terminal.escrever(d));
 
+  const subirShell = (): void => {
+    shell.aoDigitar = (dados) => api.shell.enviar(dados);
+    api.shell.iniciar(estado.projeto?.raiz ?? "", terminal.cols, terminal.rows);
+  };
+
+  //! `exit` e Ctrl+D fecham o shell, e isso é legítimo — o Konsole fecharia a
+  //! aba. Aqui a "aba" é a janela do editor inteiro, que não pode fechar junto.
+  //! Sem recado o terminal ficaria mudo e pareceria travado; com um recado que
+  //! não diz como voltar, ficaria inútil. Então a tecla seguinte abre outro, que
+  //! é o gesto que já está na mão de quem acabou de apertar alguma coisa.
+  api.shell.aoEncerrar(() => {
+    shell.aoDigitar = () => {
+      terminal.nota("abrindo outro terminal…");
+      subirShell();
+    };
+    terminal.nota("o terminal foi encerrado — aperte qualquer tecla para abrir outro");
+  });
+
+  subirShell();
 
   // O ambiente do laboratório saiu da
   // barra de estado com a virada da ADR 0025: o Terminus não é mais a IDE do

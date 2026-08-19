@@ -12,7 +12,6 @@
 import type { Fluxo } from "../compartilhado/tipos.js";
 import { $, abrirArquivo, abrirPainel, api, estado, terminal } from "./nucleo-da-casca.js";
 import { assumirProjeto } from "./arvore-de-arquivos.js";
-import { executarLinha } from "./linha-de-comando.js";
 
 const NOME: Record<Fluxo, string> = { cpp: "C++", python: "Python", csharp: "C#" };
 
@@ -156,7 +155,15 @@ async function rodarProjeto(): Promise<void> {
   }
 
   terminal.nota(r.valor.porque);
-  await executarLinha(r.valor.linha);
+  //! A linha é ESCRITA no terminal, e não executada por fora: desde 19/08 o
+  //! terminal é um shell de verdade, então o botão faz o que a mão faria —
+  //! digita e aperta Enter. O bash ecoa a linha sozinho, e ela entra no
+  //! histórico dele, alcançável pela seta ↑ depois.
+  const enviada = await api.shell.linha(r.valor.linha);
+  if (enviada.ok && !enviada.valor) {
+    terminal.nota("o terminal está ocupado — pare o que está rodando e aperte Rodar de novo");
+  }
+  terminal.focar();
 }
 
 $("btRodar").addEventListener("click", () => void rodarProjeto());

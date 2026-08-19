@@ -40,22 +40,10 @@ export interface ProjetoNovo {
   fluxo: Fluxo;
 }
 
-/** Eventos que o processo principal empurra para a interface. */
-export type EventoExecucao =
-  | { tipo: "saida"; texto: string }
-  | { tipo: "erro"; texto: string }
-  | { tipo: "fim"; codigo: number | null; sinal: string | null }
-  | { tipo: "falha"; mensagem: string };
-
-/** O que volta de uma linha digitada no terminal (ADR 0020). */
-export interface RespostaComando {
-  /** A pasta onde a linha rodou — ou a nova, quando a linha era um `cd`. */
-  pasta: string;
-  /** `false` quando não nasceu processo (`cd`, linha em branco). */
-  rodando: boolean;
-  /** Aviso de reescrita, como a troca de `pip` por `python -m pip`. */
-  nota: string | null;
-}
+//! `EventoExecucao` e `RespostaComando` saíram (19/08). Descreviam a saída de um
+//! comando rodado por canos e a resposta de uma linha triada — as duas coisas
+//! deixaram de existir quando o terminal virou um shell com PTY. O que atravessa
+//! a ponte agora são bytes crus, que não precisam de forma.
 
 /** Resultado de qualquer operação que pode falhar por culpa do ambiente. */
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };
