@@ -1473,3 +1473,76 @@ por um commit, e travar nisso daria vermelho falso justamente no meio da refator
 dele é o **fechamento** (§12 passo 6), onde a pergunta é *"o que ficou parado"*, não *"esta
 fatia quebrou algo"*. Consequência no código de saída: **achar órfão sai 0**; o único exit
 diferente de zero é **2**, quando o corpo de prova reprova.
+
+### 15.6 · A11 APLICADA — a forma perde o andaime
+
+**A árvore A11 dizia:** cinco suítes de `servicos/` montam no **corpo do módulo** em vez de num
+`before`, e a razão era a **A8** — `entrarNaPasta` disparava `cdNeovim`, `attach()` vazava
+`connect ENOENT`, e o `node --test` reprova o arquivo quando a rejeição nasce dentro de um
+gancho, **mesmo com tratador instalado**. A A8 morreu em 24/08; a forma sobreviveu à causa.
+
+| **DESFECHO** | **APLICADA em 24/08 por decisão da cabeça.** As cinco normalizadas |
+|---|---|
+
+#### A premissa já estava provada no disco, e não por mim
+
+Antes de mexer numa linha eu fui medir se o `before` funciona depois do conserto — e a resposta
+não precisou de experimento: **`tests/servicos/fechamento-de-pasta.test.ts:46`**, escrito ontem
+mesmo na fatia da A7, **depois** do conserto da A8, já chama `await entrarNaPasta(aberta)` dentro
+de um `beforeEach`, e está verde desde então. Um arquivo irmão já era a prova.
+
+#### As cinco, e o que mudou em cada uma
+
+| arquivo | o que saiu do corpo do módulo | valor capturado |
+|---|---|---|
+| `exclusao-de-caminho.test.ts` | `entrarNaPasta` + espera | nenhum |
+| `escrita-confinada.test.ts` | `entrarNaPasta` + espera | nenhum |
+| `escrita-em-pasta-por-atalho.test.ts` | idem | `aberto` → `let` + `Awaited<ReturnType<…>>` |
+| `abertura-de-projeto.test.ts` | **três** aberturas em ordem | `abertaPrimeira`, `abertaSegunda` |
+| `criacao-de-projeto.test.ts` | `ondeSalvar` + `escolherECriar` + snapshot | `criado`, `chamadasDaCriacao` |
+
+⚠️ **Nenhum `any` entrou.** Os tipos vieram de `Awaited<ReturnType<typeof …>>`, que acompanha a
+assinatura em vez de duplicá-la — se `entrarNaPasta` mudar o que devolve, o teste segue junto.
+
+⚠️ **E uma coisa NÃO foi normalizada, de propósito:** `tests/motores/controle-neovim-rpc-com-neovim.test.ts`
+também monta no corpo do módulo, mas **não é A11** — a razão dele é outra e está escrita no
+próprio arquivo (o socket precisa estar escutando antes do primeiro `obter()`). Fica listado
+aqui porque a razão escrita lá **é discutível** — um `before` também roda antes de qualquer
+teste —, e listar é o que a lei manda quando não se conserta.
+
+#### Conduta preservada, e medida NOS DOIS SENTIDOS
+
+O §12·3 manda que a lógica só mude de lugar. Verde não prova isso: uma suíte que parou de olhar
+fica verde igual. Duas sabotagens, ambas com **`tsc` exit 0** — a regra que eu mesmo escrevi na
+corrida 4, de que sabotagem que quebra a compilação é ruído.
+
+| sabotagem, em cópia da árvore de trabalho | o que as cinco responderam |
+|---|---|
+| **`raizAberta` deixa de ser registrada** (`abertura-de-projeto.ts:78`) — a montagem passa a não montar nada | **23 falhas**: abertura **3**, criação **1**, escrita-confinada **12**, atalho **4**, exclusão **3**. As cinco enxergam |
+| **o vazamento da A8 reintroduzido** (`void Promise.reject(new Error("connect ENOENT …"))` em `cdNeovim`) | **1 falha em cada uma** — e é a certa: *"NENHUMA rejeição não tratada vazou durante a suíte"* |
+
+⚠️ **A comparação que eu ia afirmar, e a medição derrubou.** Eu ia escrever que a forma nova é
+**mais estrita**, porque a rejeição passa a nascer dentro de um gancho e o runner reprova o
+arquivo inteiro. Fui medir a forma antiga sob a mesma sabotagem: **1 falha em cada, idêntico**.
+O que pega a regressão não é o runner, é a **asserção explícita** `naoTratadas == []` que as
+cinco carregam — e ela funciona igual nos dois lugares. **Igual, não mais forte.** A
+normalização é conduta preservada, que é exatamente o que o §12·3 pede, e nada além disso.
+
+#### A tabela mudou de casa, e o motivo é o mesmo do §15.2
+
+A tabela de cinco medições sobre o `node --test` morava no corpo de `escrita-confinada.test.ts`.
+Ela é **fato sobre o runner**, não sobre aquela suíte, e agora vive em
+`tests/apoio/rejeicoes-nao-tratadas.ts` — o módulo que existe para lidar com rejeição, que é
+onde estará quem for tropeçar nisso de novo.
+
+⚠️ **E junto dela foi a leitura ERRADA que ela permitia**, porque é a leitura que custou cinco
+arquivos na forma esquisita: *a tabela **não** diz "monte no corpo do módulo". Diz "não deixe
+vazar rejeição".* Enquanto a A8 vazava, o corpo do módulo era a única saída; consertada a A8,
+não há do que fugir.
+
+#### O portão da fatia A11
+
+Previsto **antes**, na catraca: só `tests/` muda, então M1–M4 ficam **2 · 0 · 0 · 13/13** e a
+contagem de testes fica em **139** — a montagem trocou de lugar, nenhum `test()` nasceu ou
+morreu. Medido: **139 passaram**, `tsc` exit 0, build ok, M1–M4 nos quatro valores previstos,
+P5 ok. **PORTÃO VERDE 5/5.**
