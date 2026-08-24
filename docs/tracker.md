@@ -1292,3 +1292,26 @@ contra a árvore de `ada7bfa`, onde eu sabia haver **quatro** órfãos — achou
 colunas de canal, contra uma **cópia** com um chamador conhecido removido — `projeto:fechar`
 apareceu, e só ele. **A árvore base não serve para a coluna de canal** (o reino `porta/` nasceu
 na corrida 1), então a validação dela tem de ser por cópia mutilada, não por commit antigo.
+
+### 14.1 · Pendências vivas ao fim da corrida 5
+
+| # | o que é | quem decide |
+|---|---|---|
+| **A11** | **NOVA.** A montagem de 5 suítes de `servicos/` mora no corpo do módulo por causa da A8, que **foi consertada hoje**. A forma sobreviveu à causa; voltar ao `before` idiomático é refatoração de andaime, fora da fatia | a cabeça |
+| **A12** | **NOVA, achada sabotando o meu próprio conserto.** O renderer é o **único** chamador de `api.fecharPasta()`; removida a chamada, a suíte dá 139/139 e o portão dá VERDE. O **ato 3 pega** (medido), o **portão não** | a cabeça |
+| **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
+| **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
+| **a tag v0.0.7 que não existe** | herdada da corrida 4. Marcar mexe no histórico, que é da lista negativa | a cabeça |
+| herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, `tracker:162`, prosa de laboratório | a cabeça |
+| do despacho 1 | o desvio de planta (sem `tests/arquitetura/` nem `tests/funcionais/`), o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
+| **o instrumento do 3º ato** | **quarta corrida seguida no scratchpad, e a primeira em que ele reprovou 4 vezes num dia só** — uma delas repetindo falha já escrita no diário. Virar ferramenta do repo é escopo novo; o custo de não fazê-lo já foi pago quatro vezes | a cabeça |
+| **a receita do PNG** | **RESOLVIDA** — mora no cabeçalho de `ferramentas/gera-fluxo.py`, e nasceu errada e foi corrigida por execução | — |
+
+### 14.2 · O que ficou DESCOBERTO, escrito porque preço não escrito é preço escondido
+
+| descoberto | por quê |
+|---|---|
+| **o botão de Fechar pasta** | nada clica na tela. É a A12, e é o buraco que a P5 já declarava desde 23/08: *"não prova que o botão certo faz a coisa certa"* |
+| **a P1 ficou 6× mais lenta** | 1,07 s → **6,5 s**, e o preço é intrínseco: provar que o canal desiste depois de ~3 s custa ~3 s, duas vezes. Declarado antes em §13.1a, e os dois ciclos moram em arquivos diferentes para rodarem em paralelo |
+| **`neovim` sequestra o `console`** | medido hoje: `node_modules/neovim/lib/utils/logger.js:69` — *"Monkey-patch `console` so that it does not write to the RPC (stdio) channel"*. Qualquer `console.log` do processo principal, depois de o canal de controle carregar, **some**. Não foi tocado nesta corrida; fica escrito porque é o que matou uma sonda em silêncio no despacho anterior e custou uma bissecção inteira hoje |
+| **queda do socket no MEIO da sessão** | o conserto da A8 põe tratador permanente de `error` no socket, o que **melhora** o caso (antes não havia nenhum), mas uma queda abrupta ainda faz o iterador do pacote `neovim` rejeitar com `Premature close`, sem tratador. Fora do escopo da A8, que é o socket **ausente**. Medido, não consertado |
