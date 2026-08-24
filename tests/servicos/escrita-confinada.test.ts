@@ -142,6 +142,43 @@ describe("criar e renomear — confinados como o gravar, desde a A3(a)", () => {
     await assert.rejects(() => criarArquivoNoProjeto(aberta, "   "), /não pode ser vazio/);
   });
 
+  describe("o NOME passa por peneira, desde a A10 — os três canais", () => {
+    //! ⚠️ ESTES TESTES VIRARAM DO AVESSO EM 24/08. Eles nasceram travando o defeito: o nome
+    //!   chegava cru até `nome.trim()`, e a tela recebia `"nome.trim is not a function"` ou
+    //!   `"Cannot read properties of null"` — erro interno de JavaScript, com o nome de uma
+    //!   variável nossa dentro. Aplicada a A10(c), os dois ficaram vermelhos e viraram isto.
+    //! ⚠️ E OS MOLDES SUMIRAM, o que é metade da prova: a versão anterior precisava escrever
+    //!   `42 as unknown as string`, porque a assinatura prometia `string` da ponte até a
+    //!   infra. Agora a borda é `unknown` e o `42` entra direto — o teste só pôde ficar mais
+    //!   simples porque o tipo parou de mentir.
+
+    test("nome que é número é recusado com a frase da casa", async () => {
+      await assert.rejects(() => criarArquivoNoProjeto(aberta, 42), /^Error: O nome não é válido\.$/);
+    });
+
+    test("nome nulo idem — sem `trim` e sem nome de variável nossa na tela", async () => {
+      await assert.rejects(() => criarPastaNoProjeto(aberta, null), /^Error: O nome não é válido\.$/);
+    });
+
+    test("renomear também peneira — os três canais fecham juntos", async () => {
+      //! O terceiro caminho existe e é fácil de esquecer: `caminho:renomear` é o único que
+      //!   não cria nada, então uma peneira posta só em `criar` passaria despercebida.
+      const alvo = await criarArquivoNoProjeto(aberta, "para-renomear.txt");
+      await assert.rejects(() => renomearNoProjeto(alvo, {}), /^Error: O nome não é válido\.$/);
+    });
+
+    test("nome começando com traço é ACEITO, e tem de continuar sendo", () => {
+      //! ⚠️ ESTA É A GUARDA DA ESCOLHA, e ela existe por causa da opção que NÃO foi tomada.
+      //!   A opção (a) da árvore mandava reusar `recusarEntrada` — que recusa o que começa
+      //!   com `-`, porque caminho com traço vira opção de linha de comando. **Nome de
+      //!   arquivo não é caminho**: `-x.txt` é legítimo e hoje funciona. Sem este teste, a
+      //!   opção (a) poderia ser aplicada por engano amanhã e ninguém veria a perda.
+      return criarArquivoNoProjeto(aberta, "-x.txt").then((criado) => {
+        assert.equal(path.basename(criado), "-x.txt");
+      });
+    });
+  });
+
   test("renomeia dentro da pasta aberta", async () => {
     const antes = await criarArquivoNoProjeto(aberta, "antes.txt");
     const depois = await renomearNoProjeto(antes, "depois.txt");

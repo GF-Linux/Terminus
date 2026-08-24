@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 5 fatia 2 — A8(c) APLICADA: o laco destravado e o vazamento parado",
+  "fatia": "corrida 5 fatia 3 — A10(c) APLICADA: `unknown` na borda, e o tsc cobra a peneira",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo e INALTERADOS, previsao escrita ANTES de medir (§12·4a, ja declarada no tracker §13.1d). A A8(c) mexe num MOTOR: nao e registrador, entao M1 nao a ve; o unico import novo e `node:net`, externo, entao M2 nao ganha aresta; nao toca `dominio/` (M3) nem a arvore de pastas (M4)."
+  "porque": "Os quatro no alvo e INALTERADOS, previsao escrita ANTES de medir (§12·4a, ja declarada no tracker §13.1d). A A10(c) troca TIPOS em tres camadas (ponte, servicos, infra) e acrescenta uma linha de peneira: `unknown` nao cria import, entao M1 e M2 nao mudam; nada toca `dominio/` (M3) nem a arvore de pastas (M4)."
 }

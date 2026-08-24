@@ -119,13 +119,21 @@ export async function gravarArquivo(arquivo: string, conteudo: string): Promise<
  * deixar `../../algo` gravar fora do projeto. Aqui só se aceita um componente
  * simples de nome.
  */
-function validarNome(nome: string): string {
-  //? ⚠️ `nome` NÃO É CONFERIDO — achado e medido em 24/08, árvore **A10** no tracker. O tipo
-  //?   `string` é declaração, não peneira: a carga do IPC chega crua. Com `42` a tela recebe
-  //?   `"nome.trim is not a function"`; com `null`, `"Cannot read properties of null"`. Falha
-  //?   em segurança (nada é criado), mas é erro interno virando frase de interface — e os
-  //?   vizinhos todos peneiram (`recusarEntrada`, `typeof conteudo`). Registrado, não
-  //?   consertado: a opção que eu recomendo muda a assinatura na borda, e isso é da cabeça.
+function validarNome(nome: unknown): string {
+  //! ⚠️ O `typeof` VEM PRIMEIRO, e é a árvore **A10** consertada em 24/08. Antes, a
+  //!   assinatura prometia `string` da ponte até aqui — e **declaração de tipo não confere
+  //!   nada em runtime**: a carga do IPC chega crua. Com `42` a tela recebia
+  //!   `"nome.trim is not a function"`; com `null`, `"Cannot read properties of null"`.
+  //!   Falhava em segurança (nada era criado), mas um erro interno de JavaScript, com o nome
+  //!   de uma variável nossa dentro, chegava à cara de quem usa.
+  //! POR QUE `typeof` E NÃO `recusarEntrada`, que já existe e diz esta mesma frase: aquela
+  //!   peneira também recusa o que começa com `-`, porque **caminho** com traço vira opção
+  //!   do programa que o recebe. Nome de arquivo NÃO é caminho — `-x.txt` é legítimo e
+  //!   funciona hoje. Reusar a peneira do caminho aqui herdaria uma recusa que ninguém
+  //!   decidiu, e a árvore recusou essa opção por escrito.
+  //! A trava de verdade é a assinatura `unknown`: com ela o `tsc` COBRA a conferência de
+  //!   quem chamar, em vez de confiar. É o mesmo desenho de `dir` e `antigo` (árvore A3).
+  if (typeof nome !== "string") throw new Error("O nome não é válido.");
   const limpo = nome.trim();
   if (!limpo) throw new Error("O nome não pode ser vazio.");
   if (limpo === "." || limpo === "..") throw new Error(`"${limpo}" não é um nome.`);
@@ -145,7 +153,7 @@ function dentroDe(raiz: string, alvo: string): void {
 }
 
 //* Cria um arquivo vazio dentro da pasta aberta.
-export async function criarArquivo(raiz: string, dir: string, nome: string): Promise<string> {
+export async function criarArquivo(raiz: string, dir: string, nome: unknown): Promise<string> {
   const alvo = path.join(dir, validarNome(nome));
   dentroDe(raiz, alvo);
   // 'wx' falha se existir — melhor do que checar antes e apagar o arquivo de
@@ -156,7 +164,7 @@ export async function criarArquivo(raiz: string, dir: string, nome: string): Pro
 }
 
 //* Cria uma pasta dentro da pasta aberta.
-export async function criarPasta(raiz: string, dir: string, nome: string): Promise<string> {
+export async function criarPasta(raiz: string, dir: string, nome: unknown): Promise<string> {
   const alvo = path.join(dir, validarNome(nome));
   dentroDe(raiz, alvo);
   await fs.mkdir(alvo);
@@ -164,7 +172,7 @@ export async function criarPasta(raiz: string, dir: string, nome: string): Promi
 }
 
 //* Renomeia (ou move) um arquivo ou pasta dentro do projeto.
-export async function renomear(raiz: string, antigo: string, nome: string): Promise<string> {
+export async function renomear(raiz: string, antigo: string, nome: unknown): Promise<string> {
   const alvo = path.join(path.dirname(antigo), validarNome(nome));
   dentroDe(raiz, antigo);
   dentroDe(raiz, alvo);

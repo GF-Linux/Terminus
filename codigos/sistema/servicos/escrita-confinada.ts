@@ -57,19 +57,19 @@ export function gravarConfinado(arquivo: unknown, conteudo: unknown): Promise<vo
 //!   travado pelo teste "a pasta aberta é a ÚNICA raiz de escrita".
 
 //* Cria arquivo dentro da pasta aberta — raiz do DONO, com realpath.
-export function criarArquivoNoProjeto(dir: unknown, nome: string): Promise<string> {
+export function criarArquivoNoProjeto(dir: unknown, nome: unknown): Promise<string> {
   const raizes = raizesDeEscrita();
   return criarArquivo(raizes[0], confinado(dir, raizes, "pasta"), nome);
 }
 
 //* Cria pasta dentro da pasta aberta — raiz do DONO, com realpath.
-export function criarPastaNoProjeto(dir: unknown, nome: string): Promise<string> {
+export function criarPastaNoProjeto(dir: unknown, nome: unknown): Promise<string> {
   const raizes = raizesDeEscrita();
   return criarPasta(raizes[0], confinado(dir, raizes, "pasta"), nome);
 }
 
 //* Renomeia dentro da pasta aberta — raiz do DONO, com realpath.
-export function renomearNoProjeto(antigo: unknown, nome: string): Promise<string> {
+export function renomearNoProjeto(antigo: unknown, nome: unknown): Promise<string> {
   const raizes = raizesDeEscrita();
   return renomear(raizes[0], confinado(antigo, raizes, "caminho"), nome);
 }

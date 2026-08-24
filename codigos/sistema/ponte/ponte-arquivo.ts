@@ -38,15 +38,15 @@ export function registrarArquivo(): void {
   );
   ipcMain.handle(
     "arquivo:criar",
-    seguro((_e, _raiz: string, dir: unknown, nome: string) => criarArquivoNoProjeto(dir, nome)),
+    seguro((_e, _raiz: string, dir: unknown, nome: unknown) => criarArquivoNoProjeto(dir, nome)),
   );
   ipcMain.handle(
     "pasta:criar",
-    seguro((_e, _raiz: string, dir: unknown, nome: string) => criarPastaNoProjeto(dir, nome)),
+    seguro((_e, _raiz: string, dir: unknown, nome: unknown) => criarPastaNoProjeto(dir, nome)),
   );
   ipcMain.handle(
     "caminho:renomear",
-    seguro((_e, _raiz: string, antigo: unknown, nome: string) =>
+    seguro((_e, _raiz: string, antigo: unknown, nome: unknown) =>
       renomearNoProjeto(antigo, nome),
     ),
   );

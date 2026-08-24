@@ -637,7 +637,7 @@ A5 — pequena, e real — e agora está escrita nos dois lugares onde alguém v
 | **as opções** | **(a) `recusarEntrada(nome, "nome")` antes do `trim`** — usa a peneira que já existe, e a frase vira *"O nome não é válido."*, que é a do resto da casa. Uma linha. Custa: `recusarEntrada` também recusa `-`, o que é **conduta nova** para nome (hoje `-x.txt` é aceito, e é um nome legítimo de arquivo). **(b) só o `typeof`** — `if (typeof nome !== "string") throw new Error("O nome não é válido.")`, sem herdar a regra do traço. **(c) tipar `nome: unknown` na ponte e no serviço**, o que faz o `tsc` cobrar a conferência — é (b) com a trava no compilador junto. **(d) deixar como está** |
 | **minha recomendação** | **(c)**, e a razão é a que a A3(a) acabou de mostrar: `unknown` na borda foi o que fez o `tsc` empurrar a peneira para o lugar certo em `dir` e `antigo`. Nome é a última entrada de `arquivo:criar`/`pasta:criar`/`caminho:renomear` ainda tipada como promessa. **(a) não**, porque herdaria a recusa do traço sem alguém ter decidido isso |
 | **se ficar para depois** | **igual** — não apodrece, e nada de novo passa a depender dele |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a medição. Marca `//?` em `arquivos-do-projeto.ts` |
+| **DESFECHO** | **APLICADA em 24/08/2026, opção (c), decidida pela cabeça.** Adiada mais cedo no mesmo dia; retomada no despacho seguinte, depois da A8. O conserto e as suas medições estão em **§13.6** |
 
 ---
 
@@ -1046,3 +1046,58 @@ Cada sabotagem reverte **o conserto**, não um vizinho, e todas com `tsc` **exit
 | P5 conduta | ok — porta+renderer+ipc responderam |
 
 **PORTÃO VERDE 5/5.** Duração da P1: **1,07 s → 6,5 s** (previsto ~7 s em §13.1a).
+
+### 13.6 · A10(c) APLICADA — `unknown` na borda, e o `tsc` cobrando a peneira
+
+**O caminho inteiro do `nome`, e onde ele parou de mentir:**
+
+```
+renderer  ──►  ponte-arquivo.ts        ──►  escrita-confinada.ts   ──►  arquivos-do-projeto.ts
+   carga        nome: string→unknown         nome: string→unknown        validarNome(unknown)
+   crua              (3 canais)                    (3 serviços)          + typeof, antes do trim
+```
+
+**O `tsc` fez exatamente o trabalho que a opção (c) prometia.** Tipada a borda como `unknown`,
+ele apontou **3 erros — e os três nos lugares certos**, os pontos de entrega para a infra:
+
+```
+escrita-confinada.ts(62,67): error TS2345: Argument of type 'unknown' is not assignable to 'string'.
+escrita-confinada.ts(68,65): error TS2345: ...
+escrita-confinada.ts(74,68): error TS2345: ...
+```
+
+É o mesmo que aconteceu com `dir` e `antigo` na A3(a), e foi por isso que eu recomendei (c).
+
+**Por que `typeof` e não `recusarEntrada`, que já existe e diz a mesma frase.** Era a opção (a),
+e a árvore a recusou por escrito: aquela peneira também recusa o que começa com `-`, porque
+**caminho** com traço vira opção do programa que o recebe. **Nome de arquivo não é caminho** —
+`-x.txt` é legítimo. Herdar aquela regra seria mudar conduta sem ninguém ter decidido.
+Isso agora tem **teste próprio**: *"nome começando com traço é ACEITO, e tem de continuar
+sendo"*, e ele existe para que a opção (a) não seja aplicada por engano amanhã.
+
+**As sabotagens, e a primeira é o argumento inteiro de (c) contra (b):**
+
+| # | o que sabotei | `tsc` | resultado |
+|---|---|:---:|---|
+| A | tirar a peneira, e mais nada | **exit 2** | `error TS18046: 'nome' is of type 'unknown'` — **o compilador RECUSA**. Com a opção (b), tirar a linha compilaria em silêncio; com (c), o tipo é a guarda da guarda |
+| B | voltar a CONFIAR no tipo: `(nome as string).trim()` | **exit 0** | **3 falhas**, uma por canal (`arquivo:criar`, `pasta:criar`, `caminho:renomear`). Restaurado: 25/25 |
+
+> A sabotagem B é a reversão fiel do conserto: `(nome as string)` é literalmente o que o código
+> antigo fazia — confiar na declaração. Ela morde os três canais, e só eles.
+
+**O teste virou do avesso, e os moldes sumiram.** O bloco nasceu travando o defeito, e para
+isso precisava escrever `42 as unknown as string` — porque a assinatura prometia `string` da
+ponte até a infra. Depois do conserto o `42` entra direto. **O teste só pôde ficar mais simples
+porque o tipo parou de mentir**, e o sumiço do molde é metade da prova.
+
+### 13.7 · O portão da fatia A10
+
+| perna | resultado |
+|---|---|
+| P1 teste da peça | **ok — 131 passaram** (eram 127: +4 no bloco do nome, um por canal mais a guarda do traço) |
+| P2 verificação de tipo | ok |
+| P3 build | ok |
+| P4 alvo da corrida | M1 **2** · M2 **0** · M3 **0** · M4 **13/13** — como previsto |
+| P5 conduta | ok — porta+renderer+ipc responderam |
+
+**PORTÃO VERDE 5/5.**
