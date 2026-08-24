@@ -4,6 +4,21 @@
 //!    tratada nasce no escopo de um teste ou de um gancho. Com tratador LARGO instalado no
 //!    gancho de módulos, toda rejeição futura ficaria escondida em toda a suíte, e a rede
 //!    passaria a mentir junto (§12·3a·4).
+//!    ⚠️ ONDE ELA PODE NASCER SEM REPROVAR O ARQUIVO — medido em 24/08 com cinco arquivos
+//!    de isolamento, e guardado AQUI porque é fato sobre o `node --test`, não sobre a suíte
+//!    que o descobriu:
+//!
+//!      promessa que nunca assenta, dentro de `before` ....... passou
+//!      rejeição não tratada dentro de `before` .............. REPROVOU
+//!      rejeição não tratada dentro de um `test` ............. REPROVOU
+//!      rejeição não tratada no CORPO DO MÓDULO .............. passou
+//!
+//!    E reprova **mesmo com tratador instalado e mesmo esperando 300 ms dentro do gancho**:
+//!    o runner atribui a rejeição ao escopo do gancho, não ao relógio.
+//!    ⚠️ A leitura ERRADA desta tabela, e ela custou cinco arquivos na forma esquisita: ela
+//!    NÃO diz "monte no corpo do módulo". Diz "não deixe vazar rejeição". Enquanto a A8
+//!    vazava, o corpo do módulo era o único lugar que não contaminava o veredito; consertada
+//!    a A8, não há o que fugir, e o `before` idiomático voltou a ser o certo (árvore A11).
 //! 2. Então este módulo é **opt-in por arquivo** e ele CAPTURA, não engole: guarda tudo o
 //!    que chegou, e a suíte que o importa é obrigada a afirmar que **nada** chegou.
 //! 3. ⚠️ ELE JÁ TEVE UMA EXCEÇÃO, E ELA MORREU COM O DEFEITO QUE A CRIOU. Até 24/08 havia

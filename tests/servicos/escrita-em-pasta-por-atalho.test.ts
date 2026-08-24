@@ -17,7 +17,7 @@
 //!    que aponta para fora continua recusado. Sem eles, "gravar funciona" passaria também
 //!    num código que simplesmente parou de conferir.
 
-import { test, describe } from "node:test";
+import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
@@ -42,10 +42,11 @@ symlinkSync(real, atalho, "dir");
 
 const deFora = pastaNova("fora-do-projeto");
 
-//! No corpo do módulo pela A8 — ver `tests/servicos/abertura-de-projeto.test.ts`, item 2.
-//!   A A8 foi consertada em 24/08 e a forma sobreviveu à causa (árvore **A11**).
-const aberto = await entrarNaPasta(atalho);
-await esperarAsAtrasadas();
+let aberto: Awaited<ReturnType<typeof entrarNaPasta>>;
+before(async () => {
+  aberto = await entrarNaPasta(atalho);
+  await esperarAsAtrasadas();
+});
 
 describe("A9 · a pasta aberta por atalho é a pasta REAL — e escrever nela funciona", () => {
   test("a raiz de escrita é o LUGAR REAL, não o atalho — é daqui que vem tudo", () => {

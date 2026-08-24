@@ -11,7 +11,7 @@
 //!    parâmetro (é assim em produção: `app.getPath("home")` vem da ponte), então o teste
 //!    escolhe os dois ramos passando uma casa que existe ou uma que não existe.
 
-import { test, describe, beforeEach } from "node:test";
+import { test, describe, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
@@ -22,10 +22,10 @@ import { entrarNaPasta } from "../../codigos/sistema/servicos/abertura-de-projet
 import { excluirCaminho } from "../../codigos/sistema/servicos/exclusao-de-caminho.ts";
 
 const aberta = pastaNova("excluir");
-//! No corpo do módulo pela A8 — ver `tests/servicos/abertura-de-projeto.test.ts`, item 2.
-//!   A A8 foi consertada em 24/08 e a forma sobreviveu à causa (árvore **A11**).
-await entrarNaPasta(aberta);
-await esperarAsAtrasadas();
+before(async () => {
+  await entrarNaPasta(aberta);
+  await esperarAsAtrasadas();
+});
 
 const CONFIRMA = 0;
 const CANCELA = 1;

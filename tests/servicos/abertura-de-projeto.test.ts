@@ -4,20 +4,18 @@
 //!    pasta vem PRIMEIRO. Se ela não existe mais, o erro sobe e a pasta some da lista em vez
 //!    de ser registrada de novo."* Promessa de ORDEM só se confere executando as duas na
 //!    ordem errada — é o que o teste da pasta sumida faz.
-//! 2. ⚠️ AS ABERTURAS BEM-SUCEDIDAS MORAM NO CORPO DO MÓDULO, e não em `before` nem dentro
-//!    de `test`. Motivo medido (árvore **A8**): `entrarNaPasta` dispara `cdNeovim`, que
-//!    produzia rejeição não tratada quando o socket do Neovim não existe — e o `node --test`
-//!    reprova o arquivo se ela nascer dentro de gancho ou de teste, mesmo com tratador.
-//!    ⚠️ **A CAUSA MORREU EM 24/08**, e fica escrito para não virar comentário mentiroso: a
-//!    A8 foi consertada no mesmo dia, `cdNeovim` não vaza mais nada, e a metade do parágrafo
-//!    acima que fala do `node --test` continua verdadeira mas **não se aplica mais aqui**.
-//!    A forma poderia voltar ao `before` idiomático — não voltou porque isso é refatoração
-//!    de andaime, fora da fatia que consertou a A8. Registrado como árvore **A11**.
-//! 3. A abertura que FALHA pode ficar dentro do teste, e a razão é do código: `abrirProjeto`
-//!    estoura ANTES de `cdNeovim` ser chamado. Se um dia a ordem mudar, este arquivo passa a
-//!    reprovar — e isso é o aviso funcionando, não um teste frágil.
+//! 2. ⚠️ AS ABERTURAS BEM-SUCEDIDAS MORARAM NO CORPO DO MÓDULO até 24/08, e este arquivo era
+//!    o que os outros quatro citavam. Era andaime da **A8**: `entrarNaPasta` disparava
+//!    `cdNeovim`, que vazava rejeição não tratada quando o socket do Neovim não existe, e o
+//!    `node --test` reprova o arquivo se ela nascer dentro de gancho ou de teste — mesmo com
+//!    tratador. Consertada a A8 no mesmo dia, a forma perdeu a causa e voltou ao `before`
+//!    idiomático na árvore **A11**. A medição sobre o runner, que continua verdadeira e não
+//!    é sobre esta suíte, mora em `tests/apoio/rejeicoes-nao-tratadas.ts`.
+//! 3. A abertura que FALHA fica dentro do próprio teste, e a razão é do código, não do
+//!    runner: `abrirProjeto` estoura ANTES de `cdNeovim` ser chamado. Se um dia a ordem
+//!    mudar, este arquivo passa a reprovar — e isso é o aviso funcionando.
 
-import { test, describe } from "node:test";
+import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
@@ -38,10 +36,19 @@ const descartavel = pastaNova("proj-descartavel");
 writeFileSync(path.join(primeira, "leia.txt"), "oi");
 mkdirSync(path.join(primeira, "sub"));
 
-const abertaPrimeira = await entrarNaPasta(primeira);
-await esperarAsAtrasadas();
-await entrarNaPasta(descartavel);
-const abertaSegunda = await entrarNaPasta(segunda);
+type Aberta = Awaited<ReturnType<typeof entrarNaPasta>>;
+let abertaPrimeira: Aberta;
+let abertaSegunda: Aberta;
+
+//! A ORDEM DAS TRÊS ABERTURAS É A MONTAGEM, e não é enfeite: a segunda é a que fica aberta
+//!   no fim, e a `descartavel` no meio existe só para entrar na lista de recentes e depois
+//!   ser esquecida. Trocar a ordem muda o que os testes de `pastaAberta` e de recentes veem.
+before(async () => {
+  abertaPrimeira = await entrarNaPasta(primeira);
+  await esperarAsAtrasadas();
+  await entrarNaPasta(descartavel);
+  abertaSegunda = await entrarNaPasta(segunda);
+});
 
 describe("entrarNaPasta — o que ela devolve e o que ela muda", () => {
   test("devolve a árvore do primeiro nível, com o nome da pasta", () => {

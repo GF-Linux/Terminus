@@ -11,7 +11,7 @@
 //!    cabeça mandou aplicar a A3(a), no mesmo dia. Ficam com a marca porque é por eles que
 //!    se vê, de um relance, o que exatamente passou a ser recusado.
 
-import { test, describe } from "node:test";
+import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
@@ -26,33 +26,22 @@ import {
   renomearNoProjeto,
 } from "../../codigos/sistema/servicos/escrita-confinada.ts";
 
-//! ⚠️ A MONTAGEM MORA NO CORPO DO MÓDULO, E NÃO NUM `before` — e isto foi MEDIDO, com
-//!   cinco arquivos de isolamento, não escolhido por gosto. O motivo é a **A8**:
-//!   `entrarNaPasta` dispara `cdNeovim`, e `attach()` produz uma rejeição não tratada
-//!   (`connect ENOENT`) ~3 ms depois. Medido onde ela pode nascer sem reprovar o arquivo:
-//!
-//!     promessa que nunca assenta, dentro de `before` ....... passou
-//!     rejeição não tratada dentro de `before` .............. REPROVOU
-//!     rejeição não tratada dentro de um `test` ............. REPROVOU
-//!     rejeição não tratada no CORPO DO MÓDULO .............. passou
-//!
-//!   E reprova **mesmo com tratador instalado e mesmo esperando 300 ms dentro do gancho**:
-//!   o `node --test` atribui a rejeição ao escopo do gancho, não ao relógio. O corpo do
-//!   módulo roda antes de o runner começar a atribuir — é o único lugar onde o defeito
-//!   herdado não contamina o veredito da rede.
-//! ⚠️ A CAUSA MORREU EM 24/08, e isto fica escrito para o parágrafo acima não virar mentira:
-//!   a A8 foi consertada no mesmo dia — a conexão passou a ser aberta pelo motor, com
-//!   tratador na origem — e `entrarNaPasta` não vaza mais nada. A tabela de cinco medições
-//!   continua verdadeira sobre o `node --test`; o que não existe mais é a rejeição. A forma
-//!   sobreviveu à causa, e voltar ao `before` idiomático é refatoração de andaime, fora da
-//!   fatia que consertou a A8: registrado como árvore **A11**.
 const aberta: string = pastaNova("aberta");
 const deFora: string = pastaNova("de-fora");
+
 //! A pasta só fica gravável depois de ABERTA — é `entrarNaPasta` quem diz ao main qual é
 //!   a raiz, e `raizesDeEscrita()` lê dela. Sem este passo tudo é recusado, e um teste que
 //!   passasse sem ele estaria provando a recusa por falta de estado, não pela guarda.
-await entrarNaPasta(aberta);
-await esperarAsAtrasadas();
+//! ⚠️ ESTA MONTAGEM MOROU NO CORPO DO MÓDULO ATÉ 24/08, e voltou ao `before` idiomático na
+//!   árvore **A11**. Era andaime da **A8**: `entrarNaPasta` disparava `cdNeovim`, `attach()`
+//!   vazava `connect ENOENT`, e o `node --test` reprova o arquivo quando a rejeição nasce
+//!   dentro de um gancho — inclusive com tratador instalado. Consertada a A8, não há mais o
+//!   que fugir. A medição que fundamentava a fuga vive em `tests/apoio/rejeicoes-nao-tratadas.ts`,
+//!   que é o lugar dela: é fato sobre o runner, não sobre esta suíte.
+before(async () => {
+  await entrarNaPasta(aberta);
+  await esperarAsAtrasadas();
+});
 
 describe("confinado — as três etapas, uma a uma", () => {
   test("aceita caminho dentro da pasta aberta e devolve o real", () => {

@@ -3,13 +3,12 @@
 //! 1. O caso de uso encadeia três coisas: perguntar ONDE, moldar a pasta, e entrar nela.
 //!    A ordem entre as duas últimas é conduta observável — e o teste da pasta que já existe
 //!    é o que a prova, porque `criarProjeto` recusa `EEXIST` e aí entrar seria errado.
-//! 2. ⚠️ A CRIAÇÃO BEM-SUCEDIDA MORA NO CORPO DO MÓDULO (árvore **A8**): ela chama
-//!    `entrarNaPasta`, que dispara `cdNeovim`. O caso que RECUSA pode ficar dentro do teste,
-//!    porque estoura antes de chegar lá.
-//!    ⚠️ A CAUSA MORREU EM 24/08 — A8 consertada, `cdNeovim` não vaza mais. Ver o item 2 de
-//!    `tests/servicos/abertura-de-projeto.test.ts` e a árvore **A11**.
+//! 2. ⚠️ A CRIAÇÃO BEM-SUCEDIDA MOROU NO CORPO DO MÓDULO até 24/08 (andaime da **A8**: ela
+//!    chama `entrarNaPasta`, que disparava `cdNeovim`). Consertada a A8, voltou ao `before`
+//!    idiomático na árvore **A11**. O caso que RECUSA continua dentro do próprio teste, e
+//!    por razão do código: estoura antes de chegar em `entrarNaPasta`.
 
-import { test, describe } from "node:test";
+import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import * as path from "node:path";
@@ -22,10 +21,17 @@ import { escolherECriar } from "../../codigos/sistema/servicos/criacao-de-projet
 const guarda = pastaNova("criacao");
 const destino = path.join(guarda, "projeto-novo");
 
-controle.ondeSalvar = destino;
-const criado = await escolherECriar(janelaDeTeste, "python");
-await esperarAsAtrasadas();
-const chamadasDaCriacao = [...controle.chamadas];
+let criado: Awaited<ReturnType<typeof escolherECriar>>;
+//! Cópia TIRADA NA HORA, e não `controle.chamadas` lido depois: os testes de baixo mexem no
+//!   dublê (o de cancelar troca `ondeSalvar`), e ler no fim veria a soma de todos eles.
+let chamadasDaCriacao: string[];
+
+before(async () => {
+  controle.ondeSalvar = destino;
+  criado = await escolherECriar(janelaDeTeste, "python");
+  await esperarAsAtrasadas();
+  chamadasDaCriacao = [...controle.chamadas];
+});
 
 describe("escolherECriar — a pasta nasce pronta e já aberta", () => {
   test("perguntou ONDE com o diálogo de SALVAR, não o de abrir", () => {
