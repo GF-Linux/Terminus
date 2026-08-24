@@ -6,9 +6,10 @@
 //! 2. AS TRÊS ETAPAS que `confinado` orquestra, e a ordem entre elas é a regra:
 //!    peneirar o texto → desfazer o link → decidir sobre o caminho já real. Cada uma tem
 //!    teste próprio abaixo, porque cada uma sozinha é furada.
-//! 3. ⚠️ OS TESTES MARCADOS COM `A3` TRAVAM O DEFEITO, NÃO A INTENÇÃO (§12·3a·4). Eles
-//!    registram que `criar`/`renomear` hoje confiam na raiz que o CHAMADOR envia. Quando
-//!    a A3(a) entrar, é para eles virarem — e a virada é o resultado a declarar.
+//! 3. OS TESTES MARCADOS `A3` JÁ VIRARAM. Eles nasceram travando o defeito — `criar` e
+//!    `renomear` confiando na raiz que o CHAMADOR enviava — e foram reescritos quando a
+//!    cabeça mandou aplicar a A3(a), no mesmo dia. Ficam com a marca porque é por eles que
+//!    se vê, de um relance, o que exatamente passou a ser recusado.
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";

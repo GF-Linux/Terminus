@@ -1,6 +1,12 @@
 import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
+//! A pergunta "cai dentro?" ja existe no dominio, e a infra PODE importar dele (§1.3).
+//!   Escrevi uma copia local antes de conferir, e ela nascia com o MESMO nome de outra
+//!   funcao privada da mesma camada (`arquivos-do-projeto.ts:134`) e o contrario dela:
+//!   aquela estoura, esta devolvia booleano. Dois `dentroDe` opostos em `sistema/infra/`
+//!   e armadilha de leitura — e a terceira copia da mesma regra (§6·R4).
+import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";
 
 //? KITS EMBUTIDOS — Decisão sobre o que "vem junto" com o Terminus 17/08/2026
 //!
@@ -63,11 +69,6 @@ export interface ResumoDosKits {
 //!   2 de 4; LUGAR **ou** FORMA acerta 4 de 4. O plano original propunha só o lugar.
 //! `readlink` e NÃO `realpath`: é o caminho GRAVADO na ligação que interessa, e é o único
 //!   que ainda existe quando o destino sumiu. `realpath` estouraria justo na pendurada.
-function dentroDe(pasta: string, alvo: string): boolean {
-  const rel = path.relative(pasta, alvo);
-  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-}
-
 //! A FORMA de um caminho de kit: `…/kits/funcoes/…` ou `…/kits/editor/…`. É heurística, e
 //!   por isso vem DEPOIS da pergunta exata — mas é heurística estreita: exige o segmento
 //!   `kits` inteiro (uma pasta `meus-kits` não casa) seguido de uma das duas metades.
@@ -83,7 +84,7 @@ async function ehNossaLigacao(alvo: string, origem: string): Promise<boolean> {
     if (!st.isSymbolicLink()) return false;
     const gravado = await fs.readlink(alvo);
     const apontaPara = path.resolve(path.dirname(alvo), gravado);
-    return dentroDe(origem, apontaPara) || temFormaDeKit(apontaPara);
+    return dentroDaRaiz(apontaPara, [origem]) || temFormaDeKit(apontaPara);
   } catch {
     return false;
   }

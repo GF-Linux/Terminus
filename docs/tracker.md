@@ -21,6 +21,10 @@ descoberto**, e o valor **medido hoje** (2026-08-23, HEAD `ada7bfa`).
 npm run teste          #  →  node --test "tests/**/*.test.ts"
 ```
 
+> ⚠️ **O comando mudou em 24/08** — ganhou `--import ./tests/apoio/gancho-de-modulos.ts`, e o
+> número foi de 26 para 99. O bloco acima fica como está porque é registro **datado** de
+> 23/08; a declaração vigente, com os quatro obstáculos medidos, está em **§10.1**.
+
 | | |
 |---|---|
 | **medido hoje** | **0 testes.** `tests/` **não existe** no alvo, nem na linha de base (`~/projetos/terminus`, mesma HEAD). A corrida começa sem rede nenhuma. |
@@ -293,7 +297,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **A4** | `ehNossaLigacao` (`kits-embutidos.ts`) diz *"nossa"* para **qualquer** symlink, então um symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida — contra o item 5 do cabeçalho do arquivo e contra o `README:178-179` | **(b) aplicada em 24/08/2026, decidida pela cabeça** — a variante do executor, medida em **4 de 4**: é nossa se o alvo cai na origem atual **ou** se o caminho tem a forma `…/kits/{funcoes,editor}/…`. Ver §10.5 |
 | **A5** | capacidade viva sem uso: os canais `arquivo:ler` e `arquivo:gravar` expostos e registrados **sem nenhum chamador no renderer**, mais dois exports órfãos sem porquê (`shellEstaVivo`, `neovimRodando`) | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os dois canais **ficam e ficam REGISTRADOS** (comentário `//?` na porta + esta árvore); os dois `EstaVivo` **saíram** — órfãos sem porquê, sem plano e sem teste |
 | **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os DOIS canais **ficam e ficam REGISTRADOS** — marca `//?` na porta, árvore aqui. A contagem segue **37**, e é de propósito: 37 é a prova de conduta preservada da corrida 1, e não se gasta uma prova para arrumar capacidade dormente já documentada. Ver §10.6 |
-| **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
+| **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — APLICADA em 24/08/2026**, na corrida 3, depois que `servicos/` ganhou rede de teste, que era a condição escrita aqui. Ver §10.1 e o commit da A3(a) |
 
 ### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
 
@@ -329,7 +333,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **⚠️ o que fica DESCOBERTO** | a sonda que provou o conserto é de **uso único** e morreu com a sessão. **Nenhuma perna do portão guarda esta conduta**: P1 só cobre `dominio/`, e a P5 sobe o app mas não aperta o botão. Se alguém devolver `abrirNoKonsole` ao retorno síncrono amanhã, **o portão fica verde**. Uma rede permanente exigiria teste de motor, que este repositório não tem — a mesma lacuna que o A3(a) espera. **Declarado, não resolvido** |
 | **DESFECHO** | **(a) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A2) |
 
-### A4 · `ehNossaLigacao` aceita qualquer symlink — árvore de decisão (§12·3a) · **EM ABERTO**
+### A4 · `ehNossaLigacao` aceita qualquer symlink — árvore de decisão (§12·3a) · **RESOLVIDA em 24/08, variante (b)** — ver §10.5
 
 | parte | |
 |---|---|
@@ -356,7 +360,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **se ficar para depois** | igual — e o terceiro ato do §12·6, nascido em 24/08, faz o próximo fechamento listar isto de ofício |
 | **DESFECHO** | **(b) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A5). Fica **em aberto** para a cabeça: se o traceback clicável foi abandonado, (a) ganha força para `arquivo:ler` — o `gravar` fica, que é o confinado |
 
-### A6 · dois canais expostos sem chamador — árvore de decisão (§12·3a) · **EM ABERTO**
+### A6 · dois canais expostos sem chamador — árvore de decisão (§12·3a) · **RESOLVIDA em 24/08, os dois FICAM registrados** — ver §10.6
 
 > **De onde veio:** nenhum humano e nenhum auditor apontou estes dois. Eles saíram do **terceiro
 > ato do §12·6**, que nasceu em 24/08 justamente porque a varredura anterior era cega para o que

@@ -23,6 +23,13 @@
 > `npm run teste` **não** pega quebra de arquitetura; só `npm run portao` pega.
 > **Isto é desvio de planta aprovada, e a decisão de mantê-lo ou não é da cabeça.**
 >
+> ✅ **O que a corrida 3 (24/08) mudou nisto, e não é o que a planta pedia:** a rede nasceu,
+> mas por CAMADA — `tests/servicos/`, `tests/motores/`, `tests/infra/` — e não por
+> `arquitetura/`+`funcionais/`. Ela trava **conduta**: a ordem das chamadas, o confinamento,
+> as recusas, os quatro casos de ligação dos kits. **O desvio acima segue de pé**: arquitetura
+> continua sendo M1–M4 no portão, e conduta de tela continua sendo só a P5. `npm run teste`
+> ainda não pega quebra de arquitetura.
+>
 > ⚠️ **Uma correção de medida, feita depois da aprovação:** onde estava escrito `M1 = 7`, o certo
 > é **8**. O E2 diz *"quantos módulos de `sistema/` o registrador **importa**"*, e isso é
 > contagem de arquivo. O 7 era o alcance do CORPO de `registrarPonte`, que deixa de fora
@@ -132,7 +139,7 @@ Terminus/
 │   │   │   ├── abertura-de-projeto.ts  entrar na pasta: abre, aponta o Neovim, registra recente
 │   │   │   ├── criacao-de-projeto.ts   projeto novo: molda a pasta e entra nela
 │   │   │   ├── leitura-de-arquivo.ts   recusa o config.json e o não-texto, depois lê
-│   │   │   ├── escrita-confinada.ts    resolve, exige a guarda do domínio, e só então grava
+│   │   │   ├── escrita-confinada.ts    resolve + guarda do domínio nos 4: gravar/criar/renomear
 │   │   │   └── exclusao-de-caminho.ts  protege a pasta aberta e escolhe lixeira ou apagar
 │   │   │
 │   │   └── ponte/                      HANDLERS ipcMain — teto de 2 módulos de sistema/ cada
