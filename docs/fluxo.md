@@ -176,7 +176,7 @@ Terminus/
 │   │
 │   └── design/                         css, temas, papel de parede, fontes embutidas
 │
-├── tests/                              ESPELHA codigos/ (§6·R5) — 99 testes
+├── tests/                              ESPELHA codigos/ (§6·R5) — 102 testes
 │   ├── apoio/                          o andaime: nao e teste, e o que deixa testar
 │   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME temp
 │   │   ├── electron-duble.ts               as 6 portas do main + o registro de ORDEM
@@ -188,13 +188,13 @@ Terminus/
 │   │   ├── protecao-da-pasta-aberta.test.ts 6
 │   │   ├── escolha-da-pasta-inicial.test.ts 4
 │   │   └── fluxo-conhecido.test.ts          4
-│   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             61
+│   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             64
 │   │   ├── escrita-confinada.test.ts       21  as 3 etapas do confinado + A3(a)
 │   │   ├── leitura-de-arquivo.test.ts      10  as 2 recusas e a NAO-recusa proposital
 │   │   ├── abertura-de-projeto.test.ts      9  a ordem: ler a pasta antes de registrar
 │   │   ├── exclusao-de-caminho.test.ts      8  a unica operacao sem volta: os 2 ramos
 │   │   ├── criacao-de-projeto.test.ts       8  moldar antes de entrar
-│   │   └── escrita-em-pasta-por-atalho.test.ts 5  trava a A9 e o que a A3(a) alargou
+│   │   └── escrita-em-pasta-por-atalho.test.ts 8  A9 CONSERTADA: o atalho e a pasta real
 │   ├── motores/                        o que conduz processo vivo                    7
 │   │   └── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
 │   └── infra/                          I/O concreto que nao e motor                  5
@@ -245,6 +245,13 @@ porta/ponte-para-a-interface ── ipcRenderer.invoke("arquivo:gravar") ──�
 `path.resolve("-c")` cai dentro da raiz e passa); `raizesDeEscrita()` vazio quando não há pasta
 aberta — nesse caso **nada** é gravável, e é de propósito.
 
+**E quebrou de verdade neste ponto, até 24/08 (árvore A9):** os DOIS LADOS têm de resolver o
+link, não só um. `raizesDeEscrita()` devolvia a raiz por `path.resolve` (texto) enquanto o alvo
+vinha por `realpath` — e numa pasta aberta por **atalho** o que estava dentro era declarado
+fora, com a frase que a tela contradizia. O conserto não foi resolver duas vezes: a raiz passou
+a ser resolvida **uma vez, na entrada** (`entrarNaPasta`, F2), e `raizesDeEscrita()` devolve o
+que já é real. **Duas fontes da verdade eram a doença; a segunda resolução seria mais uma.**
+
 **Por que a divisão em dois:** hoje `confinado` mistura decisão e disco num só lugar, e por isso
 só é testável subindo o Electron. Depois, `dominio/guarda-de-caminho` decide sobre um caminho
 que já chegou resolvido, e roda em teste de unidade em milissegundos.
@@ -254,6 +261,9 @@ que já chegou resolvido, e roda em teste de unidade em milissegundos.
 ```
 interface ─▶ porta ─▶ ponte-projeto ─▶ servicos/abertura-de-projeto
                                             │
+                              infra/resolucao-de-caminho  ◀── a raiz é resolvida AQUI, na ENTRADA
+                              atalho → lugar real (A9, 24/08)
+                                            │
                     ┌───────────────────────┼──────────────────────────┐
                     ▼                       ▼                          ▼
     infra/arquivos-do-projeto   motores/controle-neovim-rpc   motores/configuracao-salva
@@ -262,6 +272,13 @@ interface ─▶ porta ─▶ ponte-projeto ─▶ servicos/abertura-de-projeto
 
 **A ordem é a regra, e ela é conduta a preservar:** a leitura vem primeiro de propósito — se a
 pasta não existe mais, o erro sobe e ela **não** é registrada de novo nos recentes.
+
+**A raiz é resolvida uma vez, e é este nó que a resolve** (A9, 24/08): tudo o que sai daqui —
+a guarda de escrita do F1, a proteção contra excluir a pasta aberta, os recentes, o `cd` do
+Neovim e a árvore que a tela desenha — passa a falar do **mesmo lugar**. O preço, autorizado:
+a tela mostra o nome **real**, não o do atalho. `resolverParaLeitura` e não `resolverReal`,
+porque a pasta que sumiu tem de estourar em `abrirProjeto`, **depois** da leitura — é a ordem
+acima, e o outro resolvedor a quebraria em silêncio.
 
 **Onde quebra:** socket do Neovim morto (o `cd` falha em silêncio, de propósito — abrir a pasta
 não pode depender do editor estar de pé).

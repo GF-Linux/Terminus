@@ -116,7 +116,7 @@ node ferramentas/portao.mjs --conduta
 
 | perna | comando | hoje | exigido para fechar fatia |
 |---|---|:---:|---|
-| P1 teste | `npm run teste` (com `--import` do gancho desde 24/08 — §10.1) | **99 testes** | verde, e a peça movida tem teste |
+| P1 teste | `npm run teste` (com `--import` do gancho desde 24/08 — §10.1) | **102 testes** | verde, e a peça movida tem teste |
 | P2 tipo | `npm run typecheck` | exit 0 | exit 0 |
 | P3 build | `npx electron-vite build` | exit 0 | exit 0 |
 | P4 alvo | `node ferramentas/portao.mjs --medidas` | M1=7 M2=2 M3=n/a M4=5/13 | ≤ o declarado da fatia (catraca) |
@@ -553,7 +553,7 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **se ficar para depois** | **fica mais BARATO depois**, e por um motivo concreto: com a rede de `motores/` de pé, (c) nasce com teste antes. Hoje seria conserto sem rede, no motor, que é o que a corrida veio evitar |
 | **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor. Nenhuma conduta mudou. Marca `//?` posta em `controle-neovim-rpc.ts`, e a rede de `escrita-confinada` **captura** a rejeição em vez de escondê-la (`tests/apoio/rejeicoes-nao-tratadas.ts`) |
 
-### 10.4 · A9 — pasta aberta por ATALHO recusa toda escrita — árvore de decisão (§12·3a) · **EM ABERTO**
+### 10.4 · A9 — pasta aberta por ATALHO recusava toda escrita — árvore de decisão (§12·3a) · **APLICADA 24/08/2026**
 
 > **De onde veio:** eu ia aplicar a A3(a) e fui conferir o que exatamente `gravar` faz, já que
 > a A3(a) manda `criar` fazer o mesmo. Achei que `gravar` faz uma coisa a menos do que promete.
@@ -564,11 +564,11 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **o defeito** | `abertura-de-projeto.ts:22` guarda `path.resolve(raizAberta)` — **sem realpath**. `confinado()` resolve o alvo **com** realpath (`resolucao-de-caminho.ts:20`). Quando a pasta é aberta por um **atalho**, os dois lados falam de lugares diferentes e `dentroDaRaiz` responde `false` para arquivo que está **dentro da pasta aberta** |
 | **a prova, medida em fixture isolada** | abri `…/atalho-para-o-projeto` (link para `…/projeto-real`) e gravei dentro: `raiz de escrita: ["…/atalho-para-o-projeto"]`, `caminho real: …/projeto-real`, **`RESULTADO: RECUSOU — "nota.txt" está fora da pasta aberta`**. Nada foi destruído para provar |
 | **o que custa deixar** | quem abre a pasta por atalho **não consegue salvar nada** — Ctrl+S recusa com a frase *"está fora da pasta aberta"* para o arquivo que está **exatamente** dentro dela. A mensagem não é só uma recusa errada: ela é **contraditória com o que a tela mostra**. E atalho para pasta de projeto é hábito comum em Linux — este repositório mesmo nasceu de uma máquina com onze symlinks em `~/.config/nvim` |
-| **⚠️ e A3(a) ALARGA ISTO** | hoje `criar`/`renomear` **funcionam** na pasta aberta por atalho, porque comparam TEXTO contra a raiz que o renderer manda — que é o próprio atalho, e portanto bate. Ao passarem a usar `confinado()`, herdam a mesma recusa. **É o resultado que o despacho mandou declarar em vez de esconder**, e ele está travado na rede: `tests/servicos/escrita-confinada.test.ts` tem teste marcado `A9` registrando a recusa nova, com a marca de que é o defeito e não a intenção |
+| **⚠️ e A3(a) ALARGA ISTO** | hoje `criar`/`renomear` **funcionam** na pasta aberta por atalho, porque comparam TEXTO contra a raiz que o renderer manda — que é o próprio atalho, e portanto bate. Ao passarem a usar `confinado()`, herdam a mesma recusa. **É o resultado que o despacho mandou declarar em vez de esconder**, e ele está travado na rede: `tests/servicos/escrita-em-pasta-por-atalho.test.ts` tem teste marcado `A9` registrando a recusa nova, com a marca de que é o defeito e não a intenção. ⚠️ **Esta linha dizia `escrita-confinada.test.ts`, e era falso** — medido `grep -c A9` = **0** naquele arquivo. A rede da A9 sempre morou em arquivo próprio (isolamento de `raizAberta` entre suítes). Corrigido pela varredura de 24/08 |
 | **as opções** | **(a) resolver a raiz na entrada** — `raizAberta = resolverReal(raiz)` em `entrarNaPasta`, ou `raizesDeEscrita()` devolvendo o real. Uma linha, e conserta `gravar` **e** o alargamento da A3(a) de uma vez. Custa: a pasta aberta passa a ser reportada pelo caminho real, e a tela mostra o nome real em vez do nome do atalho — **mudança visível**, e é por isso que é da cabeça. **(b) resolver dos dois lados na guarda**, deixando `raizAberta` como veio. Não muda o que a tela mostra; espalha o realpath por mais um lugar. **(c) deixar como está e REGISTRAR** — a recusa continua, agora em três canais em vez de um |
 | **minha recomendação** | **(a)**, e a razão é que ela é a única que faz a frase da tela voltar a ser verdadeira. **Não apliquei**: muda o que a interface exibe, é conduta, e não estava no despacho |
 | **se ficar para depois** | **fica mais CARO depois da A3(a)**, e isto é o único item desta corrida que encarece: hoje o silêncio existe em `gravar`; aplicada a A3(a), existe em `gravar`, `criar` e `renomear`. O conserto é o mesmo, mas o estrago corrente triplica |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a medição. Marca `//?` em `abertura-de-projeto.ts`, e a recusa nova travada na rede com o aviso ao lado |
+| **DESFECHO** | **APLICADA em 24/08/2026, decidida pela cabeça** — opção **(a)**, com o custo visível autorizado por escrito. Devolvida adiada mais cedo no mesmo dia; a cabeça priorizou por ser a única árvore que **encarece com o tempo**. Commit `f84a786`. A marca `//?` saiu de `abertura-de-projeto.ts` e virou `//!`, e o teste **virou do avesso** — ver §12 |
 
 ### 10.5 · A4(b) aplicada — e a rede que reproduz o número da árvore
 
@@ -711,10 +711,103 @@ não apontam para o vazio; a nota da planta ganhou uma linha dizendo o que a cor
 |---|---|---|
 | **A7** | "Fechar pasta" nunca chega ao main: a pasta fechada segue gravável, e a recusa de exclusão diz uma frase falsa. **NOVA** | a cabeça |
 | **A8** | o laço de reconexão do Neovim nunca faz a 2ª volta; sem socket, Ctrl+S/F12/plugins penduram em silêncio e o aviso escrito é inalcançável. **NOVA** | a cabeça |
-| **A9** | pasta aberta por atalho recusa toda escrita — e a A3(a) **alargou** isso de `gravar` para `criar`/`renomear`. **NOVA, e a única que encarece com o tempo** | a cabeça |
+| ~~**A9**~~ | pasta aberta por atalho recusava toda escrita. **FECHADA em 24/08/2026** — a cabeça decidiu pela opção (a) e ela foi aplicada na corrida 4 (§12). Era a única que encarecia com o tempo, e foi por isso que veio primeiro | **decidida** |
 | **A10** | o `nome` não passa por peneira: erro interno de JavaScript vira frase de interface. **NOVA** | a cabeça |
 | **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
 | **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
 | herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, prosa de laboratório | a cabeça |
 | do despacho 1 | o desvio de planta, o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
 | **o instrumento do 3º ato** | foi reconstruído do zero pela **segunda** corrida seguida, e reprovou **três** vezes antes de servir. Ele mora no scratchpad e morre com a sessão. Virar ferramenta do repo é escopo novo | a cabeça |
+
+---
+
+## 12. Corrida 4 — 24/08/2026: a A9 opção (a), e o teste que virou do avesso
+
+Despacho de uma árvore só. A cabeça decidiu a **A9 (a)** com prioridade, pela razão que o
+executor tinha dado ao devolvê-la: **é a única que encarece com o tempo**, e foi a corrida 3
+que a alargou de um canal para três. A7, A8 e A10 ficaram onde estavam.
+
+### 12.1 · O conserto, e por que nesta linha e não noutra
+
+`entrarNaPasta` resolve a pasta pedida **na entrada**, com `resolverParaLeitura`. `raizAberta`
+passa a guardar o lugar **real**, e com isso tudo o que vem depois — a guarda de escrita, a
+proteção contra excluir a pasta aberta, os recentes, o `cd` do Neovim e a árvore que a tela
+desenha — passa a falar do **mesmo lugar**. `raizesDeEscrita()` deixou de resolver: era ela e
+`confinado()` falando de lugares diferentes que **formavam** o defeito, e resolver nos dois
+lados seria manter as duas fontes da verdade que a doença tinha.
+
+**`resolverParaLeitura` e NÃO `resolverReal`, e a escolha foi medida.** Abrir pasta é leitura,
+e o irmão **estoura com mensagem própria** quando o destino não existe. Aqui a pasta que sumiu
+precisa estourar dentro de `abrirProjeto`, com a mensagem do sistema de arquivos e **depois**
+da leitura — é a ordem travada em `abertura-de-projeto.test.ts` (*"pasta que sumiu do disco
+ESTOURA e não é GRAVADA no config"*), e trocar o resolvedor a quebraria em silêncio.
+
+### 12.2 · O TESTE VIROU DO AVESSO — e é a prova de que o conserto pegou
+
+`tests/servicos/escrita-em-pasta-por-atalho.test.ts` travava o **defeito** com o aviso do
+§12·3a·4 ao lado. Agora afirma que **escrever funciona**, e o aviso saiu. Ele foi de **5 para
+8 testes**, e os três novos não são enfeite:
+
+| teste novo | por que existe |
+|---|---|
+| o preço que a cabeça autorizou | a tela dizer o nome real virou conduta **pretendida**; se alguém a desfizer, isto avisa |
+| arquivo de fora continua recusado | sem ele, *"gravar funciona"* passaria também num código que **parou de conferir** |
+| atalho dentro do projeto apontando para fora continua recusado | idem, para o caso que o realpath existe para pegar |
+
+> **Se aquele arquivo tivesse seguido verde sem mudar, o conserto não teria pegado.** Era o
+> combinado do despacho, e é o que separa consertar de dizer que consertou.
+
+### 12.3 · A TELA, medida antes e depois (fixture isolada, nada tocado no alvo vivo)
+
+Instrumento: o **mesmo andaime da suíte** (gancho de módulos + captura de rejeição), rodando
+`entrarNaPasta` de verdade sobre `…/atalho-para-o-projeto` → `…/projeto-real`, e compondo as
+frases com os literais exatos do renderer. Fora da árvore do alvo, de propósito.
+
+| onde, no código | ANTES | DEPOIS |
+|---|---|---|
+| `arvore-de-arquivos.ts:48` cabeçalho da lateral | `atalho-para-o-projeto` | `projeto-real` |
+| `arvore-de-arquivos.ts:377` nota ao abrir | `pasta aberta: …/atalho-para-o-projeto` | `pasta aberta: …/projeto-real` |
+| `casca-principal.ts:232` nota na partida | `pasta aberta: …/atalho-para-o-projeto` | `pasta aberta: …/projeto-real` |
+| `arvore-de-arquivos.ts:425` nota ao fechar | `pasta fechada: atalho-para-o-projeto (nada foi apagado)` | `pasta fechada: projeto-real (nada foi apagado)` |
+| `arvore-de-arquivos.ts:32` "Abertas antes" | `atalho-para-o-projeto` | `projeto-real` |
+| **Ctrl+S dentro da pasta que a tela mostra** | **`RECUSOU: "nota.txt" está fora da pasta aberta — o Terminus não mexe em arquivo de fora.`** | **`GRAVOU`** |
+
+**Nada pior do que a árvore descreveu.** A mudança é exatamente *"o nome real em vez do nome
+do atalho"*, mais a recusa virando escrita. A autorização cobria isto, então não houve o que
+devolver.
+
+**Um efeito de segunda ordem, medido e declarado:** `ehPastaProtegida` compara por texto, e
+com a raiz real a proteção passa a valer sobre a pasta **real**. O **atalho em si** deixa de
+ser protegido — mas ele também deixa de aparecer na árvore da tela (que agora é desenhada a
+partir do caminho real), e apagar um link não apaga a pasta. **Nenhuma perda de dado**, e a
+consistência melhorou: antes, tela e guarda discordavam; agora concordam.
+
+### 12.4 · Sabotagem NAS DUAS CORES — as duas com `tsc` exit 0
+
+A lição da corrida 3 é do próprio executor: **sabotagem que quebra a compilação é ruído**.
+As duas foram conferidas com `tsc` antes de acreditar no vermelho. E as duas revertem coisa
+real — a primeira reverte **o conserto**, não um vizinho.
+
+| # | o que foi revertido | medido | veredito |
+|---|---|---|---|
+| 1 | **o conserto**: `raiz = pedida`, sem resolver (import mantido em uso, `tsc` **0**) | **5 falhas** — exatamente as 5 do RED —, 97 passando, **nenhum outro arquivo caiu** | mordida no lugar, não apagão |
+| 2 | a guarda: `dentroDaRaiz` sempre aceitando (`tsc` **0**) | **16 falhas**, entre elas os **dois** testes de *"não afrouxou a guarda"* | o verde novo não é a guarda tendo parado de guardar |
+
+Restaurados os dois (o segundo **byte a byte**, `git diff` vazio): **102/102 verde**.
+
+### 12.5 · O portão
+
+Catraca **declarada antes de medir** (§12·4a) e confirmada: os quatro no alvo e **inalterados**,
+porque a A9(a) é conserto de conduta num serviço — não é registrador (M1 não a vê), o módulo que
+ela passou a importar só importa `node:` (M2 não ganha aresta), não toca `dominio/` (M3) nem a
+árvore de pastas (M4).
+
+| perna | resultado |
+|---|---|
+| P1 teste da peça | **ok — 102 passaram** (eram 99: −5 do arquivo virado, +8 do novo) |
+| P2 verificação de tipo | ok |
+| P3 build | ok |
+| P4 alvo da corrida | M1 **2** · M2 **0** · M3 **0** · M4 **13/13** — como previsto |
+| P5 conduta | ok — porta+renderer+ipc responderam |
+
+**PORTÃO VERDE 5/5.**

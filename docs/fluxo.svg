@@ -96,7 +96,7 @@
 <text x="340.4" y="750" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">26 · a regra pura, sem Electron, em milissegundos</text>
 <circle cx="239" cy="775" r="3.2" fill="#7fd6b5"/>
 <text x="250" y="780" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">servicos/</text>
-<text x="349.7" y="780" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">61 · o caso de uso: a ORDEM e a DECISÃO</text>
+<text x="349.7" y="780" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">64 · o caso de uso: a ORDEM e a DECISÃO</text>
 <circle cx="239" cy="805" r="3.2" fill="#7fd6b5"/>
 <text x="250" y="810" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">motores/</text>
 <text x="340.4" y="810" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">7 · a conduta da A2: sem konsole, RECUSA</text>
@@ -105,7 +105,7 @@
 <text x="321.8" y="840" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · os 4 casos de ligação da A4(b)</text>
 <circle cx="59" cy="775.0" r="3.2" fill="#7fd6b5"/>
 <text x="70" y="780.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">tests/</text>
-<text x="70" y="799.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">99 testes (§6·R5)</text>
+<text x="70" y="799.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">102 testes (§6·R5)</text>
 <circle cx="59" cy="895" r="3.2" fill="#7fd6b5"/>
 <text x="70" y="900" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">ferramentas/</text>
 <text x="212.48000000000002" y="900" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">portao.mjs (5 pernas + M1-M4) · gera-fluxo.py</text>
