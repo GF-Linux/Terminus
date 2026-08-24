@@ -45,7 +45,8 @@
 #!     negativo em `neovim:parar`, porque `this.parar()` existe quatro vezes no reprodutor de
 #!     papel de parede, em `codigos/design/`. O caminho do objeto e' obrigatorio.
 #!
-#? DUAS ARMADILHAS DE CORPUS, e sao as que a cabeca mandou tratar ao versionar 24/08/2026
+#? TRES ARMADILHAS DE CORPUS — as duas primeiras a cabeca mandou tratar ao versionar,
+#?   e a terceira foi defeito MEU, nascido nesta mesma fatia e pego medindo 24/08/2026
 #!
 #! C1. MENCAO NAO E' CHAMADOR. A primeira versao deste instrumento varria `.md` junto com
 #!     `.ts`, entao uma linha de prosa no tracker escondia qualquer orfao ja registrado — o
@@ -63,7 +64,14 @@
 #!     rodava de dentro, e `__file__` era a copia.
 #!     E ela nao fica so escrita — o corpo de prova a DERRUBA de proposito e exige que o orfao
 #!     suma, porque guarda que nao foi vista falhar e' enfeite (§12·2).
+#! C3. O QUE O `.gitignore` MANDA IGNORAR NAO E' DO PROJETO. A primeira versao deste arquivo,
+#!     escrita hoje, andava o disco com `rglob` e varria `CLAUDE-SECURITY-20260802-193112/` —
+#!     pasta ignorada, que so existe na maquina do autor. A coluna de prosa caiu de 6 para 5
+#!     arquivos ao consertar. O grave nao era esse: um dia alguem ignora uma pasta DENTRO de
+#!     `ferramentas/` ou `tests/`, e o lixo local passa a contar como chamador — a resposta do
+#!     instrumento mudaria com o que sobrou no disco de quem o roda. A guarda esta em `nomes()`.
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -143,6 +151,29 @@ class Arvore:
                 capture_output=True, text=True,
             ).stdout.split("\n")
             return [n for n in saida if n]
+        #! ⚠️ C3 — O QUE O `.gitignore` MANDA IGNORAR NÃO ENTRA, e isto foi defeito MEDIDO na
+        #!   primeira versão deste arquivo: um `rglob` puro varria
+        #!   `CLAUDE-SECURITY-20260802-193112/`, pasta que o `.gitignore` exclui e que só
+        #!   existe nesta máquina. O relatório passava a depender de lixo local — noutra
+        #!   máquina, ou num clone limpo, o mesmo commit daria outro número. Instrumento cuja
+        #!   resposta muda com o que sobrou no disco não é instrumento.
+        #! `--cached --others --exclude-standard` = rastreado + novo-ainda-não-adicionado,
+        #!   e SEM o ignorado. É "o que é do projeto", que é a pergunta certa: um módulo
+        #!   recém-criado e ainda não commitado precisa entrar; um relatório ignorado, não.
+        #! ⚠️ A RAIZ TEM DE SER A RAIZ DO REPOSITORIO, e nao basta o `git` responder: se alguem
+        #!   apontar `--raiz` para uma pasta QUALQUER dentro de outro repositorio, o `ls-files`
+        #!   responde com sucesso e devolve a lista do repositorio errado. Comparar o
+        #!   `--show-toplevel` com a raiz pedida e' o que separa "e' um repo" de "e' ESTE repo".
+        topo = subprocess.run(["git", "-C", str(self.raiz), "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True)
+        if topo.returncode == 0 and Path(topo.stdout.strip()).resolve() == self.raiz:
+            achou = subprocess.run(
+                ["git", "-C", str(self.raiz), "ls-files", "--cached", "--others", "--exclude-standard"],
+                capture_output=True, text=True,
+            )
+            return [n for n in achou.stdout.split("\n") if n and (self.raiz / n).is_file()]
+        #! Fora de um repositório (uma cópia extraída por `git archive`, por exemplo) não há
+        #!   `.gitignore` a respeitar e a varredura é o disco inteiro — declarado, não calado.
         fora = []
         for p in self.raiz.rglob("*"):
             if not p.is_file():
@@ -272,7 +303,7 @@ def varre(arvore, prosa_conta_como_codigo=False, excluir_a_si=True):
 #! 2. Entao elas nao ficam so no cabecalho: cada uma e' um caso desta arvore de mentira, com a
 #!    resposta escrita ao lado, e a varredura roda sobre ela ANTES de olhar o projeto. Se um
 #!    numero nao bate, o instrumento sai com 2 e NAO imprime relatorio nenhum.
-#! 3. As duas ultimas asserts sao SABOTAGENS: derrubam C1 e C2 de proposito e exigem que o
+#! 3. As tres ultimas asserts sao SABOTAGENS: derrubam C1, C2 e C3 de proposito e exigem que o
 #!    orfao desapareca. Guarda que ninguem viu falhar e' enfeite (§12·2) — e foi assim, com o
 #!    orfao sumindo, que as duas armadilhas de corpus se manifestaram em campo.
 PROVA = {
@@ -353,6 +384,18 @@ PROVA = {
         "#!   nomes de simbolo em literais de texto, e sem a exclusao eles contam como chamador.\n"
         "TEXTO = 'orfa'\n"
     ),
+    #! C3: o corpo de prova vira um repositório de mentira só para este caso. O arquivo abaixo
+    #!   é IGNORADO pelo `.gitignore` ao lado, cita `orfa` em CÓDIGO, e mora DENTRO de uma das
+    #!   pastas de chamadores. Se a varredura voltar a ler o disco cru em vez de perguntar ao
+    #!   `git`, ele conta como chamador e o órfão some.
+    #! ⚠️ A PRIMEIRA VERSÃO DESTE CASO NÃO MORDIA, e o erro é instrutivo: pus o ignorado em
+    #!   `relatorio-local/`, na raiz. Como o corpus de chamadores é restrito a `codigos/`,
+    #!   `tests/` e `ferramentas/`, ele nunca entraria — o caso passava com ou sem a guarda.
+    #!   O que o `CLAUDE-SECURITY-*` desta máquina realmente contaminava era só a coluna de
+    #!   PROSA, que é varrida no repositório inteiro. O risco grave é este aqui: ignorado
+    #!   DENTRO de pasta de chamador.
+    ".gitignore": "ferramentas/sobras-locais/\n",
+    "ferramentas/sobras-locais/relatorio.py": "SOBROU = 'orfa'\n",
 }
 ESPERADO = {"orfaos": ["orfa"], "so_em_teste": ["soUsadoEmTeste"], "so_em_casa": ["soEmCasa"],
             "sem_chamador": ["arquivo:gravar", "neovim:parar"], "nao_expostos": []}
@@ -365,6 +408,10 @@ def prove_se():
             alvo = Path(tmp) / nome
             alvo.parent.mkdir(parents=True, exist_ok=True)
             alvo.write_text(corpo, encoding="utf-8")
+        #! Repositório de mentira, só para o `.gitignore` do caso C3 ter quem o obedeça.
+        #!   `git init` basta — `--others --exclude-standard` funciona sem nenhum commit, e
+        #!   commitar exigiria identidade configurada na máquina de quem roda.
+        semGit = subprocess.run(["git", "-C", tmp, "init", "-q"], capture_output=True).returncode != 0
         #! A copia-de-mim precisa ser tratada como "eu" para o caso C2 ter sentido: no projeto
         #!   real quem se exclui e' `__file__`, aqui e' o arquivo que faz o papel dele.
         global EU
@@ -384,6 +431,16 @@ def prove_se():
             for rotulo, r2 in sabotagens:
                 if [x[0] for x in r2["orfaos"]] == ["orfa"]:
                     falhas.append(f"{rotulo} — e ele NAO sumiu: a guarda nao esta segurando nada")
+            #! C3 nao tem interruptor no `varre`: a guarda dele e' PERGUNTAR AO GIT em vez de
+            #!   ler o disco. Entao a sabotagem e' tirar o `.git` — o codigo cai no ramo de
+            #!   fallback, que e' literalmente o disco cru, e o ignorado volta a contar.
+            if semGit:
+                falhas.append("C3 — `git init` falhou no corpo de prova; o caso nao foi exercido")
+            else:
+                shutil.rmtree(Path(tmp) / ".git")
+                if [x[0] for x in varre(Arvore(tmp))["orfaos"]] == ["orfa"]:
+                    falhas.append("C3 — sem `git`, o arquivo IGNORADO tem de voltar a esconder "
+                                  "o orfao — e ele nao escondeu: a guarda nao esta segurando nada")
         finally:
             EU = guardado
     return falhas
@@ -430,7 +487,7 @@ def main(argv):
         for f in falhas:
             print(f"  - {f}", file=sys.stderr)
         return 2
-    print(f"corpo de prova: {len(ESPERADO)} colunas + 2 sabotagens — OK\n")
+    print(f"corpo de prova: {len(ESPERADO)} colunas + 3 sabotagens de corpus — OK\n")
     imprime(varre(Arvore(raiz, ref)), f"arvore {ref or 'DE HOJE'}")
     return 0
 
