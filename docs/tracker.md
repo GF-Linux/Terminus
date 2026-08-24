@@ -1200,4 +1200,95 @@ o que separa "fechou" de "parou de funcionar". Restaurado: 8/8.
 | **as opções** | **(a) automação de UI** (clicar o botão de verdade) — fecha o buraco inteiro e é infraestrutura nova, que o tracker §10.1 já recusou uma vez por custo. **(b) estender a perna P5** para chamar `window.terminus.fecharPasta()` por CDP e conferir o efeito — cobre porta+ponte+serviço de ponta a ponta, **mas não o botão**: a sabotagem que eu fiz continuaria passando. **(c) teste de registro de canal** — fazer o dublê do `electron` gravar os canais registrados e afirmar que `projeto:fechar` está lá; pega nome trocado e registro esquecido, não pega o renderer calado. **(d) deixar como está e REGISTRAR** |
 | **minha recomendação** | **(d) agora, (a) quando houver decisão de investir em automação de UI.** E a razão não é preguiça: **(b) e (c) custam rede nova e não pegam a sabotagem que eu acabei de fazer** — dariam a sensação de cobertura sem a cobertura. Buraco tapado pela metade é pior que buraco medido, porque some do radar. O que **não** pode acontecer é a A7 fechar sem este parágrafo existir |
 | **se ficar para depois** | **igual** — não apodrece. Mas cada conserto novo que termine no renderer cai no mesmo buraco, e o buraco já engoliu a A2 uma vez |
-| **DESFECHO** | **EM ABERTO** — devolvida à cabeça, com a medição |
+| ⚠️ **CORREÇÃO, medida no ato 3 desta mesma corrida** | **o buraco é MENOR do que eu escrevi acima.** O instrumento do terceiro ato **pega** esta sabotagem: removido o chamador, `projeto:fechar` aparece na coluna *"canal sem chamador na tela"* — e só ele. Então a A7 desfeita **seria vista no fechamento da corrida seguinte**. O que continua verdade é que **o portão não a pega**, e fechamento é ritual manual de fim de corrida, não trava de cada mudança |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça, com a medição e com a correção acima |
+
+---
+
+## 14. Fechamento da corrida 5 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+Dois números mudaram e foram procurados no repositório inteiro, não só na vizinhança:
+
+| o que mudou | onde foi varrido |
+|---|---|
+| **102 → 139 testes** | `README:75` · `docs/fluxo.md` (árvore de `tests/`, com as contagens por pasta refeitas **arquivo por arquivo**: dominio 26 · servicos 76 · motores 32 · infra 5) · `ferramentas/gera-fluxo.py` (a fonte do PNG, dois pontos) |
+| **37 → 38 canais** | `docs/fluxo.md` (a linha de `ponte-projeto.ts` na tabela do teto, a soma, a promessa do §4 e a do §6) · `codigos/sistema/ponte/registra-tudo.ts:13` · a legenda do PNG · o cabeçalho de `ponte-projeto.ts` |
+| **`inesperadas()` e `A8_SOCKET_NEOVIM` deixaram de existir** | 6 arquivos de teste, todos migrados para `assert.deepEqual(naoTratadas, [])` |
+| **a A8 deixou de vazar** | 5 comentários de `servicos/` justificavam a montagem no corpo do módulo *"pela A8"*. A medição sobre o `node --test` continua verdadeira; **a rejeição não existe mais**. Anotados, e a simplificação virou a árvore **A11** |
+
+⚠️ **TRÊS MENÇÕES AO 37 FORAM DELIBERADAMENTE NÃO ALTERADAS**, e a razão é que são registro
+histórico, não afirmação viva: `fluxo.md:10` (*"Base medida: HEAD `ada7bfa` … 37 canais"*),
+`fluxo.md:73` (a anatomia do monólito de 707 linhas) e `fluxo.md:360` (*"Conferido em campo,
+duas vezes"*, sobre as fatias 5 e 6 da corrida 1). Reescrevê-las falsificaria o registro.
+
+**O desenho foi refeito** — `fluxo.svg` + `fluxo.png`, **2843×1804**, e o md5 de duas gerações
+seguidas é idêntico, então a regeração é conferível por `diff` e não por confiança.
+
+#! ⚠️ E A RECEITA DO PNG, QUE ERA PENDÊNCIA DE DUAS CORRIDAS, NASCEU ERRADA. Ela agora mora no
+#!   cabeçalho de `ferramentas/gera-fluxo.py` — mas a primeira versão que escrevi mandava
+#!   `python3 ferramentas/gera-fluxo.py > docs/fluxo.svg`, e **isso corrompe o arquivo**: o
+#!   script ABRE `docs/fluxo.svg` e escreve nele, e depois IMPRIME um resumo na saída padrão.
+#!   O resumo caiu por cima dos primeiros **69 bytes** — a tag `<svg` sumiu, o `magick`
+#!   respondeu `unable to read image data`, e **o PNG antigo ficou no lugar com o mesmo md5**.
+#!   Só apareceu porque a receita foi **rodada** antes de ser commitada. Uma receita escrita e
+#!   não executada é exatamente o tipo de instrução fabricada que a lei manda recusar.
+
+### Ato 2 — vitrine conferida
+
+| o que o README afirma | como foi conferido | resultado |
+|---|---|---|
+| `npm run teste` → *"139 testes"* | **rodado** | 139, 0 falhas ✔ |
+| `npm run typecheck` → `tsc --noEmit` | **rodado** | exit 0 ✔ |
+| `npm run portao` → *"as cinco pernas e o veredito"* | **rodado** | VERDE 5/5 ✔ |
+| *"trava em cada um deles"* (M1–M4) | a catraca reprovaria fora do alvo | os quatro no alvo ✔ |
+| **Estado: v0.0.7** | contra as **três** fontes do §12 passo 6 | `package.json` **v0.0.7** ✔ · changelog **v0.0.7** ✔ · **tag mais nova: v0.0.6** ✖ |
+
+**A tag continua uma corrida atrás.** Não é afirmação falsa — as três fontes que **existem**
+concordam —, então segue **listada** e não vira árvore: marcar mexe no histórico do
+repositório, que é da lista negativa (§13.3a). Herdada da corrida 4.
+
+**`npm run dev` e `npm run start` NÃO foram rodados**, e está declarado como nas corridas
+anteriores: o portão já sobe o aplicativo de verdade na perna P5, e o `dev` deixou dois
+processos vivos num despacho anterior.
+
+### Ato 3 — varredura do que NINGUÉM moveu
+
+**(a) exportado e canal sem chamador.**
+
+| coluna | hoje | novos nesta corrida |
+|---|:---:|:---:|
+| símbolos exportados sem uso nenhum | **1** — `acharPython` (o **D4**, já registrado) | **0** |
+| canais registrados sem invocação na porta | **0** de 38 | **0** |
+| canais sem chamador **na tela** | **4** — `arquivo:ler` e `arquivo:gravar` (**A5**) e `neovim:parar` e `shell:pasta` (**A6**), os quatro **registrados** | **0** |
+
+⚠️ **As duas colunas de canal respondem perguntas DIFERENTES, e confundi-las produziria um
+número que contradiz as corridas 2 e 3 sem explicação.** *"Registrado no main mas nunca
+invocado pela porta"* dá **0**; *"a porta publica, mas a tela nunca chama"* dá **4**. Foi a
+segunda que as corridas anteriores contaram.
+
+**(b) restos de produto anterior.** `.gitignore`, `tsconfig.json` e `electron.vite.config.ts`
+conferidos linha a linha: **todo caminho citado existe**. Nenhuma pasta de ferramenta de outro
+produto (`.vscode`, `.idea`, `.vs`) — as duas gerações de fóssil saíram na corrida 2. Os
+herdados já listados seguem onde estavam, aguardando a cabeça.
+
+#### ⚠️ O instrumento do 3º ato reprovou QUATRO vezes hoje — e uma delas era falha já escrita no meu diário
+
+| # | o que ele respondeu errado | a causa |
+|---|---|---|
+| 1 | **17** símbolos órfãos, entre eles `$`, `fecharProjeto`, `prepararCampo` | `\b` não casa `$` (não é caractere de palavra), e o desconto da declaração deixava resto 1 |
+| 2 | `porta.janela sem uso`, `porta.shell sem uso` — 10 canais | o regex casava o **namespace** de fora (`shell: { … }`) em vez do método de dentro |
+| 3 | `porta.raiz sem uso`, `porta.nome sem uso` — 19 canais | sem âncora de início de linha, ele casava **parâmetro tipado** (`(raiz: string)`) como definição |
+| 4 | **3** canais sem chamador, escondendo `neovim:parar` | procurava `parar\s*\(` solto — e `this.parar()` existe **quatro vezes** no reprodutor de papel de parede, em `codigos/design/` |
+
+> ⚠️ **A quarta é a que dói: ela está escrita no meu próprio diário, do despacho 4, com o nome
+> do arquivo.** Eu a reproduzi mesmo assim. Ler o registro não substituiu **validar contra um
+> caso onde a resposta é conhecida** — e foi só isso que a pegou: a resposta conhecida era
+> **4**, das corridas 2 e 3, e o instrumento dizia 3.
+
+**Cada coluna foi validada onde a resposta é sabida, e isto agora tem regra:** os símbolos,
+contra a árvore de `ada7bfa`, onde eu sabia haver **quatro** órfãos — achou os quatro. As duas
+colunas de canal, contra uma **cópia** com um chamador conhecido removido — `projeto:fechar`
+apareceu, e só ele. **A árvore base não serve para a coluna de canal** (o reino `porta/` nasceu
+na corrida 1), então a validação dela tem de ser por cópia mutilada, não por commit antigo.
