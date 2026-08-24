@@ -332,3 +332,144 @@ síncrono amanhã, **o portão fica verde e ninguém sabe**.
 Construir a rede exigiria teste de motor — que este repositório não tem, e que é a mesma lacuna
 que trava a opção (a) do A3. Não a construí porque teste de motor é escopo novo e escopo novo é
 da cabeça; mas o §12·4a manda escrever o que fica descoberto, e isto fica.
+
+---
+
+## 2026-08-24 · Despacho 4 — a rede de `servicos/` e do motor, A3(a), A4(b), A6. E quatro defeitos novos.
+
+Cheguei com três decisões da cabeça e uma ordem explícita: **a rede primeiro**, porque ela é o
+que a A3(a) esperava e o que faltava à A2. A ordem estava certa — sem a rede, as duas mudanças
+de conduta desta corrida teriam sido feitas no escuro.
+
+**Caí no meio da medição inicial** (erro de conexão, não meu). O coordenador conferiu que nada
+havia sido escrito e retomei do zero. A partir daí passei a **commitar peça por peça**, e foi
+melhor: 13 commits em vez de um bloco.
+
+### O placar
+
+| medida | chegada | partida |
+|---|:---:|:---:|
+| testes | **99** | 26 |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | idênticos — esta corrida **não mexeu em arquitetura** |
+| canais de IPC | **37** | 37, de propósito (§10.6) |
+| símbolos exportados sem uso nenhum | **1** (`acharPython`, o D4) | 1 |
+| canais sem chamador | **4** — os quatro **registrados** (A5, A6) | 4, dois deles sem registro |
+| árvores devolvidas | **A7, A8, A9, A10** | — |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. Minha primeira sabotagem do motor foi INVÁLIDA, e o vermelho parecia bom.**
+Cortei o arquivo por índice e produzi um **`SyntaxError`**. A suíte foi de 33 para 27 testes e
+o arquivo inteiro ficou vermelho. Isso **parece** mordida e não é: sintaxe quebrada avermelha
+tudo e não prova nada sobre a rede. Refiz como mudança de **conduta** (retorno síncrono, o
+código de antes da A2) e aí sim: 33 testes, **1 falha**, exatamente a do konsole ausente, com
+`Missing expected rejection`. O ramo de sucesso seguiu verde — mordida no lugar, não apagão.
+> **A lição: sabotagem que quebra a compilação não é sabotagem, é ruído.** Conferir `tsc` depois
+> de sabotar é o que separa as duas.
+
+**2. Contei processos órfãos e obtive 3. Eram o meu próprio comando.**
+O texto do `echo` continha o padrão que eu procurava, então `ps` listava os shells que rodavam
+a minha própria medição. **Aconteceu duas vezes**, com dois padrões diferentes. É a família do
+`pkill -f` do §15.4, e a correção é a mesma: **manter o padrão fora da linha de comando** (gravar
+o `ps` num arquivo e procurar lá). Órfãos de verdade: **zero**, nas duas checagens.
+
+**3. Meu teste da ORDEM era um ENFEITE — e fui eu quem o escreveu, no mesmo commit em que
+travava a ordem.** Ele conferia `listarRecentes()` depois de tentar entrar numa pasta morta. Só
+que `pastasRecentes()` **já filtra** por `statSync(p).isDirectory()` — pasta morta some da lista
+por outro mecanismo, com ou sem a ordem certa. **Descobri invertendo `registrarPasta`/`abrirProjeto`
+e vendo a suíte seguir 71/71 VERDE.** O que a ordem muda de verdade é o **arquivo gravado**: com o
+registro antes da leitura, a pasta morta ocupa uma das 8 vagas de `MAX_RECENTES` e empurra pasta
+viva para fora. Reescrito para olhar o arquivo cru; com a sabotagem posta, 1 falha, a certa.
+> **Escrever o teste não protege de escrever um enfeite. Só a sabotagem protege.**
+
+**4. Meu primeiro RED da A3(a) era artefato de aridade, não de conduta.** Escrevi os testes já na
+assinatura nova (2 argumentos) contra o código de 3, e o vermelho saiu
+`TypeError: Cannot read properties of undefined (reading 'trim')`. Refiz na assinatura de HOJE e
+o vermelho virou `Missing expected rejection` nas quatro. Só então implementei.
+> E o TypeError me entregou a **A10** de brinde: aquela mensagem é o que chega na tela de quem usa.
+
+**5. `assert.rejects` REPASSA throw síncrono — e eu escrevi três asserções erradas por isso.**
+`gravarConfinado` declara `Promise<void>` e as guardas dela estouram **antes** de qualquer
+promessa nascer. Medido em cinco linhas. Não é defeito: o único chamador de produção é
+`respostaSegura`, cujo `try` pega os dois casos.
+
+**6. Duas correções minhas falharam antes de eu isolar o problema da rejeição não tratada.**
+Instalei tratador — não adiantou. Esperei 300 ms dentro do gancho — não adiantou (medi que a
+rejeição chega em **3 ms**, então não era relógio). Só parei de chutar quando **isolei com cinco
+arquivos de teste**:
+
+    promessa que nunca assenta, dentro de `before` ....... passou
+    rejeição não tratada dentro de `before` .............. REPROVOU
+    rejeição não tratada dentro de um `test` ............. REPROVOU
+    rejeição não tratada no CORPO DO MÓDULO ............. passou
+
+A montagem foi para o corpo do módulo. **Duas tentativas cegas, uma medição — e a medição
+resolveu em cinco minutos o que as tentativas não resolveriam nunca.**
+
+**7. Criei uma duplicata que o meu próprio fechamento pegou.** Escrevi um `dentroDe` local em
+`kits-embutidos.ts` — **mesmo nome** de outra função privada da mesma camada e **contrato
+oposto** (aquela estoura, a minha devolvia booleano). E a regra já existia no domínio, que a
+infra pode importar (§1.3). Removida. **O primeiro ato do §12·6 pegou um defeito meu, de uma
+hora antes** — que é exatamente para isso que ele existe.
+
+**8. O instrumento de órfãos reprovou TRÊS vezes, e a primeira falha é sobre esta casa.**
+A v1 tirava comentário de **bloco** antes do de **linha** — e o sigilo da casa (§3) é **`//*`,
+que contém `/*`**. O regex casou de dentro do `//*` até o primeiro `*/` e **comeu 1320 de 1551
+caracteres** de `ponte-projeto.ts`; símbolos com chamador na linha 18 viraram órfãos. Foram 21
+falsos positivos. A v2 procurava o canal pelo **nome do método** solto e deu falso **negativo**
+em `neovim:parar`, porque `.parar()` também existe no reprodutor de papel de parede. A v3 lia a
+porta linha a linha e achou 21 canais "não expostos" que estão expostos em várias linhas. A v4,
+posicional, foi validada contra a árvore de ontem e achou **exatamente os quatro** órfãos que eu
+sabia que havia.
+> **O padrão das três: instrumento estreitado.** É o mesmo modo de falha do §15.4, e ele não
+> some por a gente saber dele — some por **validar contra um caso onde a resposta é conhecida**.
+
+**9. Uma previsão minha errada, registrada:** previ que `node-pty` **não** carregaria em Node
+puro (ABI do Electron). Carrega. Se eu tivesse confiado na previsão, teria desenhado um andaime
+inteiro para um problema que não existe.
+
+### O que ACHEI, e nenhum estava em laudo nenhum
+
+Quatro árvores novas, todas herdadas, todas devolvidas com medição e marca `//?` no código:
+
+- **A7** — "Fechar pasta" é só do renderer: `raizAberta` tem **um** escritor e nada a devolve a
+  `null`. A pasta fechada segue gravável, e a recusa de exclusão diz *"é a pasta de trabalho
+  aberta"* — frase falsa. Apareceu quando perguntei se os testes podiam dividir um processo.
+- **A8** — o laço de 25 tentativas do Neovim **nunca faz a segunda volta**: `c.eval("1")` não
+  assenta sem socket, o `catch` nunca roda, e `conectando` é memoizado. Sem Neovim escutando,
+  Ctrl+S/F12/plugins penduram em silêncio **para sempre**, e o aviso escrito é inalcançável.
+  Gravidade **medida e menor do que parecia**: em node puro mata o processo; no Electron o app
+  seguiu de pé aos 14 s — e a sonda **provou que chegou no caso**, porque o `config.json` da casa
+  temporária voltou reescrito.
+- **A9** — pasta aberta por **atalho** recusa toda escrita, com a frase que contradiz a tela.
+  Achada ao conferir o que a A3(a) ia copiar. **É a A4 outra vez: medir antes de obedecer mudou
+  o que havia para decidir.** E é a única desta corrida que **encarece** — a A3(a) alargou o
+  silêncio de um canal para três.
+- **A10** — `validarNome` não confere que o nome é string; erro interno de JavaScript vira frase
+  de interface.
+
+### O que decidi, e é meu para decidir
+
+- **A trava de `HOME` mora no gancho, não na disciplina de cada teste.** A pasta de config nasce
+  de `os.homedir()` **no carregamento do módulo**, e em ESM o import estático roda antes da
+  primeira linha do corpo — redirecionar dentro do teste chegaria tarde e escreveria no
+  `~/.config/terminus` de quem roda. É o §8·S2 aplicado ao andaime.
+- **O portão passou a rodar a P1 pelo script do `package.json`.** Ele repetia o comando à mão e
+  ficou uma hora atrás do que a P1 declarava. Auditei a troca por sabotagem antes de confiar.
+- **A rede CAPTURA a rejeição da A8 em vez de escondê-la**, opt-in por arquivo, e a suíte é
+  obrigada a afirmar que nada **inesperado** vazou. Exigir a A8 em si seria falhar pelo ambiente
+  de quem roda — o socket é um caminho fixo e compartilhado.
+- **Não subo PTY nem shell de verdade em teste.** Declarado como descoberto no tracker §10.1.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A7, A8, A9, A10** — quatro árvores novas esperando a cabeça. A **A9 é a urgente**: é a única
+   que fica mais cara com o tempo, e foi esta corrida que a alargou.
+2. **O instrumento do 3º ato foi reconstruído do zero pela segunda corrida seguida**, e reprovou
+   três vezes antes de servir. Ele mora no scratchpad e morre com a sessão. Virar ferramenta do
+   repo é escopo novo — mas o custo de não fazê-lo já foi pago duas vezes.
+3. As pendências antigas seguem: A5, D4(b), os herdados listados, o desvio de planta, o nome do
+   arquivo do preload, e o "empacote" descoberto na P3.
+4. **O que a rede ainda NÃO cobre:** `iniciarShell`/`enviarAoShell`/`redimensionarShell` (PTY
+   vivo), o `dialog` de verdade, e clique de tela. Isso é da P5, e é por isso que ela não é
+   opcional.
