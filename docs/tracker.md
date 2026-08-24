@@ -1546,3 +1546,35 @@ Previsto **antes**, na catraca: só `tests/` muda, então M1–M4 ficam **2 · 0
 contagem de testes fica em **139** — a montagem trocou de lugar, nenhum `test()` nasceu ou
 morreu. Medido: **139 passaram**, `tsc` exit 0, build ok, M1–M4 nos quatro valores previstos,
 P5 ok. **PORTÃO VERDE 5/5.**
+
+---
+
+## 16. Fechamento da corrida 6 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+| o que mudou | onde foi varrido |
+|---|---|
+| **`ferramentas/varre-orfaos.py` nasceu** | `docs/fluxo.md` (o nó de `ferramentas/` na árvore) · **`ferramentas/gera-fluxo.py`** (o rótulo do nó, que é a **fonte** do PNG — mudar só o `.md` deixaria o desenho mentindo) · `README.md` |
+| **`npm run orfaos` nasceu** | `README.md`, ao lado dos outros três, **com a distinção escrita**: é no *fechamento*, não a cada mudança |
+| **5 suítes trocaram de forma** | a contagem **não muda** (139), e foi conferida: nenhum `test()` nasceu ou morreu |
+| **a tabela do `node --test` mudou de arquivo** | as 4 referências cruzadas *"ver `abertura-de-projeto.test.ts`, item 2"* foram reescritas nos 4 arquivos; nenhuma sobrou apontando para o parágrafo que saiu |
+
+**O desenho foi refeito** — `fluxo.svg` + `fluxo.png`, **2843×1804**, duas gerações com **md5
+idêntico**. E o recorte do nó novo foi **aberto e olhado**, não só gerado.
+
+### 16.1 · ⚠️ A13 — a SEGUNDA receita do PNG, e ela é a errada — árvore de decisão (§12·3a)
+
+> **De onde veio:** a varredura do ato 1. Procurando onde `ferramentas/` é citado, achei um
+> lugar onde o PNG é ensinado — e não é o `gera-fluxo.py`.
+
+| parte | |
+|---|---|
+| **o defeito** | `docs/fluxo.md:431`, sob o título **"Como refazer o `fluxo.png`"**, ensina `python3 ferramentas/gera-fluxo.py && magick -background none docs/fluxo.svg -strip docs/fluxo.png` — **sem `-density 150`**. É a receita antiga, de antes de a corrida 5 consolidá-la no cabeçalho de `gera-fluxo.py`. **Duas receitas no repositório, e a que está na PLANTA é a errada** |
+| **a prova, executada em cópia isolada** (`git archive HEAD`, nada tocado no vivo) | a receita do `fluxo.md` → **1820×1155, 248 242 B**. A do `gera-fluxo.py` → **2843×1804, 453 177 B**, com **md5 idêntico** ao PNG versionado. O `magick` não reclama em nenhum dos dois casos |
+| **o que custa deixar** | quem for refazer o desenho abre a **planta** — é o documento que o §11 chama de fonte da verdade — e encontra a receita errada primeiro. O PNG encolhe 1,5625× em cada lado (150/96), **com exit 0 e sem aviso**, e só quem abrir a imagem percebe. Já aconteceu uma vez, medido, em 24/08 |
+| ⚠️ **e o agravante** | a corrida 5 escreveu no diário que a receita *"agora mora no cabeçalho de `gera-fluxo.py`"*. Isso é verdade e está incompleto: **ela também continuou morando aqui, errada.** A consolidação não varreu o duplicado — é a *emenda sem varredura* do §15.4 acontecendo dentro do conserto que existia para acabar com ela |
+| **as opções** | **(a) apagar o bloco do `fluxo.md` e apontar para o cabeçalho de `gera-fluxo.py`** — uma fonte só, e é onde quem edita o gerador já está. Custa uma indireção a quem lê a planta. **(b) corrigir a receita no `fluxo.md`** (pôr o `-density 150`) — leitura direta, mas mantém **duas** cópias que vão divergir de novo: foi exatamente assim que este defeito nasceu. **(c) mover a receita inteira para o README**, na seção de comandos, e as duas outras apontarem para lá. **(d) deixar como está e REGISTRAR** |
+| **minha recomendação** | **(a).** O defeito não é a receita estar errada, é ela estar **duplicada** — corrigir a cópia (opção b) conserta o sintoma e deixa a doença, e a doença já cobrou uma vez. A planta é mapa de navegação (§11): apontar para onde a receita mora é o serviço dela. E a indireção é curta, porque o nó de `ferramentas/` na mesma planta já diz o que o `gera-fluxo.py` faz |
+| **se ficar para depois** | **fica mais caro devagar.** Cada corrida que refaz o desenho é uma chance de alguém abrir a planta primeiro. E o PNG errado passa pelo portão — nenhuma das cinco pernas olha para dimensão de imagem |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
