@@ -1,8 +1,8 @@
 {
-  "fatia": "fechamento — varredura e vitrine (§12 passo 6)",
+  "fatia": "corrida 3 — a rede de servicos/ e do motor, A3(a), A4(b), A6",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo. A catraca fica aqui: qualquer mudanca futura que piore um deles reprova."
+  "porque": "Os quatro no alvo e inalterados: a corrida 3 nao mexeu em arquitetura, mexeu em CONDUTA (A3a, A4b) e em rede de teste. Qualquer piora futura em M1-M4 reprova."
 }

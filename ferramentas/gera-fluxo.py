@@ -36,8 +36,12 @@ raizes = [
    no("interface/", "renderer · a casca, 16 arquivos", FG, [
       no("painel-lateral", "desfaz os 2 ciclos de import", NOVO)]),
    no("design/", "css, temas, papel de parede, fontes", FG)]),
- no("tests/", "26 testes (§6·R5)", NOVO, [
-   no("dominio/", "roda sem Electron, em milissegundos", NOVO)]),
+ no("tests/", "99 testes (§6·R5)", NOVO, [
+   no("apoio/",    "o andaime: duble do electron, gancho, casa temporária", NOVO),
+   no("dominio/",  "26 · a regra pura, sem Electron, em milissegundos", NOVO),
+   no("servicos/", "61 · o caso de uso: a ORDEM e a DECISÃO", NOVO),
+   no("motores/",  "7 · a conduta da A2: sem konsole, RECUSA", NOVO),
+   no("infra/",    "5 · os 4 casos de ligação da A4(b)", NOVO)]),
  no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py", NOVO),
  no("docs/", "fluxo.md (esta planta) · tracker.md · diario.md", NOVO),
  no("kits/", "dev-kits embutidos", FG),

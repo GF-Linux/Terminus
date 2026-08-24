@@ -112,7 +112,7 @@ node ferramentas/portao.mjs --conduta
 
 | perna | comando | hoje | exigido para fechar fatia |
 |---|---|:---:|---|
-| P1 teste | `npm run teste` | **0 testes** | verde, e a peça movida tem teste |
+| P1 teste | `npm run teste` (com `--import` do gancho desde 24/08 — §10.1) | **99 testes** | verde, e a peça movida tem teste |
 | P2 tipo | `npm run typecheck` | exit 0 | exit 0 |
 | P3 build | `npx electron-vite build` | exit 0 | exit 0 |
 | P4 alvo | `node ferramentas/portao.mjs --medidas` | M1=7 M2=2 M3=n/a M4=5/13 | ≤ o declarado da fatia (catraca) |
@@ -480,7 +480,7 @@ teste, porque perna declarada depois do resultado não é perna declarada.
 | o que muda | de | para |
 |---|---|---|
 | **comando da P1** | `node --test "tests/**/*.test.ts"` | `node --import ./tests/apoio/gancho-de-modulos.ts --test "tests/**/*.test.ts"` |
-| **nº de testes da P1** | **26** (só `dominio/`) | **26 + os novos** — o número final entra aqui medido, nunca estimado |
+| **nº de testes da P1** | **26** (só `dominio/`) | **99** — medido em 24/08: 26 `dominio/` + 61 `servicos/` + 7 `motores/` + 5 `infra/`. Contado arquivo a arquivo com `node --test`, não somado de cabeça |
 
 **Por que a P1 precisa de um gancho, e é medição, não preferência.** Medi os quatro obstáculos
 antes de escolher a forma:

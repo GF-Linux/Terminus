@@ -169,13 +169,29 @@ Terminus/
 │   │
 │   └── design/                         css, temas, papel de parede, fontes embutidas
 │
-├── tests/                              ESPELHA codigos/ (§6·R5) — 26 testes
-│   └── dominio/                        unidade: a regra pura, sem subir Electron
-│       ├── guarda-de-caminho.test.ts       6 testes
-│       ├── entrada-recusada.test.ts        6
-│       ├── protecao-da-pasta-aberta.test.ts 6
-│       ├── escolha-da-pasta-inicial.test.ts 4
-│       └── fluxo-conhecido.test.ts          4
+├── tests/                              ESPELHA codigos/ (§6·R5) — 99 testes
+│   ├── apoio/                          o andaime: nao e teste, e o que deixa testar
+│   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME temp
+│   │   ├── electron-duble.ts               as 6 portas do main + o registro de ORDEM
+│   │   ├── casa-de-teste.ts                fixtures em disco dentro da casa temporaria
+│   │   └── rejeicoes-nao-tratadas.ts       captura a rejeicao da A8 em vez de esconder
+│   ├── dominio/                        unidade: a regra pura, sem subir Electron   26
+│   │   ├── guarda-de-caminho.test.ts       6 testes
+│   │   ├── entrada-recusada.test.ts        6
+│   │   ├── protecao-da-pasta-aberta.test.ts 6
+│   │   ├── escolha-da-pasta-inicial.test.ts 4
+│   │   └── fluxo-conhecido.test.ts          4
+│   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             61
+│   │   ├── escrita-confinada.test.ts       21  as 3 etapas do confinado + A3(a)
+│   │   ├── leitura-de-arquivo.test.ts      10  as 2 recusas e a NAO-recusa proposital
+│   │   ├── abertura-de-projeto.test.ts      9  a ordem: ler a pasta antes de registrar
+│   │   ├── exclusao-de-caminho.test.ts      8  a unica operacao sem volta: os 2 ramos
+│   │   ├── criacao-de-projeto.test.ts       8  moldar antes de entrar
+│   │   └── escrita-em-pasta-por-atalho.test.ts 5  trava a A9 e o que a A3(a) alargou
+│   ├── motores/                        o que conduz processo vivo                    7
+│   │   └── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
+│   └── infra/                          I/O concreto que nao e motor                  5
+│       └── kits-embutidos.test.ts           5  os 4 casos de ligacao da A4(b)
 │
 ├── ferramentas/
 │   ├── portao.mjs                      roda as 5 pernas do portão e dá o veredito (§12·4)
