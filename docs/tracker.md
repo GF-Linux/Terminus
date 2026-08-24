@@ -1201,7 +1201,7 @@ o que separa "fechou" de "parou de funcionar". Restaurado: 8/8.
 | **minha recomendação** | **(d) agora, (a) quando houver decisão de investir em automação de UI.** E a razão não é preguiça: **(b) e (c) custam rede nova e não pegam a sabotagem que eu acabei de fazer** — dariam a sensação de cobertura sem a cobertura. Buraco tapado pela metade é pior que buraco medido, porque some do radar. O que **não** pode acontecer é a A7 fechar sem este parágrafo existir |
 | **se ficar para depois** | **igual** — não apodrece. Mas cada conserto novo que termine no renderer cai no mesmo buraco, e o buraco já engoliu a A2 uma vez |
 | ⚠️ **CORREÇÃO, medida no ato 3 desta mesma corrida** | **o buraco é MENOR do que eu escrevi acima.** O instrumento do terceiro ato **pega** esta sabotagem: removido o chamador, `projeto:fechar` aparece na coluna *"canal sem chamador na tela"* — e só ele. Então a A7 desfeita **seria vista no fechamento da corrida seguinte**. O que continua verdade é que **o portão não a pega**, e fechamento é ritual manual de fim de corrida, não trava de cada mudança |
-| **DESFECHO** | **EM ABERTO** — devolvida à cabeça, com a medição e com a correção acima |
+| **DESFECHO** | **DECIDIDA em 24/08 pela cabeça: nem (a) nem (d) — REGISTRAR *e* VERSIONAR o instrumento.** A cabeça repetiu a sabotagem por conta própria (removeu `api.fecharPasta()` do renderer: `tsc` exit 0, 139/139, PORTÃO VERDE) e depois foi conferir o controle compensatório que eu invoquei — *"o ato 3 pega"* — e mediu que **o instrumento não estava no repositório**. Aplicado na corrida 6, fatia 1 (§15.1) |
 
 ---
 
@@ -1315,3 +1315,161 @@ na corrida 1), então a validação dela tem de ser por cópia mutilada, não po
 | **a P1 ficou 6× mais lenta** | 1,07 s → **6,5 s**, e o preço é intrínseco: provar que o canal desiste depois de ~3 s custa ~3 s, duas vezes. Declarado antes em §13.1a, e os dois ciclos moram em arquivos diferentes para rodarem em paralelo |
 | **`neovim` sequestra o `console`** | medido hoje: `node_modules/neovim/lib/utils/logger.js:69` — *"Monkey-patch `console` so that it does not write to the RPC (stdio) channel"*. Qualquer `console.log` do processo principal, depois de o canal de controle carregar, **some**. Não foi tocado nesta corrida; fica escrito porque é o que matou uma sonda em silêncio no despacho anterior e custou uma bissecção inteira hoje |
 | **queda do socket no MEIO da sessão** | o conserto da A8 põe tratador permanente de `error` no socket, o que **melhora** o caso (antes não havia nenhum), mas uma queda abrupta ainda faz o iterador do pacote `neovim` rejeitar com `Premature close`, sem tratador. Fora do escopo da A8, que é o socket **ausente**. Medido, não consertado |
+
+---
+
+## 15. Corrida 6 — 24/08/2026: A12 (registrar **e versionar**) e A11
+
+A cabeça decidiu as duas árvores que a corrida 5 devolveu. Na A12 ela foi além do que eu
+recomendei — eu pedi **(d) registrar**, ela mandou **registrar E versionar** — e a razão é
+medição dela, não preferência.
+
+### 15.1 · A12 APLICADA — o instrumento do 3º ato entra no repositório
+
+#### O que a cabeça mediu, e é prova independente do buraco
+
+Ela repetiu a sabotagem que eu tinha feito, sem olhar a minha: removeu a chamada
+`api.fecharPasta()` do renderer e obteve **`tsc` exit 0, 139/139 verde, PORTÃO VERDE**.
+**Reproduzi a medição dela** numa cópia (`git archive HEAD`, nada tocado no alvo vivo), com a
+linha 432 de `arvore-de-arquivos.ts` trocada por um literal: `tsc` **exit 0**, suíte
+**139 pass / 0 fail**. Duas medições independentes, o mesmo resultado — o buraco é real e é do
+tamanho que a árvore diz.
+
+#### E o achado que muda o desfecho: o controle compensatório não existia
+
+A minha própria correção da árvore A12 dizia *"o ato 3 pega"*. Pega mesmo — mas o ato 3 é
+rodado por um instrumento que **não estava em commit nenhum**. Quatro corridas seguidas o
+reconstruíram do zero no scratchpad de quem o rodava.
+
+> **É o mesmo defeito da receita do PNG que a corrida 5 acabou de consertar**, com outra roupa:
+> um passo obrigatório do fechamento dependendo da memória de quem o executou da última vez.
+
+| onde ele mora agora | `ferramentas/varre-orfaos.py` · `npm run orfaos` |
+|---|---|
+| as outras duas formas | `python3 ferramentas/varre-orfaos.py --ref <commit>` (uma árvore antiga, por `git`) e `--raiz <caminho>` (outra cópia) |
+| **as três foram RODADAS antes de o cabeçalho que as promete ser commitado** | é a lição da receita do PNG, que nasceu errada na primeira linha por não ter sido executada |
+
+#### ⚠️ As duas armadilhas de corpus — que são MINHAS, e o preço de versionar sem tratá-las
+
+A cabeça foi específica: versionar sem tratar isto **reintroduz o defeito de forma permanente**,
+que é pior que tê-lo tido de passagem. As duas estão no cabeçalho do arquivo, como C1 e C2.
+
+| | o que era | como está tratada |
+|---|---|---|
+| **C1 — menção não é chamador** | a v1 varria `.md` junto com `.ts`, então uma linha de prosa no tracker escondia qualquer órfão **já registrado**: o documento que existe para anotar o órfão era o que o apagava do relatório | corpus de **código** (`.ts .mjs .js .cjs .py .html` em `codigos/ tests/ ferramentas/`) separado do de **prosa** (`.md`). A prosa virou **coluna própria**, e ela informa o contrário: órfão citado em doc é órfão **conhecido**. Hoje `acharPython` aparece com *"citado em doc: 11×"* |
+| **C2 — a própria ferramenta não é chamador** | a v1 foi copiada para dentro da árvore que varria e o comentário dela citava `lerDoTwinny` — função órfã capaz de ler uma `apiKey`. O medidor se apagou do próprio relatório | exclusão por caminho **absoluto** de `__file__`, que é exatamente o caso histórico (a cópia rodava de dentro, e `__file__` era a cópia) |
+
+⚠️ **E C2 não é teórica aqui, é a condição em que este arquivo vive:** ele mora **dentro** da
+árvore que varre, `.py` **está** no corpus de código (`gera-fluxo.py` está ao lado), e o corpo
+de prova dentro dele carrega **nomes de símbolo em literais de texto**. Sem a exclusão, esses
+literais contam como chamador.
+
+**Medido, e o número é honesto:** rodando hoje **com** e **sem** a exclusão, o resultado é o
+**mesmo** — 1 órfão nos dois casos. Nenhum nome do corpo de prova colide com um símbolo real
+**hoje**. Então a prova de que a exclusão segura alguma coisa **não está na árvore, está no
+corpo de prova**, onde ela é derrubada de propósito e o órfão tem de sumir.
+
+### 15.2 · Onde a lição foi morar — e por que não é o diário
+
+> A cabeça pediu que isto ficasse **em algum lugar do projeto, não só no diário**: o instrumento
+> reprovou **quatro vezes** num dia, e a quarta era uma falha **já escrita no meu próprio
+> diário**, com o nome do arquivo, que eu repeti. *"Diário que não é relido não é memória — é
+> arquivo morto."*
+
+O melhor lugar não é outro texto. É **um corpo de prova que roda**: as seis armadilhas viraram
+uma árvore de mentira dentro do próprio `varre-orfaos.py`, com a resposta escrita ao lado, e a
+varredura roda sobre ela **antes de olhar o projeto**. Se um número não bate, o instrumento sai
+com **exit 2 e não imprime relatório nenhum**.
+
+**Prosa depende de alguém reler. Isto cobra sozinho.**
+
+| # | a armadilha | o caso que a prende |
+|---|---|---|
+| **A1** | `\b` não casa `$` — todo símbolo chamado `$` saía como órfão | `export const $` usado por outro arquivo; se a fronteira voltar a ser `\b`, `$` reaparece na coluna de órfãos |
+| **A2** | o **namespace** casava no lugar do método (10 canais falsamente órfãos) | `shell: { pasta: … }` chamado como `api.shell.pasta()` |
+| **A3** | **parâmetro tipado** parecia definição (19 canais com o nome errado) | `ler: (arquivo: string) …` **com chamador** `api.ler(…)`: sem a âncora de início de linha o instrumento cobra `api.arquivo(…)`, não acha, e declara órfão um canal que tem chamador |
+| **A4** | nome de método é genérico (`neovim:parar` escondido por `this.parar()`) | uma classe com `this.parar()` na mesma árvore, e o canal exposto como `neovim.parar()` |
+| **ORD** | tirar bloco de comentário **antes** da linha: o sigilo da casa `//*` contém `/*`, e o regex come do cabeçalho até o primeiro `*/` (1320 de 1551 caracteres, medido) | o arquivo do órfão abre com `//*` e **fecha** com um bloco de verdade: invertida a ordem, os quatro `export` somem e a coluna de órfãos fica vazia |
+| **C1/C2** | as duas de corpus, acima | são **sabotagens embutidas**: o corpo de prova derruba cada guarda de propósito e **exige que o órfão desapareça**. Se não desaparecer, a guarda não está segurando nada |
+
+#### As sabotagens do próprio instrumento — 7 de 7 mordidas
+
+Guarda que ninguém viu falhar é enfeite (§12·2), e isso vale para o corpo de prova também.
+Sete cópias do instrumento, cada uma com **uma** armadilha reintroduzida:
+
+| sabotagem | o corpo de prova respondeu |
+|---|---|
+| A1 → fronteira `\b` | `orfaos: esperado ['orfa'], obtido ['$', 'orfa']` |
+| A2 → o grupo deixa de ser procurado | `sem_chamador: … obtido [… 'shell:pasta']` |
+| A3 → a propriedade perde a âncora | `sem_chamador: … obtido [… 'arquivo:ler' …]` |
+| A4 → o caminho do objeto some | `sem_chamador: esperado 2, obtido ['arquivo:gravar']` |
+| ORD → bloco antes da linha | `orfaos: esperado ['orfa'], obtido []` |
+| C2 → a sabotagem interna vira no-op | *"e ele NÃO sumiu: a guarda não está segurando nada"* |
+| C1 → a sabotagem interna vira no-op | *"e ele NÃO sumiu: a guarda não está segurando nada"* |
+
+**7 de 7, exit 2, sem relatório impresso.** As duas últimas provam que as sabotagens embutidas
+não são decorativas — desligadas, o corpo de prova reprova.
+
+### 15.3 · Validação contra resposta conhecida — a árvore e o número
+
+A lição do despacho 5 continua valendo, e ela é o que pegou a quarta reprovação: **ler o
+registro não impediu a repetição; validar contra resposta conhecida, sim.**
+
+| coluna | árvore usada | resposta conhecida | o que o instrumento versionado deu |
+|---|---|---|---|
+| **símbolos** | `ada7bfa` — a base de 30 arquivos, antes da corrida 1 | **4** órfãos, contados nas corridas 2 e 3 | **4**, e são os quatro: `acharPython`, **`lerDoTwinny`**, `neovimRodando`, `shellEstaVivo` |
+| **canais** | cópia de `HEAD` (`git archive`, nada tocado no vivo) com o único chamador de `api.fecharPasta()` removido | os **4** conhecidos **+ `projeto:fechar`**, e só ele | **5**: `arquivo:ler`, `arquivo:gravar`, `neovim:parar`, `shell:pasta`, **`projeto:fechar`** |
+
+⚠️ **A árvore base NÃO serve para a coluna de canal** — `codigos/porta/` nasceu na corrida 1 —,
+e é por isso que a segunda validação é por cópia mutilada. A regra, escrita na corrida 5, é que
+*"rodei onde sei a resposta" não basta: é preciso saber **qual pergunta** aquela árvore responde.*
+
+> **E repare no que a primeira validação devolveu:** o instrumento encontra `lerDoTwinny` — o
+> símbolo cuja **desaparição** criou a armadilha C2. A resposta conhecida e a armadilha são o
+> mesmo caso.
+
+### 15.4 · ⚠️ O relatório do 3º ato mudou de FORMA — declarado, e a previsão que errei
+
+O corpus de chamadores era só `codigos/`. Um símbolo que **só o teste usa** aparecia como
+*"usado só dentro do próprio arquivo"*, misturado com export largo demais. São coisas
+diferentes, e agora são colunas diferentes.
+
+| | previsão, escrita **antes** de medir | medido |
+|---|---|---|
+| símbolos sem chamador em lugar nenhum | 1 (`acharPython` continua órfão) | **1** ✔ |
+| saem de *"só em casa"* por terem chamador em `tests/` | **2** — `confinado` e `PACIENCIA_MS` | **3** ✘ — os dois **e `shellEstaOcioso`** |
+| *"usados só dentro do próprio arquivo"* | 18 → 16 | 18 → **15** ✘ |
+| canais sem chamador na tela | 4, sem mudança | **4** ✔ |
+
+**Errei por contagem, não por regra.** Eu mesmo escrevi *"são de camadas que a suíte cobre"* e
+`motor-do-shell-pty` é dessas camadas — nomeei dois e a minha própria razão dava três. Fica
+escrito porque previsão existe para ser conferida, não para acertar.
+
+**E um número subiu sem eu ter previsto: 171 → 175 exportados.** Fui medir em vez de aceitar, e
+o motivo é que o regex antigo **não enxergava `export let`**: `doca`, `painelLateral`,
+`lateralAberta` (conferidos com `grep`, os três existem) e o `$` de `base-da-tela.ts:19`.
+Nenhum símbolo foi **perdido** na troca — o conjunto novo contém o antigo inteiro. Ou seja: o
+instrumento antigo tinha um **quinto** ponto cego, e ele só apareceu ao versionar.
+
+### 15.5 · O portão da fatia A12
+
+Previsto **antes** de rodar, e escrito na catraca: nada em `codigos/` muda, então M1–M4 ficam
+**2 · 0 · 0 · 13/13**.
+
+| perna | resultado |
+|---|---|
+| P1 teste da peça | **139 passaram**, 0 falhas |
+| P2 verificação de tipo | `tsc --noEmit` exit 0 |
+| P3 build | ok |
+| P4 alvo da corrida | M1 **2** ≤ 2 · M2 **0** ≤ 0 · M3 **0** ≤ 0 · M4 **13/13** ≥ 13 |
+| P5 conduta | porta + renderer + ipc responderam |
+
+**PORTÃO VERDE 5/5**, idêntico à previsão.
+
+⚠️ **E ele continua NÃO sendo perna de portão, por decisão escrita no cabeçalho do próprio
+arquivo.** A recusa é a mesma que eu já tinha medido e a cabeça manteve: **órfão transitório
+entre fatias é estado legítimo** — uma peça extraída antes de o chamador ser religado fica órfã
+por um commit, e travar nisso daria vermelho falso justamente no meio da refatoração. O lugar
+dele é o **fechamento** (§12 passo 6), onde a pergunta é *"o que ficou parado"*, não *"esta
+fatia quebrou algo"*. Consequência no código de saída: **achar órfão sai 0**; o único exit
+diferente de zero é **2**, quando o corpo de prova reprova.
