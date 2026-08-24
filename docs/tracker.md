@@ -876,3 +876,76 @@ dizem `codigos/porta/`.
 | do despacho 1 | o desvio de planta, o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
 | **o instrumento do 3º ato** | agora foi **reaproveitado** em vez de reconstruído — e a revalidação mostrou que a coluna de canais **não pode** ser validada contra a árvore base. Ele segue no scratchpad e morre com a sessão | a cabeça |
 | **a receita do PNG** | `magick -background none -density 150 docs/fluxo.svg -strip docs/fluxo.png` **não está escrita em lugar nenhum do repo**. Hoje isso custou um PNG na resolução errada, pego só por eu abrir a imagem | a cabeça |
+
+---
+
+## 13. Corrida 5 — 24/08/2026: A8(c), A10(c) e A7(a) — as três decisões da cabeça
+
+A ordem é da cabeça e tem razão escrita: **A8 primeiro**, porque é a única das três que trava o
+produto de verdade *e* atrapalha **quem tenta medir o produto** — foi ela que avermelhou a suíte
+de `escrita-confinada` na corrida 3 e que matou uma sonda em silêncio na corrida 4. Consertá-la
+barateia toda corrida futura. **A10 depois**, a última entrada de IPC sem peneira. **A7 por
+último**, decidida em separado no meio do despacho.
+
+Dentro da A8 a ordem é **test-first e é minha**, por indicação do despacho: a rede do
+`controle-neovim-rpc` nasce **antes** do conserto, travando a **conduta de hoje — inclusive a
+pendura**. Depois o conserto, e o diff dos testes é o que mostra o que mudou. É o mesmo desenho
+que virou o teste do avesso na corrida 4.
+
+### 13.1 · ⚠️ MUDANÇAS DECLARADAS ANTES (§12·4a)
+
+Três coisas mudam de número ou de forma **antes** da primeira linha de teste. Estão aqui antes
+de serem verdade, porque perna declarada depois do resultado não é perna declarada.
+
+**a) A perna P1 fica MAIS LENTA, e o preço é intrínseco.**
+
+| | de | para (previsto) |
+|---|---|---|
+| **duração da P1** | **1,07 s** (medido hoje, `time npm run teste`) | **~7 s** |
+| **nº de testes** | **102** | **~115** |
+
+**Por que ~6 s a mais, e por que não dá para baratear honestamente.** A conduta que a A8
+conserta é *"o canal espera ~3 s pelo socket e então diz a frase"*. Um teste que prove que a
+frase **aparece** tem de deixar o orçamento acabar — e o orçamento é de 3 s por decisão do autor
+(`controle-neovim-rpc.ts:28`, *"Tenta por ~3 s"*). Encurtá-lo em teste exigiria um botão de
+teste dentro do código de produção, que é o anti-padrão que a `test-driven-development`
+nomeia. **Então o teste paga os 3 s de verdade, duas vezes:** uma para provar que as quatro
+funções que carregam a frase a exibem, outra para provar que a chamada seguinte **tenta de
+novo** em vez de devolver a promessa morta (que é a metade memoizada do defeito).
+Mitigação medida: `node --test` dá **um processo por arquivo** e roda os arquivos em paralelo,
+então os dois ciclos de 3 s moram em arquivos diferentes e se sobrepõem.
+
+**b) `TMPDIR` passa a ser redirecionado pelo gancho, junto do `HOME`.**
+`SOCKET_NEOVIM` (`motor-neovim-pty.ts:18`) é `path.join(tmpdir(), "terminus-nvim.sock")` — um
+caminho **fixo e compartilhado**. Sem redirecionar, a suíte se comporta de um jeito na máquina
+com o Terminus aberto (o socket existe, `attach` conecta) e de outro sem ele. Isso é exatamente
+a ressalva que `tests/apoio/rejeicoes-nao-tratadas.ts:11-15` escreveu e teve de aceitar.
+Com o redirecionamento o socket é **garantidamente ausente**, e a ressalva pode sair no fim
+desta corrida. Medido antes de escolher: `os.tmpdir()` honra `TMPDIR` (`node -e` com e sem), e
+`SOCKET_NEOVIM` é o **único** consumidor de `tmpdir()` em `codigos/`.
+
+**c) `@msgpack/msgpack@2.8.0` entra em `devDependencies`.**
+O Neovim falso da rede (§13.3) fala msgpack-RPC de verdade. O pacote **já estava em disco** como
+dependência transitiva de `neovim`, e usá-lo assim seria dependência-fantasma. Instalado
+`--offline --save-exact`: `npm` respondeu *"up to date in 249ms"* e o diff foi de **uma linha em
+cada arquivo** (`package.json` e `package-lock.json`) — nenhum pacote baixado, `node_modules`
+intocado.
+
+**d) A catraca — previsão escrita ANTES de medir.**
+
+| | M1 | M2 | M3 | M4 |
+|---|:---:|:---:|:---:|:---:|
+| **declarado** | **2** | **0** | **0** | **13/13** |
+
+**Por quê, tese por tese:** a A8 mexe num **motor** (não é registrador → M1 não a vê) e o import
+novo é `node:net` (externo → M2 não ganha aresta). A A10 troca **tipos** na porta, na ponte e na
+infra — `unknown` não cria import. A A7 acrescenta **um canal** a um registrador que **já
+importa** `servicos/` — nenhum módulo novo de `sistema/`, então M1 não sobe. Nenhuma das três
+toca `dominio/` (M3) nem a árvore de pastas (M4). **Se algum deles mudar, a previsão estava
+errada e o portão reprova — que é o ponto.**
+
+**e) A contagem de canais de IPC muda de FORMA, e a mudança é da cabeça.**
+As corridas 1–4 provaram conduta preservada com *"**37**, idênticos por `diff`"*. A A7(a) cria
+`projeto:fechar` **de propósito**. A asserção passa a ser: **os 37 da linha de base, idênticos
+por `diff`, mais 1 novo declarado — total 38.** Um número re-declarado com a causa ao lado vale
+mais que um número preservado em cima de um defeito.
