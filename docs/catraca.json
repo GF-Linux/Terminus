@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 4 — A9 opcao (a): a raiz resolvida NA ENTRADA",
+  "fatia": "corrida 5 fatia 1 — a rede do canal de controle do Neovim (antes do conserto A8)",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo e INALTERADOS, e isto e previsao escrita ANTES de medir (§12·4a). A A9(a) e uma linha em `servicos/abertura-de-projeto`, que nao e registrador (M1 nao ve), importa `infra/resolucao-de-caminho`, que so importa node: (M2 nao ganha aresta), nao toca `dominio/` (M3) nem a arvore de pastas (M4). Se algum deles mudar, a previsao estava errada e o portao reprova — que e o ponto."
+  "porque": "Os quatro no alvo e INALTERADOS, e isto e previsao escrita ANTES de medir (§12·4a, e ja declarada no tracker §13.1d). Esta fatia so ACRESCENTA arquivos em tests/ e um andaime em tests/apoio/ — nada em codigos/. As quatro metricas leem codigos/: M1 conta modulos de sistema/ que um registrador importa, M2 ciclos de import em codigos/, M3 pureza de dominio/, M4 os 13 nos da arvore §1.3. Se algum mudar, a previsao estava errada e o portao reprova — que e o ponto."
 }

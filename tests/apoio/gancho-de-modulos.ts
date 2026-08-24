@@ -9,13 +9,20 @@
 //!    imprime `ExperimentalWarning` — a P1 exige saída limpa.
 //! 3. `registerHooks` é síncrono e no mesmo thread (Node ≥ 22.15), então não há worker
 //!    nem canal a sincronizar: o gancho vale a partir do próximo import.
-//! 4. ⚠️ O `HOME` É REDIRECIDO AQUI, E NÃO DENTRO DE CADA TESTE, e a razão é de segurança:
+//! 4. ⚠️ O `HOME` E O `TMPDIR` SÃO REDIRECIDOS AQUI, E NÃO DENTRO DE CADA TESTE, e a razão é de segurança:
 //!    `configuracao-salva.ts:15` calcula a pasta de config a partir de `os.homedir()` NO
 //!    CARREGAMENTO DO MÓDULO — e em ESM todo `import` estático roda ANTES da primeira
 //!    linha do corpo do arquivo. Um teste que redirecionasse `HOME` no próprio corpo
 //!    chegaria tarde e escreveria no `~/.config/terminus/` de quem roda a suíte.
 //!    É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo pedido, porque
 //!    "a sétima rota é a que alguém esquece".
+//! 5. ⚠️ O `TMPDIR` ENTROU EM 24/08 PELO MESMO MOTIVO, e ele resolve uma dependência de
+//!    AMBIENTE que a suíte carregava: `SOCKET_NEOVIM` (`motor-neovim-pty.ts:18`) é
+//!    `path.join(tmpdir(), "terminus-nvim.sock")` — caminho FIXO e COMPARTILHADO. Numa
+//!    máquina com o Terminus aberto o socket EXISTE e o `attach` conecta; sem ele, não.
+//!    A suíte se comportava de dois jeitos, e `rejeicoes-nao-tratadas.ts` teve de afrouxar
+//!    a asserção por causa disso. Redirecionado, o socket é garantidamente ausente — e o
+//!    teste que quiser um Neovim vivo sobe o SEU, dentro da própria casa.
 
 import { registerHooks } from "node:module";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
@@ -27,6 +34,9 @@ import { fileURLToPath } from "node:url";
 //!   então cada arquivo nasce com casa limpa e não herda resto do vizinho.
 const CASA = mkdtempSync(path.join(tmpdir(), "terminus-teste-"));
 process.env["HOME"] = CASA;
+//! Depois do `mkdtempSync`, nunca antes: a casa nasce do `tmpdir()` REAL e só então passa a
+//!   ser ela mesma o `tmpdir()`. Invertido, o `mkdtemp` procuraria uma pasta que não existe.
+process.env["TMPDIR"] = CASA;
 
 //! Só remove o que ele mesmo criou, nesta execução, dentro de `/tmp` (§13.3b). O
 //!   `mkdtempSync` garante nome novo e exclusivo — não há caminho pelo qual isto
