@@ -10,10 +10,11 @@
 //! 3. A raiz do renderer deixou de ser usada. Os três serviços agora derivam a raiz de
 //!    `raizesDeEscrita()`, que é do lado do main. A ponte continua RECEBENDO a raiz pelo
 //!    IPC (a interface não mudou) e a IGNORA — está escrito lá, no parâmetro.
-//! 4. ⚠️ O QUE ISTO ALARGA, e está declarado em vez de escondido: a pasta aberta por
-//!    ATALHO já recusava `gravar` (árvore **A9**) e passa a recusar `criar`/`renomear`
-//!    também. É a mesma limitação, agora nos quatro caminhos — o preço de uniformizar
-//!    antes de consertar a A9.
+//! 4. O ALARGAMENTO QUE ISTO CUSTOU FOI PAGO NO MESMO DIA. Uniformizar levou a recusa da
+//!    pasta aberta por ATALHO de `gravar` para os quatro caminhos (árvore **A9**) — e a
+//!    cabeça consertou a A9 na entrada, em `entrarNaPasta`: a raiz aberta passou a ser o
+//!    lugar REAL, os dois lados da guarda voltaram a falar do mesmo lugar, e os quatro
+//!    caminhos escrevem. A rede está em `tests/servicos/escrita-em-pasta-por-atalho.test.ts`.
 
 import * as path from "node:path";
 import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";

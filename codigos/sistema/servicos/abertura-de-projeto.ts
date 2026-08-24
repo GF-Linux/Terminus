@@ -2,11 +2,11 @@
 
 import type { BrowserWindow } from "electron";
 import { app } from "electron";
-import * as path from "node:path";
 import type { ProjetoAberto } from "../../compartilhado/tipos.js";
 import { pastaInicial } from "../../dominio/escolha-da-pasta-inicial.js";
 import { pastaPedidaNaLinha } from "../infra/argumentos-da-partida.js";
 import { abrirProjeto } from "../infra/arquivos-do-projeto.js";
+import { resolverParaLeitura } from "../infra/resolucao-de-caminho.js";
 import { escolherPasta } from "../janela/dialogos-do-sistema.js";
 import { RAIZ_APP } from "../janela/janela-principal.js";
 import { cdNeovim } from "../motores/controle-neovim-rpc.js";
@@ -24,15 +24,16 @@ import { esquecerPasta, pastasRecentes, registrarPasta, ultimaPasta } from "../m
 let raizAberta: string | null = null;
 
 //* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
-//? ⚠️ `path.resolve` E NÃO `realpath` — achado e medido em 24/08, árvore **A9** no tracker.
-//?   `confinado()` resolve o ALVO com realpath; esta raiz vem sem. Numa pasta aberta por
-//?   ATALHO os dois lados falam de lugares diferentes, e toda escrita dentro dela é recusada
-//?   com "está fora da pasta aberta" — frase que contradiz o que a tela mostra. Medido em
-//?   fixture: abrir `…/atalho` (link para `…/real`) e gravar dentro → RECUSOU.
-//?   Registrado, não consertado: resolver aqui muda o caminho que a tela exibe, e isso é
-//?   decisão de interface, da cabeça (§12·3a).
+//! ELA DEVOLVE `raizAberta` CRU, e isso é o conserto da A9, não descuido. Até 24/08 esta
+//!   linha era `path.resolve(raizAberta)` — resolvia o TEXTO e deixava o link de pé —
+//!   enquanto `confinado()` resolvia o ALVO com realpath. Numa pasta aberta por ATALHO os
+//!   dois lados falavam de lugares diferentes, e o que estava dentro era declarado fora.
+//! A resolução mudou de lugar: mora em `entrarNaPasta`, na ENTRADA, e por isso `raizAberta`
+//!   já chega aqui absoluta e real. Resolver de novo aqui não consertaria nada e criaria a
+//!   segunda fonte da verdade que era justamente a doença — duas guardas que discordam são
+//!   piores que uma.
 export function raizesDeEscrita(): string[] {
-  return raizAberta ? [path.resolve(raizAberta)] : [];
+  return raizAberta ? [raizAberta] : [];
 }
 
 //* A pasta aberta agora, ou `null`.
@@ -46,7 +47,18 @@ export function pastaAberta(): string | null {
 //!   registrada de novo.
 //! O `cd` do Neovim falha em silêncio de propósito: abrir a pasta não pode
 //!   depender de o editor estar de pé.
-export async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
+//! A RAIZ É RESOLVIDA AQUI, NA ENTRADA — é o conserto da A9, decidido pela cabeça em
+//!   24/08/2026, opção (a) da árvore. Uma pasta aberta por ATALHO entra como o atalho e
+//!   passa a valer pelo lugar REAL, então TUDO o que vem depois — a guarda de escrita, a
+//!   proteção contra excluir a pasta aberta, os recentes, o `cd` do Neovim e a árvore que a
+//!   tela desenha — fala do mesmo lugar. Resolver num consumidor só deixaria os outros
+//!   discordando dele, que é a forma exata do defeito que isto conserta.
+//! `resolverParaLeitura` E NÃO `resolverReal`: abrir pasta é LEITURA, e o irmão estoura com
+//!   mensagem própria quando o destino não existe. Aqui a pasta que sumiu precisa estourar
+//!   em `abrirProjeto`, com a mensagem do sistema de arquivos e DEPOIS da leitura — é a
+//!   ordem travada logo abaixo, e trocar o resolvedor a quebraria em silêncio.
+export async function entrarNaPasta(pedida: string): Promise<ProjetoAberto> {
+  const raiz = resolverParaLeitura(pedida);
   const projeto = await abrirProjeto(raiz);
   raizAberta = raiz;
   void cdNeovim(raiz).catch(() => {});

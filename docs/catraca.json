@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 3 — a rede de servicos/ e do motor, A3(a), A4(b), A6",
+  "fatia": "corrida 4 — A9 opcao (a): a raiz resolvida NA ENTRADA",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo e inalterados: a corrida 3 nao mexeu em arquitetura, mexeu em CONDUTA (A3a, A4b) e em rede de teste. Qualquer piora futura em M1-M4 reprova."
+  "porque": "Os quatro no alvo e INALTERADOS, e isto e previsao escrita ANTES de medir (§12·4a). A A9(a) e uma linha em `servicos/abertura-de-projeto`, que nao e registrador (M1 nao ve), importa `infra/resolucao-de-caminho`, que so importa node: (M2 nao ganha aresta), nao toca `dominio/` (M3) nem a arvore de pastas (M4). Se algum deles mudar, a previsao estava errada e o portao reprova — que e o ponto."
 }
