@@ -24,6 +24,13 @@ import { esquecerPasta, pastasRecentes, registrarPasta, ultimaPasta } from "../m
 let raizAberta: string | null = null;
 
 //* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
+//? ⚠️ `path.resolve` E NÃO `realpath` — achado e medido em 24/08, árvore **A9** no tracker.
+//?   `confinado()` resolve o ALVO com realpath; esta raiz vem sem. Numa pasta aberta por
+//?   ATALHO os dois lados falam de lugares diferentes, e toda escrita dentro dela é recusada
+//?   com "está fora da pasta aberta" — frase que contradiz o que a tela mostra. Medido em
+//?   fixture: abrir `…/atalho` (link para `…/real`) e gravar dentro → RECUSOU.
+//?   Registrado, não consertado: resolver aqui muda o caminho que a tela exibe, e isso é
+//?   decisão de interface, da cabeça (§12·3a).
 export function raizesDeEscrita(): string[] {
   return raizAberta ? [path.resolve(raizAberta)] : [];
 }
