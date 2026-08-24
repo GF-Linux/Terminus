@@ -292,7 +292,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **A2** | o botão ↗ do terminal anunciava *"Konsole aberto em …"* mesmo sem `konsole` na máquina: `abrirNoKonsole` devolvia a pasta **sincronamente**, e o ENOENT chegava depois, no `filho.on("error", () => {})`, onde morria. O `README:293-295` promete o contrário | **(a) aplicada em 24/08/2026, decidida pela cabeça:** conserto **só no motor** — ele passa a devolver `Promise<string>`, resolvendo no primeiro de {`spawn`, `error`}. Ponte, casca e README **não mudaram**: `respostaSegura` já aceitava `Promise<T> | T` e o ramo de erro da casca (:113) só era **inalcançável**. Medido de ponta a ponta — ver abaixo |
 | **A4** | `ehNossaLigacao` (`kits-embutidos.ts`) diz *"nossa"* para **qualquer** symlink, então um symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida — contra o item 5 do cabeçalho do arquivo e contra o `README:178-179` | **(b) aplicada em 24/08/2026, decidida pela cabeça** — a variante do executor, medida em **4 de 4**: é nossa se o alvo cai na origem atual **ou** se o caminho tem a forma `…/kits/{funcoes,editor}/…`. Ver §10.5 |
 | **A5** | capacidade viva sem uso: os canais `arquivo:ler` e `arquivo:gravar` expostos e registrados **sem nenhum chamador no renderer**, mais dois exports órfãos sem porquê (`shellEstaVivo`, `neovimRodando`) | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os dois canais **ficam e ficam REGISTRADOS** (comentário `//?` na porta + esta árvore); os dois `EstaVivo` **saíram** — órfãos sem porquê, sem plano e sem teste |
-| **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **ADIADA — devolvida à cabeça em 24/08/2026.** Herdados (os 37 canais são idênticos à linha de base `ada7bfa`, medido). Nenhuma conduta mudou |
+| **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os DOIS canais **ficam e ficam REGISTRADOS** — marca `//?` na porta, árvore aqui. A contagem segue **37**, e é de propósito: 37 é a prova de conduta preservada da corrida 1, e não se gasta uma prova para arrumar capacidade dormente já documentada. Ver §10.6 |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
 
 ### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
@@ -369,7 +369,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **as opções** | **(a) remover os dois canais** (registro + porta), preservando `pararNeovim` e `pastaDoShell`, que o main usa. Muda a contagem de canais de **37 para 35** — e essa contagem é a prova de conduta preservada da corrida 1, então o número teria de ser re-declarado com a causa. **(b) manter e REGISTRAR**, como o A5 fez: comentário na porta dizendo que dormem e por quê, se houver um porquê. **(c) deixar sem registro** — não é opção |
 | **minha recomendação** | **(a) para `neovim:parar`** — não achei intenção escrita para ele, e é o que tem o maior raio (mata o editor). **(b) para `shell:pasta`**, se a cabeça souber de uso planejado; **(a)** se não souber. **Não apliquei nenhuma das duas**: são conduta, não estavam no plano aprovado, e mexem no número que a corrida 1 usou como prova |
 | **se ficar para depois** | **igual** — não apodrece. O que muda é que o próximo fechamento os lista de novo, de ofício |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, no fechamento |
+| **DESFECHO** | **(b) aplicada em 24/08/2026, decidida pela cabeça** — os dois ficam, registrados na porta com `//?`, e a contagem de canais **não se mexeu**. Ver §10.6 |
 
 ---
 
@@ -597,3 +597,23 @@ permanente**, e quem mexer nisso amanhã descobre na hora.
 seu com esse nome, o Terminus não o toca e avisa"*. Antes disso a frase era falsa para
 symlink; agora é verdadeira, e o texto **não precisou mudar** — o código é que foi ao encontro
 dele. Conferido lendo as duas fontes, não presumido.
+
+### 10.6 · A6 aplicada — os dois canais ficam, e ficam registrados
+
+A cabeça decidiu: `neovim:parar` e `shell:pasta` **continuam expostos**, com a marca `//?` na
+porta e a árvore no tracker — o mesmo tratamento que `arquivo:ler` recebeu na A5(b).
+
+**A contagem de canais segue 37, e isso é escolha, não inércia.** 37 é a prova de conduta
+preservada da corrida 1, conferida de novo no fechamento da corrida 2 (*"idênticos a `5c7dbd8`
+E a `ada7bfa`"*). Remover dois canais para arrumar uma capacidade dormente **já documentada**
+gastaria essa prova por um ganho que a documentação já entrega.
+
+**O que a marca diz, e é o que faltava:** nos dois casos **a peça está viva e o canal é que
+dorme.** `pararNeovim` é usado pelo próprio main ao fechar a janela e na partida; `pastaDoShell`
+é usado dentro de `abrirNoKonsole`. Quem lesse "sem chamador" sem esse detalhe concluiria que
+há código morto a apagar — e apagaria a peça junto com o canal. A marca impede exatamente isso.
+
+**O que fica descoberto, dito porque a decisão é de manter:** enquanto os canais existem, o
+renderer pode **matar o editor** (`neovim:parar`) e **ler a pasta corrente do shell**
+(`shell:pasta`). Hoje ninguém chama; um renderer comprometido chama. É a mesma gravidade da
+A5 — pequena, e real — e agora está escrita nos dois lugares onde alguém vai olhar.

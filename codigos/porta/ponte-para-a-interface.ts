@@ -113,6 +113,13 @@ const api = {
     plugins: (): Promise<Resultado<PluginNvim[]>> => ipcRenderer.invoke("neovim:plugins"),
     redimensionar: (cols: number, rows: number): void =>
       ipcRenderer.send("neovim:redimensionar", cols, rows),
+    //? CANAL DORMENTE (A6, 24/08/2026): **nenhum código do renderer chama isto** —
+    //?   busca larga em `interface/` e em `design/`, nome a nome. O que dorme é o
+    //?   CANAL, não a peça: `pararNeovim` está vivo e é usado pelo próprio main, ao
+    //?   fechar a janela (`janela-principal.ts`) e na partida (`partida.ts`).
+    //?   FICA por decisão da cabeça em 24/08, e fica REGISTRADO — que é o mesmo
+    //?   tratamento da A5. Enquanto fica, é superfície: dá ao renderer o poder de
+    //?   **matar o editor**. Árvore no tracker §8, A6.
     parar: (): void => ipcRenderer.send("neovim:parar"),
     /** Saída crua do Neovim rumo ao xterm. Devolve como cancelar a assinatura. */
     aoSaida: (ouvinte: (dados: string) => void): (() => void) => {
@@ -141,6 +148,12 @@ const api = {
     redimensionar: (cols: number, rows: number): void =>
       ipcRenderer.send("shell:redimensionar", cols, rows),
     /** A pasta em que o shell está AGORA, lida do sistema. */
+    //? CANAL DORMENTE (A6, 24/08/2026): **nenhum código do renderer chama isto** —
+    //?   mesma busca larga da `neovim:parar`. E, como lá, a peça está viva: quem usa
+    //?   `pastaDoShell` é o próprio main, dentro de `abrirNoKonsole`, para saber onde
+    //?   abrir o Konsole de verdade. FICA e fica REGISTRADO (cabeça, 24/08). Enquanto
+    //?   fica, entrega a pasta corrente do shell a qualquer código do renderer.
+    //?   Árvore no tracker §8, A6.
     pasta: (): Promise<Resultado<string>> => ipcRenderer.invoke("shell:pasta"),
     /**
      * Escreve uma linha no terminal, como se a pessoa a tivesse digitado.
