@@ -326,6 +326,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **as opções** | **(a) conserto no motor, e só nele** — `Promise<string>` resolvida no primeiro de {`spawn`, `error`}. **(b) rebaixar a vitrine** — reescrever o README dizendo que a falha é silenciosa; oficializa um botão que mente. **(c) deixar sabendo** — a vitrine continua falsa |
 | **minha recomendação** | **(a)** — a única em que código, tela e README dizem a mesma coisa |
 | **a dependência que o plano declarou sem medir, e que eu medi** | o evento `spawn` exige Node ≥ 15.1. **Neste runtime: Electron 33 embute Node v20.18.3, o evento existe e dispara**, e o programa ausente chega como `error` com `code === "ENOENT"`. O plano B (resolver por timeout) **não é necessário** |
+| **⚠️ o que fica DESCOBERTO** | a sonda que provou o conserto é de **uso único** e morreu com a sessão. **Nenhuma perna do portão guarda esta conduta**: P1 só cobre `dominio/`, e a P5 sobe o app mas não aperta o botão. Se alguém devolver `abrirNoKonsole` ao retorno síncrono amanhã, **o portão fica verde**. Uma rede permanente exigiria teste de motor, que este repositório não tem — a mesma lacuna que o A3(a) espera. **Declarado, não resolvido** |
 | **DESFECHO** | **(a) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A2) |
 
 ### A4 · `ehNossaLigacao` aceita qualquer symlink — árvore de decisão (§12·3a) · **EM ABERTO**
@@ -461,3 +462,4 @@ Instrumento que não morde nada não prova nada; este morde, e a mordida foi med
 | **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
 | herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, prosa de laboratório | a cabeça |
 | do despacho 1 | o desvio de planta (sem `tests/arquitetura` e `tests/funcionais`), o nome do arquivo do preload, e o "empacote" descoberto na P3 | a cabeça |
+| **rede do A2** | a conduta nova do botão do Konsole **não tem teste permanente** — a prova foi sonda de uso único. Enquanto `servicos/` e `motores/` não tiverem rede, o portão fica verde se alguém a desfizer | a cabeça |

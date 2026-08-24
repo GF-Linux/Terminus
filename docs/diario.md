@@ -322,3 +322,13 @@ Substância idêntica — mas é desvio do texto aprovado, e por isso está decl
 4. **O instrumento de órfãos v2 mora no scratchpad e vai morrer com a sessão.** Se o terceiro ato
    vai rodar todo fechamento, ele devia virar perna do portão ou ferramenta do repo — mas isso é
    escopo novo, e escopo novo é da cabeça. Registro aqui para não se perder.
+
+### Um buraco que eu deixei, e é melhor dizê-lo do que descobri-lo depois
+
+**A conduta nova do A2 não tem rede permanente.** Provei o conserto com uma sonda de uso único,
+que morreu com a sessão. **Nenhuma perna do portão guarda aquilo**: a P1 só cobre `dominio/`, e a
+P5 sobe o aplicativo mas não aperta o botão. Se alguém devolver `abrirNoKonsole` ao retorno
+síncrono amanhã, **o portão fica verde e ninguém sabe**.
+Construir a rede exigiria teste de motor — que este repositório não tem, e que é a mesma lacuna
+que trava a opção (a) do A3. Não a construí porque teste de motor é escopo novo e escopo novo é
+da cabeça; mas o §12·4a manda escrever o que fica descoberto, e isto fica.
