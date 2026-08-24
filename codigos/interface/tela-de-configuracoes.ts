@@ -3,7 +3,7 @@
 
 import { TEMAS } from "../design/temas-e-papel-de-parede.js";
 import { $, avisar, esc } from "./nucleo-da-casca.js";
-import { aparencia } from "./aparencia-da-casca.js";
+import { aparencia, aoMudarAparencia } from "./aparencia-da-casca.js";
 
 
 //* Desenha a tela de Configurações. Hoje só aparência.
@@ -22,6 +22,10 @@ export async function desenharConfiguracoes(): Promise<void> {
 }
 
 //* Desenha os controles de papel de parede, escurecimento, desfoque e tema.
+//! A inscricao roda ao CARREGAR o modulo, e ele carrega no arranque (a lateral
+//!   o importa). E o que substitui o callback que a aparencia passava a si mesma.
+aoMudarAparencia(() => desenharConfigAparencia());
+
 export function desenharConfigAparencia(): void {
   const alvo = document.getElementById("cfgAparencia");
   const a = aparencia.atual();

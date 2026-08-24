@@ -1,9 +1,6 @@
 //! A barra lateral: a coluna de ícones, o painel que ela abre, e o divisor.
 
 import { $ } from "./nucleo-da-casca.js";
-import { desenharArvore } from "./arvore-de-arquivos.js";
-import { desenharPlugins } from "./painel-de-plugins.js";
-import { desenharConfiguracoes } from "./tela-de-configuracoes.js";
 
 
 /**
@@ -47,33 +44,22 @@ export const ACOES_EXPLORER = `
   <button data-acao="abrir-pasta" title="Abrir outra pasta">
     <svg viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z"/></svg></button>`;
 
-//* Troca qual painel a lateral mostra: Explorer, Plugins ou Configurações.
-export function definirLateral(painel: string): void {
-  $("sideT").textContent =
-    {
-      explorer: "Explorer",
-      extensions: "Plugins",
-      config: "Configurações",
-    }[painel] ?? painel;
+//! A LATERAL SABE QUAL PAINEL ESTA ABERTO; ela nao sabe DESENHAR nenhum deles.
+//!   Enquanto ela importava os tres paineis para despachar, dois deles a
+//!   importavam de volta — e eram esses os dois ciclos. Quem desenha agora e
+//!   `painel-lateral.ts`, que se inscreve aqui ao carregar.
+let trocar: (painel: string) => void = () => {};
 
-  const acoes = $("sideAcoes");
-  acoes.innerHTML = "";
-
-  if (painel === "explorer") {
-    // Os ícones do cabeçalho são responsabilidade de desenharArvore(), que é
-    // quem sabe se há pasta aberta — e é chamada de novo quando ela abre.
-    desenharArvore();
-  } else if (painel === "extensions") {
-    // O antigo "Extensions" (que só sabia dizer que não havia marketplace) virou
-    // o navegador de plugins do Neovim (ADR 0025): o motor tem plugin demais para
-    // se descobrir de cor, e `:Lazy` é uma tela dentro do editor. Aqui a lista
-    // fica na lateral, filtrável e clicável, como numa IDE.
-    void desenharPlugins();
-  } else {
-    void desenharConfiguracoes();
-  }
+//* Registra quem sabe desenhar os paineis.
+export function aoTrocarPainel(quem: (painel: string) => void): void {
+  trocar = quem;
 }
 
+//* Pede a troca de painel de dentro de um painel, sem conhecer os outros.
+export function pedirPainel(painel: string): void {
+  definirPainelLateral(painel);
+  trocar(painel);
+}
 
 //* Troca qual painel a lateral mostra. Fica aqui, e não em quem chama, porque a
 //* variável é lida por outros painéis (a árvore só se desenha se for a visível).

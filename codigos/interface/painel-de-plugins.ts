@@ -4,7 +4,7 @@
 import type { PluginNvim } from "../compartilhado/tipos.js";
 import { $, abrirPainel, api, esc, terminal } from "./nucleo-da-casca.js";
 import { assumirProjeto } from "./arvore-de-arquivos.js";
-import { definirLateral, definirPainelLateral } from "./barra-lateral.js";
+import { pedirPainel } from "./barra-lateral.js";
 
 
 /** Os plugins que o lazy.nvim conhece, para não ter de decorar o que existe. */
@@ -80,7 +80,8 @@ async function abrirPastaDoPlugin(dir: string): Promise<void> {
     return;
   }
   await assumirProjeto(r.valor);
-  definirPainelLateral("explorer");
-  definirLateral("explorer");
+  //! Pede a troca sem conhecer quem desenha — era este par de linhas que
+  //!   fechava um dos dois ciclos.
+  pedirPainel("explorer");
 }
 

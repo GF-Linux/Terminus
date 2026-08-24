@@ -10,9 +10,10 @@ import {
 import { aparencia } from "./aparencia-da-casca.js";
 import { definirDoca, doca, ligarDivisorTerminal } from "./doca-do-terminal.js";
 import {
-  alternarLateral, definirLateral, definirLateralAberta, definirPainelLateral,
+  alternarLateral, definirLateralAberta, definirPainelLateral,
   lateralAberta, painelLateral,
 } from "./barra-lateral.js";
+import { definirLateral } from "./painel-lateral.js";
 import {
   abrirMenu, abrirPaleta, abrirRecente, alternarPasta, atualizarArvore,
   atualizarRecentes, comecarNovo, comecarRenomear, desenharArvore, escolherProjeto,

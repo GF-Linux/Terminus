@@ -1,8 +1,8 @@
 {
-  "fatia": "6 — o registrador se divide em oito (E2): o alvo da corrida",
+  "fatia": "7 — os dois ciclos de interface/ (ramo D1, fatia final)",
   "M1": 2,
-  "M2": 2,
+  "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "O ALVO. M1 cai de 11 para 2 — o teto do E2. Nenhum registrador alcanca mais que dois modulos de sistema/ fora da propria camada."
+  "porque": "M2 vai a ZERO. Os dois ciclos sobreviveram a duas refatoracoes anteriores deste alvo porque aqueles portoes nao mediam ciclo. Este mede, e trava."
 }

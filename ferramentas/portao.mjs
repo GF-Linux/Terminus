@@ -157,10 +157,42 @@ const dorme = (ms) => new Promise((r) => setTimeout(r, ms));
 //! O sinal tem de ser produzido SÓ pelo JavaScript. A pagina.html tem 72 tags
 //! estáticas: "o corpo tem mais de N elementos" nunca poderia falhar, e seria o
 //! enfeite que o §12·2 proíbe. `.xterm` só existe se o módulo do renderer rodou.
+//! `#btAbrirPasta` entrou na fatia 7, e a escolha dele custou DUAS tentativas:
+//!   1. `#sideT` traz "Explorer" escrito no HTML estatico — conferi-lo seria a
+//!      mesma asercao que nunca falha que o §12·2 proibe.
+//!   2. `#sideAcoes` nasce vazio, mas `arvore-de-arquivos.ts:21` so o preenche
+//!      QUANDO HA PASTA ABERTA — e a sonda roda com HOME limpo, sem pasta
+//!      nenhuma. O sinal daria vermelho com o codigo certo. Medido, nao suposto.
+//!   `#btAbrirPasta` e criado por `desenharArvore()` justamente no caso SEM
+//!   pasta ("Nenhuma pasta aberta / Abrir pasta..."), que e o estado da sonda.
+//!
+//! ⚠️ E `#btAbrirPasta` NAO BASTA — isto foi medido, nao suposto. Sabotei o
+//!   `painel-lateral` para nao desenhar a arvore e a sonda seguiu VERDE: e que
+//!   `casca-principal.ts:241` chama `desenharArvore()` direto, por outro
+//!   caminho. O sinal provava a partida do renderer, nao o despacho de painel.
+//!   Por isso a sonda agora CLICA no icone de configuracoes e exige duas coisas:
+//!   `#sideT` virar "Configuracoes" (so `definirLateral` escreve ali) e
+//!   `#cfgAparencia` ter conteudo (so `desenharConfigAparencia` o preenche, e
+//!   para isso ele le `aparencia.atual()`). A cadeia exigida e clique ->
+//!   casca-principal -> painel-lateral -> tela-de-configuracoes ->
+//!   aparencia-da-casca: atravessa os DOIS ciclos que a fatia 7 desfez.
+//!
+//! ⚠️ `#apEscurecer` foi tentado antes e REPROVADO pela medicao: e um `range`
+//!   que so nasce quando ha papel de parede posto, e a sonda roda com HOME
+//!   limpo. Mesmo erro de `#sideAcoes`: sinal escolhido sem medir a pre-condicao.
+//!   Duas vezes. Fica escrito porque o custo de repetir e maior que o de ler.
 const SINAL = `(async () => ({
   porta: typeof window.terminus,
   xterm: !!document.querySelector('.xterm'),
   aparencia: typeof (await window.terminus.aparencia.estado()),
+  lateral: !!document.getElementById('btAbrirPasta'),
+  painel: await (async () => {
+    document.querySelector('button[data-p="config"]').click();
+    await new Promise((ok) => setTimeout(ok, 1500));
+    const cfg = document.getElementById('cfgAparencia');
+    return document.getElementById('sideT').textContent === 'Configurações'
+      && (cfg?.children.length ?? 0) > 0;
+  })(),
 }))()`;
 
 async function pernaConduta({ silencioso = false } = {}) {
@@ -204,8 +236,9 @@ async function pernaConduta({ silencioso = false } = {}) {
     ws.close(); encerrar();
 
     const v = r?.result?.result?.value;
-    const vivo = v?.porta === "object" && v?.xterm === true && v?.aparencia === "object";
-    dizer(`    porta=${v?.porta}  xterm=${v?.xterm}  aparencia=${v?.aparencia}`);
+    const vivo = v?.porta === "object" && v?.xterm === true && v?.aparencia === "object"
+      && v?.lateral === true && v?.painel === true;
+    dizer(`    porta=${v?.porta}  xterm=${v?.xterm}  aparencia=${v?.aparencia}  lateral=${v?.lateral}  painel=${v?.painel}`);
     return { ok: vivo, valor: v };
   } catch (e) { dizer(`${VERM}${e?.message}${FIM_COR}`); encerrar(); return { ok: false }; }
 }
