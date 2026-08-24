@@ -473,3 +473,132 @@ Quatro árvores novas, todas herdadas, todas devolvidas com medição e marca `/
 4. **O que a rede ainda NÃO cobre:** `iniciarShell`/`enviarAoShell`/`redimensionarShell` (PTY
    vivo), o `dialog` de verdade, e clique de tela. Isso é da P5, e é por isso que ela não é
    opcional.
+
+---
+
+## 2026-08-24 · Despacho 5 — a A9 opção (a). Uma árvore só, e o teste virou do avesso.
+
+Cheguei com a decisão da cabeça já tomada e priorizada, pela razão que **eu** tinha dado ao
+devolver a árvore: é a única que **encarece com o tempo**, e foi a corrida anterior que a
+alargou de um canal para três. A7, A8 e A10 ficaram onde estavam. Despacho estreito, e isso
+mudou o ritmo: sobrou medição para o que normalmente passa batido.
+
+### O placar
+
+| medida | partida | chegada |
+|---|:---:|:---:|
+| testes | 99 | **102** |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | **idênticos, e previstos por escrito antes** |
+| canais de IPC | 37 | **37** |
+| escrever na pasta aberta por atalho | **RECUSADO nos 3 canais** | **funciona** |
+| símbolos órfãos · canais sem chamador | 1 · 4 | 1 · 4 — os mesmos, nenhum novo |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. Perdi tempo com um instrumento de medição que morria em silêncio, exit 0.**
+Escrevi uma sonda `.ts` para medir a frase da tela e ela **não imprimia nada**, saindo com
+código **0**. Bissectei importando peça por peça: `casa-de-teste`, `abertura-de-projeto`,
+`escrita-confinada` e `abrirProjeto` isolados — **todos funcionavam**. O que matava era
+`entrarNaPasta`, e a causa é a **A8**: `attach()` do Neovim produz `connect ENOENT` como
+rejeição não tratada, e sem o tratador certo o processo morre antes do `await` assentar.
+Um `process.on("unhandledRejection")` no corpo **não** bastou.
+Correção que funcionou: parar de inventar andaime e **usar o da casa** — rodar a medição como
+arquivo de teste sob `node --test`, importando `tests/apoio/rejeicoes-nao-tratadas.ts`, que é
+o mecanismo já provado pela suíte.
+> **A lição: quando o andaime da casa já resolve um problema medido, escrever outro do zero é
+> redescobrir o mesmo defeito por conta própria.** E note o custo real da A8: ela não atrapalha
+> só o produto, atrapalha **quem tenta medir o produto**.
+
+**2. Previ 4 falhas no RED e medi 5.** A quinta é o teste do preço visível (`p.raiz` real),
+que mora no seu próprio `describe` e que **eu mesmo tinha acabado de escrever**. Não foi erro
+sobre o código: foi eu contando errado o meu próprio arquivo. Fica escrito porque a previsão
+existe para ser conferida, não para acertar.
+
+**3. Refiz o PNG com o comando errado e ele saiu exit 0.** Usei `magick -background none
+docs/fluxo.svg -strip docs/fluxo.png`, sem `-density`. Saiu **1820x1155** no lugar de
+**2843x1804**, e o arquivo caiu de 450 KB para 247 KB. O comando não reclamou, o arquivo
+existia. **Só vi porque a razão 2843/1820 = 1,5625 = 150/96 me fez desconfiar, e porque abri a
+imagem.** É a mesma armadilha do despacho 1, item 5, com outra roupa.
+> ⚠️ **E a causa-raiz não é minha:** a receita do PNG **não está escrita em lugar nenhum do
+> repositório**. O `gera-fluxo.py` escreve o **SVG**; quem vira PNG é um comando que vive só na
+> memória de quem rodou. Registrado como pendência no tracker §12.7.
+
+**4. Acreditei num medidor de imagem por 3 minutos, e o número era impossível.**
+`magick compare -metric AE` deu **5,87e7** numa imagem de **5,1e6 pixels** — mais diferenças
+que pixels. Auditei em vez de racionalizar: **um** pixel totalmente trocado reporta
+**17.925,8**, e **100** pixels reportam exatamente 100× isso. Então **AE aqui é magnitude, não
+contagem** — e 5,87e7 ÷ 17.925,8 = **≈3.275 pixels-equivalentes**, que é o tamanho certo de
+dois rótulos de texto.
+⚠️ **Isto corrige a leitura fácil do meu próprio diário do despacho 1**, que diz *"AE dá 0
+pixels diferentes"*. Verdadeiro — mas só porque **0 é 0 em qualquer escala**. Quem ler aquilo e
+interpretar um AE não-zero como pixels erra por quatro ordens de grandeza.
+Prova decisiva de que o pipeline é o mesmo, e ela não depende de AE nenhum: o meu comando,
+aplicado ao **SVG antigo** (`git show HEAD:docs/fluxo.svg`), reproduz o PNG antigo com **md5
+idêntico**. E gerar duas vezes da mesma fonte dá o mesmo md5.
+
+**5. Escrevi um nome de arquivo que não existe, num comentário, e peguei na releitura.**
+Pus `tests/servicos/escrita-em-pasta-por-atalho.ts` — o arquivo é `.test.ts`. Corrigido e
+conferido com `ls` antes de seguir. Nome de arquivo escrito de cabeça é dado fabricado, igual
+ao hash de commit do despacho 2.
+
+**6. Contei órfãos de processo e a única linha que casou era o meu próprio comando** — de
+novo. Gravei o `ps` num arquivo e greppei o arquivo, mas o `grep` entra no `ps` da própria
+linha. Órfãos reais: **zero**. Resíduo em `/tmp`: **zero**.
+
+### O que ACHEI
+
+**A referência falsa no tracker.** A linha do §10.4 dizia que a marca `A9` morava em
+`escrita-confinada.test.ts`. Medido `grep -c A9` = **0** ali. Corrigido **com a correção
+escrita ao lado**, para o registro do que a árvore dizia continuar legível.
+
+**A tag que não existe.** O §12 passo 6 nomeia **três** fontes para o estado declarado:
+`package.json`, changelog e **tag**. As fechadas das corridas 2 e 3 conferiram duas. Conferi a
+terceira: a tag mais nova é **v0.0.6**, e o README declara **v0.0.7**. Não é afirmação falsa —
+as três fontes que existem concordam —, então **listei** em vez de abrir árvore. Marcar mexe no
+histórico do repositório, que é da lista negativa (§13.3a).
+
+**A coluna de canais do instrumento do 3º ato NÃO pode ser validada contra a árvore base.**
+Rodei nela porque a lição do despacho 3 manda validar onde a resposta é conhecida — e a coluna
+de símbolos validou lindamente (achou os quatro). Mas a de canais acusou **25 canais "não
+expostos"**, e a causa é que `codigos/porta/` **não existe** em `ada7bfa`: ela nasceu na corrida
+1. Validei à parte, numa **cópia**, removendo um chamador conhecido: o canal apareceu como
+quinto órfão, e só ele.
+> **A lição, e ela refina a do despacho 3:** validar contra uma árvore de **forma diferente**
+> valida só as colunas que não dependem da forma. "Rodei onde sei a resposta" não é suficiente
+> — é preciso saber **qual pergunta** aquela árvore consegue responder.
+
+### O que decidi, e é meu para decidir
+
+- **`resolverParaLeitura`, e não `resolverReal`.** A árvore A9 dizia "`raizAberta =
+  resolverReal(raiz)`". Medi o irmão antes de obedecer: `resolverReal` **estoura com mensagem
+  própria** quando o destino não existe, e isso quebraria em silêncio a ordem travada logo
+  abaixo (a pasta que sumiu tem de estourar em `abrirProjeto`, **depois** da leitura, com a
+  mensagem do sistema de arquivos). Abrir pasta é **leitura**. É a terceira vez nesta cópia que
+  medir antes de obedecer muda o que se faz — A4, A9 e agora o resolvedor dentro da própria A9.
+- **`raizesDeEscrita()` NÃO resolve mais.** Resolver dos dois lados manteria as duas fontes da
+  verdade que **eram** a doença. Uma resolução, na entrada.
+- **Três testes novos, e dois deles são a guarda da guarda.** "Gravar funciona" passaria também
+  num código que simplesmente **parou de conferir** — então o arquivo ganhou "o de fora continua
+  recusado" e "o atalho de dentro apontando para fora continua recusado". A sabotagem 2 provou
+  que eles mordem.
+- **Sabotei nas duas cores, e as duas com `tsc` exit 0.** A lição de ontem é minha: sabotagem
+  que quebra a compilação é ruído. A primeira reverteu **o conserto** (não um vizinho): 5
+  falhas, exatamente as 5 do RED, e **nenhum outro arquivo caiu**. A segunda derrubou a guarda:
+  16 falhas, entre elas os dois testes novos.
+- **Um efeito de segunda ordem, medido e declarado em vez de descoberto depois:**
+  `ehPastaProtegida` compara por texto, então com a raiz real o **atalho em si** deixa de ser
+  protegido contra exclusão. Mas ele também deixa de aparecer na árvore da tela, e apagar um
+  link não apaga a pasta: **nenhuma perda de dado**, e tela e guarda passaram a concordar.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A7, A8, A10, A5, D4(b)** — as árvores que a cabeça não decidiu. A **A8 subiu de
+   importância**: hoje ela custou tempo de medição, não só conduta do produto.
+2. **A tag `v0.0.7`**, nova, do ato 2.
+3. **A receita do PNG não está no repo.** Duas linhas num script ou no README resolvem, e hoje
+   a ausência custou uma imagem errada.
+4. **O instrumento do 3º ato** segue no scratchpad. Terceira corrida seguida em que ele é
+   preciso; a novidade é que hoje ele foi **reaproveitado** em vez de reconstruído — e ainda
+   assim precisou de validação nova, porque a coluna de canais depende da forma da árvore.
+5. As pendências antigas: o desvio de planta, o nome do arquivo do preload, o "empacote"
+   descoberto na P3, e os herdados listados.

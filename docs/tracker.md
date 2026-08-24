@@ -811,3 +811,68 @@ ela passou a importar só importa `node:` (M2 não ganha aresta), não toca `dom
 | P5 conduta | ok — porta+renderer+ipc responderam |
 
 **PORTÃO VERDE 5/5.**
+
+### 12.6 · Fechamento da corrida 4 — os TRÊS atos do §12 passo 6
+
+**Ato 1 — varredura do que a corrida MOVEU.** Contagens remedidas arquivo por arquivo (não
+somadas de cabeça): `dominio` 26 · `servicos` 64 · `motores` 7 · `infra` 5 = **102**. O
+`99 → 102` e o `servicos 61 → 64` foram varridos em **quatro** lugares: `docs/fluxo.md`,
+`README:75`, `docs/tracker.md:119` (a perna P1) e `ferramentas/gera-fluxo.py` (a fonte do PNG).
+A planta ganhou o nó da resolução na entrada (F2) e o parágrafo do que quebrava no F1. Canais
+de IPC remedidos: **37**, idênticos — a legenda do PNG segue verdadeira.
+
+> **Achado da varredura, corrigido com a correção escrita ao lado:** a linha do §10.4 dizia que
+> a marca `A9` estava em `escrita-confinada.test.ts`. Medido `grep -c A9` = **0** naquele
+> arquivo. A rede da A9 sempre morou em arquivo próprio.
+
+**Ato 2 — vitrine conferida.**
+
+| o que o README afirma | como foi conferido | resultado |
+|---|---|---|
+| `npm run teste` — *"102 testes"* | **rodado** | 102 passaram, 0 falharam |
+| `npm run typecheck` | **rodado** | exit 0 |
+| `npm run portao` | **rodado** | VERDE 5/5 |
+| `README:16` — *"Estado: v0.0.7"* | contra `package.json`, o topo do changelog **e a tag** | os três primeiros dizem 0.0.7 |
+| `git clone` · `npm install` · `npx electron-rebuild` | **não rodados**, e declarado: o clone é de rede e os outros dois mexeriam em `node_modules` sem necessidade | — |
+
+> ⚠️ **O que este fechamento viu e os dois anteriores não:** o §12 passo 6 nomeia **três** fontes
+> para o estado declarado — `package.json`, changelog e **tag**. As fechadas das corridas 2 e 3
+> conferiram as duas primeiras. Conferindo a terceira: **a tag mais nova é `v0.0.6`; não existe
+> `v0.0.7`.** O projeto **tem** o hábito de marcar (v0.0.3 a v0.0.6 existem), então a v0.0.7 está
+> **por marcar**. Não é afirmação falsa — as três fontes que existem concordam —, então entra
+> como **listado**, não como árvore. Marcar ou não é da cabeça: mexe no histórico do repositório.
+
+**Ato 3 — varredura do que NINGUÉM moveu.** Instrumento reaproveitado do despacho anterior, e
+**revalidado antes de acreditar nele**, nas duas colunas:
+
+| coluna | como foi validada | resultado |
+|---|---|---|
+| símbolos | rodado sobre a árvore base `ada7bfa`, onde a resposta é conhecida | achou **exatamente os quatro** órfãos conhecidos, `lerDoTwinny` incluso |
+| canais | ⚠️ a base **não valida** esta coluna — `codigos/porta/` não existe lá, e tudo lê como "não exposto". Validada à parte: **numa cópia**, removido um chamador conhecido (`aparencia.tirar`) | o canal apareceu como **quinto** órfão, e só ele — a coluna morde |
+
+Achados de hoje, e **nenhum é novo**: **1 símbolo** sem uso nenhum (`acharPython`, o D4, já
+marcado) e **4 canais** sem chamador (`arquivo:gravar`, `arquivo:ler`, `neovim:parar`,
+`shell:pasta` — os quatro já registrados pelas árvores A5 e A6).
+
+**Restos de produto anterior:** `.gitignore` limpo (os fósseis saíram na corrida 3); nenhum
+caminho pendurado em `tsconfig.json`, `electron.vite.config.ts` ou `package.json`; as duas
+pastas `CLAUDE-SECURITY-2026*` seguem **não rastreadas**. Varredura de prosa: **um** caminho
+citado que não existe — `tracker:162`, `codigos/ponte/ponte-para-a-interface.ts`, dentro do
+**registro histórico** de um defeito da corrida 1, citando o que o README dizia **antes** da
+emenda E1. **Listado, não alterado**: reescrevê-lo falsificaria o registro. Os docs vivos já
+dizem `codigos/porta/`.
+
+### 12.7 · Pendências vivas ao fim da corrida 4
+
+| # | o que é | quem decide |
+|---|---|---|
+| **A7** | "Fechar pasta" nunca chega ao main: a pasta fechada segue gravável, e a recusa de exclusão diz uma frase falsa | a cabeça |
+| **A8** | o laço de reconexão do Neovim nunca faz a 2ª volta; sem socket, Ctrl+S/F12/plugins penduram em silêncio | a cabeça |
+| **A10** | o `nome` não passa por peneira: erro interno de JavaScript vira frase de interface | a cabeça |
+| **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
+| **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
+| **a tag v0.0.7 que não existe** | **NOVA**, do ato 2. Marcar mexe no histórico do repositório, que é da lista negativa | a cabeça |
+| herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, `tracker:162`, prosa de laboratório | a cabeça |
+| do despacho 1 | o desvio de planta, o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
+| **o instrumento do 3º ato** | agora foi **reaproveitado** em vez de reconstruído — e a revalidação mostrou que a coluna de canais **não pode** ser validada contra a árvore base. Ele segue no scratchpad e morre com a sessão | a cabeça |
+| **a receita do PNG** | `magick -background none -density 150 docs/fluxo.svg -strip docs/fluxo.png` **não está escrita em lugar nenhum do repo**. Hoje isso custou um PNG na resolução errada, pego só por eu abrir a imagem | a cabeça |
