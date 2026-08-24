@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 5 fatia 3 — A10(c) APLICADA: `unknown` na borda, e o tsc cobra a peneira",
+  "fatia": "corrida 5 fatia 4 — A7(a) APLICADA: fechar pasta passa a fechar de verdade",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo e INALTERADOS, previsao escrita ANTES de medir (§12·4a, ja declarada no tracker §13.1d). A A10(c) troca TIPOS em tres camadas (ponte, servicos, infra) e acrescenta uma linha de peneira: `unknown` nao cria import, entao M1 e M2 nao mudam; nada toca `dominio/` (M3) nem a arvore de pastas (M4)."
+  "porque": "Os quatro no alvo e INALTERADOS, previsao escrita ANTES de medir (§12·4a, ja declarada no tracker §13.8). A A7(a) acrescenta UM canal ao registrador de projeto, que ja importa `servicos/abertura-de-projeto` — nenhum modulo novo de `sistema/`, entao M1 continua 2; sem import novo, M2 segue 0; `dominio/` intocado (M3) e a arvore de pastas idem (M4). O numero que MUDA e a contagem de canais de IPC, 37 -> 38, e essa mudanca foi re-declarada com a causa antes de o canal existir."
 }

@@ -533,7 +533,7 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **as opções** | **(a) canal novo** `projeto:fechar` → `servicos.fecharPasta()` pondo `raizAberta = null`, e o renderer passa a avisar. **Muda conduta e a contagem de canais vai de 37 a 38** — e 37 é a prova de conduta preservada das corridas 1 e 2, então o número teria de ser re-declarado com a causa. **(b) sem canal novo** — **MEDIDA E DESCARTADA**: os cinco canais de projeto são `escolher`, `entrar`, `recentes`, `esquecer`, `inicial` (`ponte-projeto.ts:18-24`), e nenhum sabe dizer *"fechei"*; `projeto:entrar` com nulo estoura em `abrirProjeto`. Não há caminho barato aqui. **(c) deixar como está e REGISTRAR** (marca `//?` no código + esta árvore), como o A5 fez com a capacidade dormente. **(d) rebaixar só a frase** da recusa de exclusão, para ela deixar de mentir sem mexer no estado — barato, e conserta o único sintoma visível |
 | **minha recomendação** | **(c) agora, (d) logo em seguida**, e não é timidez: a rede que este despacho está construindo é a pré-condição do resto. (a) muda conduta **e** mexe no número que duas corridas usaram como prova — decisão de rumo, da cabeça. (d) é três palavras e mata a frase falsa, que é a parte que a pessoa **vê** |
 | **se ficar para depois** | **igual** — não apodrece e não encarece. O que corre é o mesmo silêncio da A2: a tela dizendo o que o estado não sustenta |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a prova estática acima. Nenhuma conduta mudou; marca `//?` posta em `abertura-de-projeto.ts` para o achado não se perder |
+| **DESFECHO** | **APLICADA em 24/08/2026, opção (a), decidida pela cabeça.** A (d) ficou **absorvida**: a frase deixou de mentir porque o estado passou a sustentá-la, não por reescrita de texto. ⚠️ **O roteiro de repro escrito nesta árvore estava ERRADO** — medido e corrigido em **§13.9**. O conserto está em **§13.10** |
 
 ### 10.3 · A8 — o canal de controle do Neovim pendura para sempre — árvore de decisão (§12·3a) · **EM ABERTO**
 
@@ -1150,3 +1150,54 @@ existe para sobreviver ao erro da tela **não pode depender da tela para importa
 então os **quatro** canais de escrita — `arquivo:gravar`, `arquivo:criar`, `pasta:criar`,
 `caminho:renomear` — seguem aceitando escrita numa pasta que a pessoa acredita ter desligado.
 Esse é reachable pelo canal e não depende de tela nenhuma.
+
+### 13.10 · A7(a) APLICADA — fechar passa a fechar
+
+**Quatro camadas, e a ordem entre elas é a regra.**
+
+| camada | o que ganhou |
+|---|---|
+| `servicos/abertura-de-projeto.ts` | `fecharPasta()` — o **segundo escritor** de `raizAberta` no repositório, e o primeiro que a devolve a `null` |
+| `sistema/ponte/ponte-projeto.ts` | o canal `projeto:fechar` |
+| `porta/ponte-para-a-interface.ts` | `api.fecharPasta()` |
+| `interface/arvore-de-arquivos.ts` | `fecharProjeto()` **avisa o main antes de limpar a tela** |
+
+**Por que avisar antes de limpar, e não depois.** Se o main recusar, a tela ainda mostra a pasta
+e a pessoa vê o erro com o estado íntegro. Limpando primeiro, uma falha deixaria tela e main
+discordando — que é **exatamente o defeito que este conserto fecha**.
+
+**A opção (d) ficou ABSORVIDA, e é o desfecho certo para ela.** A frase *"é a pasta de trabalho
+aberta (ou está acima dela)"* parou de mentir **porque o estado passou a sustentá-la**, não
+porque o texto foi reescrito. Nenhuma frase precisou de ajuste — conferido.
+
+**A contagem de canais, medida contra a linha de base com extração larga:**
+
+```
+linha de base (ada7bfa): 37
+hoje                    : 38
+sumiram : []
+novos   : ['projeto:fechar']
+identicos: 37  ->  OS 37 DA BASE INTACTOS
+```
+
+É exatamente a asserção re-declarada em §13.8: **os 37 da linha de base, idênticos, mais 1 novo
+declarado.**
+
+**A sabotagem — `fecharPasta()` vira no-op**, que é a reversão fiel do conserto. `tsc` exit 0,
+**4 falhas** (a pasta que não some, os quatro canais que não recusam, e as duas exclusões que
+seguem mentindo) e **as 4 gêmeas de "com a pasta ABERTA nada mudou" seguiram verdes** — que é
+o que separa "fechou" de "parou de funcionar". Restaurado: 8/8.
+
+### 13.11 · A12 — o conserto da A7 não tem rede na ÚLTIMA camada — árvore de decisão (§12·3a)
+
+> **De onde veio:** eu mesmo, sabotando o meu próprio conserto para ver o que a rede pega.
+
+| parte | |
+|---|---|
+| **o defeito** | `arvore-de-arquivos.ts:431` é o **único chamador** de `api.fecharPasta()` em todo o repositório. Removida essa chamada — o renderer voltando a fechar só na tela, que é a A7 inteira de volta — **a suíte deu 139/139 e o portão deu VERDE 5/5**. Medido, com `tsc` exit 0 |
+| **o que custa deixar** | a A7 pode ser desfeita amanhã, por engano, **sem que nada avise**. É a mesma família do buraco que a A2 deixou e que a corrida 3 teve de tapar — só que agora eu sei disso **antes** de fechar a corrida |
+| **⚠️ o alcance, para não exagerar o tamanho** | isto **já estava declarado** como descoberto na perna **P5** desde 23/08: *"prova que o app sobe e responde; **não** prova que o botão certo faz a coisa certa. Clique, diálogo nativo e PTY interativo continuam fora"*. A A7 cai exatamente nesse buraco conhecido — ela não abriu um novo, ela mostrou o tamanho do que havia |
+| **as opções** | **(a) automação de UI** (clicar o botão de verdade) — fecha o buraco inteiro e é infraestrutura nova, que o tracker §10.1 já recusou uma vez por custo. **(b) estender a perna P5** para chamar `window.terminus.fecharPasta()` por CDP e conferir o efeito — cobre porta+ponte+serviço de ponta a ponta, **mas não o botão**: a sabotagem que eu fiz continuaria passando. **(c) teste de registro de canal** — fazer o dublê do `electron` gravar os canais registrados e afirmar que `projeto:fechar` está lá; pega nome trocado e registro esquecido, não pega o renderer calado. **(d) deixar como está e REGISTRAR** |
+| **minha recomendação** | **(d) agora, (a) quando houver decisão de investir em automação de UI.** E a razão não é preguiça: **(b) e (c) custam rede nova e não pegam a sabotagem que eu acabei de fazer** — dariam a sensação de cobertura sem a cobertura. Buraco tapado pela metade é pior que buraco medido, porque some do radar. O que **não** pode acontecer é a A7 fechar sem este parágrafo existir |
+| **se ficar para depois** | **igual** — não apodrece. Mas cada conserto novo que termine no renderer cai no mesmo buraco, e o buraco já engoliu a A2 uma vez |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça, com a medição |

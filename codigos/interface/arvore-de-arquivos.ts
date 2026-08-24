@@ -333,7 +333,7 @@ $("menu").addEventListener("click", (ev) => {
       void excluir(alvo);
       break;
     case "fechar-pasta":
-      fecharProjeto();
+      void fecharProjeto();
       break;
   }
 });
@@ -421,7 +421,20 @@ export async function escolherProjeto(): Promise<void> {
 //* Fecha a pasta aberta. NÃO toca no disco.
 //! Existe por um incidente: sem o verbo "fechar", um "Excluir" na raiz mandou
 //!   `~/projetos` inteiro para a lixeira.
-export function fecharProjeto(): void {
+//! ⚠️ O MAIN É AVISADO PRIMEIRO, e a ordem é a regra (árvore **A7**, consertada em 24/08).
+//!   Até hoje esta função era só da tela: limpava `estado.projeto`, redesenhava e avisava,
+//!   sem uma única chamada ao main. A pasta "fechada" seguia gravável pelos quatro canais de
+//!   escrita e seguia "protegida" contra exclusão, com a recusa dizendo que ela estava aberta.
+//! POR QUE AVISAR ANTES DE LIMPAR A TELA, e não depois: se o main recusar, a tela ainda mostra
+//!   a pasta e a pessoa vê o erro com o estado íntegro. Limpando primeiro, uma falha deixaria
+//!   tela e main discordando — que é exatamente o defeito que este conserto acaba de fechar.
+export async function fecharProjeto(): Promise<void> {
+  const r = await api.fecharPasta();
+  if (!r.ok) {
+    terminal.erro(`${r.erro}\r\n`);
+    abrirPainel();
+    return;
+  }
   const nome = estado.projeto?.nome;
   estado.projeto = null;
   expandidas.clear();

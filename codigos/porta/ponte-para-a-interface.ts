@@ -42,6 +42,10 @@ const api = {
   /** Abre uma pasta já conhecida (um recente), sem passar pelo diálogo. */
   entrarNaPasta: (raiz: string): Promise<Resultado<ProjetoAberto>> =>
     ipcRenderer.invoke("projeto:entrar", raiz),
+  /** Larga a pasta aberta: o main volta ao estado de não ter nenhuma.
+   *  Sem isto, "Fechar pasta" era só da tela — a pasta seguia gravável e seguia
+   *  "protegida" contra exclusão depois de fechada (árvore A7, consertada em 24/08). */
+  fecharPasta: (): Promise<Resultado<void>> => ipcRenderer.invoke("projeto:fechar"),
   /** Pastas de corrida já abertas, da mais recente para a mais antiga. */
   pastasRecentes: (): Promise<Resultado<string[]>> => ipcRenderer.invoke("projeto:recentes"),
   esquecerPasta: (raiz: string): Promise<Resultado<string[]>> =>

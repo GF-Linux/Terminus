@@ -15,12 +15,6 @@ import { esquecerPasta, pastasRecentes, registrarPasta, ultimaPasta } from "../m
 //! A pasta de trabalho aberta agora. Ela tem UM dono — este módulo — e quem
 //!   precisa dela pergunta. Antes era variável solta no monólito, lida pela
 //!   guarda e escrita pelo caso de uso, e era isso que prendia os dois juntos.
-//? ⚠️ E NADA A DEVOLVE A `null` — achado em 24/08, árvore **A7** no tracker. Esta linha é o
-//?   ÚNICO escritor no repositório, e só atribui valor não-nulo. O "Fechar pasta" da tela é
-//?   só do renderer (`arvore-de-arquivos.ts:424`): não há canal que avise o main. Então,
-//?   depois de fechar, esta pasta segue gravável e segue "protegida" contra exclusão — com
-//?   a recusa dizendo que ela é a pasta ABERTA, que é frase falsa. Registrado, não consertado:
-//?   consertar muda conduta e mexe na contagem de canais, e isso é da cabeça (§12·3a).
 let raizAberta: string | null = null;
 
 //* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
@@ -39,6 +33,27 @@ export function raizesDeEscrita(): string[] {
 //* A pasta aberta agora, ou `null`.
 export function pastaAberta(): string | null {
   return raizAberta;
+}
+
+//* Larga a pasta aberta: o Terminus volta ao estado de não ter nenhuma.
+//? A7 CONSERTADA — Decisão sobre fechar de verdade 24/08/2026, opção (a) da árvore
+//!
+//! 1. Até hoje `raizAberta` tinha UM escritor no repositório inteiro — o de `entrarNaPasta` —
+//!    e ele só atribuía valor não-nulo. "Fechar pasta" era **só do renderer**: limpava a
+//!    tela, redesenhava, avisava, e fazia **zero** chamadas ao main. O processo principal
+//!    nunca ficava sabendo.
+//! 2. DUAS COISAS SOBREVIVIAM AO FECHAR, e as duas são conduta que a pessoa acredita ter
+//!    desligado: a pasta continuava em `raizesDeEscrita()`, então os quatro canais de
+//!    escrita seguiam aceitando-a; e continuava "protegida" contra exclusão, com a recusa
+//!    dizendo que ela **é a pasta de trabalho aberta** — frase falsa.
+//! 3. ISTO MUDA A CONTAGEM DE CANAIS DE 37 PARA 38, e o número foi re-declarado com a causa
+//!    antes de o canal existir (tracker §13.8). 37 era a prova de conduta preservada das
+//!    corridas 1 e 2; a prova agora é *"os 37 da linha de base idênticos, mais 1 declarado"*.
+//! 4. NÃO MEXE NO NEOVIM nem no terminal, e é deliberado: a tela já decidiu isso quando
+//!    escreveu *"fechar não é um pedido de sair de onde se está"* (`arvore-de-arquivos.ts`).
+//!    Fechar é largar a pasta, não desmontar a sessão de quem estava trabalhando nela.
+export function fecharPasta(): void {
+  raizAberta = null;
 }
 
 //* Assume uma pasta como projeto: registra nos recentes e aponta o Neovim.
