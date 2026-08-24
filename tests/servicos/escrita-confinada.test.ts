@@ -12,7 +12,7 @@
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { casa, pastaNova } from "../apoio/casa-de-teste.ts";
 import { esperarAsAtrasadas, inesperadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
@@ -115,60 +115,69 @@ describe("gravarConfinado — a peça-vitrine do confinamento", () => {
   });
 });
 
-describe("criar e renomear — a conduta de HOJE", () => {
+describe("criar e renomear — confinados como o gravar, desde a A3(a)", () => {
   test("cria arquivo dentro da pasta aberta", async () => {
-    const criado = await criarArquivoNoProjeto(aberta, aberta, "novo.txt");
+    const criado = await criarArquivoNoProjeto(aberta, "novo.txt");
     assert.equal(criado, path.join(aberta, "novo.txt"));
     assert.equal(existsSync(criado), true);
   });
 
   test("cria pasta dentro da pasta aberta", async () => {
-    const criada = await criarPastaNoProjeto(aberta, aberta, "sub");
+    const criada = await criarPastaNoProjeto(aberta, "sub");
     assert.equal(existsSync(criada), true);
   });
 
   test("recusa nome com barra — nome não é caminho", async () => {
-    await assert.rejects(() => criarArquivoNoProjeto(aberta, aberta, "a/b"), /não pode conter barra/);
+    await assert.rejects(() => criarArquivoNoProjeto(aberta, "a/b"), /não pode conter barra/);
   });
 
   test("recusa nome vazio", async () => {
-    await assert.rejects(() => criarArquivoNoProjeto(aberta, aberta, "   "), /não pode ser vazio/);
+    await assert.rejects(() => criarArquivoNoProjeto(aberta, "   "), /não pode ser vazio/);
   });
 
   test("renomeia dentro da pasta aberta", async () => {
-    const antes = await criarArquivoNoProjeto(aberta, aberta, "antes.txt");
-    const depois = await renomearNoProjeto(aberta, antes, "depois.txt");
+    const antes = await criarArquivoNoProjeto(aberta, "antes.txt");
+    const depois = await renomearNoProjeto(antes, "depois.txt");
     assert.equal(path.basename(depois), "depois.txt");
     assert.equal(existsSync(antes), false);
   });
 
   test("recusa renomear por cima de nome que já existe", async () => {
-    await criarArquivoNoProjeto(aberta, aberta, "ocupado.txt");
-    const outro = await criarArquivoNoProjeto(aberta, aberta, "outro.txt");
-    await assert.rejects(() => renomearNoProjeto(aberta, outro, "ocupado.txt"), /Já existe/);
+    await criarArquivoNoProjeto(aberta, "ocupado.txt");
+    const outro = await criarArquivoNoProjeto(aberta, "outro.txt");
+    await assert.rejects(() => renomearNoProjeto(outro, "ocupado.txt"), /Já existe/);
   });
 
-  //? ⚠️ A3 — ESTE TESTE TRAVA O DEFEITO, NÃO A INTENÇÃO. `criar` confia na raiz que o
-  //?   CHAMADOR envia e a compara por TEXTO, sem realpath — enquanto `gravar` resolve o
-  //?   link e confere contra as raízes que o DONO conhece. Um renderer comprometido manda
-  //?   uma raiz arbitrária e cria fora da pasta aberta. Está aqui para que a A3(a), ao
-  //?   entrar, faça este teste VIRAR — e a virada é o resultado, não a surpresa.
-  test("A3 · HOJE aceita raiz arbitrária do chamador e cria FORA da pasta aberta", async () => {
-    const criado = await criarArquivoNoProjeto(deFora, deFora, "de-fora.txt");
-    assert.equal(existsSync(criado), true);
-    //! E a prova de que isto é assimetria, não regra: o mesmo caminho, pelo `gravar`,
-    //!   é recusado. Os dois saem do MESMO registrador (`ponte-arquivo.ts`).
-    assert.throws(() => gravarConfinado(criado, "x"), /está fora da pasta aberta/);
+  //! A3(a) APLICADA em 24/08 por decisão da cabeça: `criar` e `renomear` passaram a usar
+  //!   `confinado()` — realpath + as raízes que o DONO conhece — em vez da raiz que o
+  //!   renderer manda. Os dois testes abaixo travavam o defeito e VIRARAM; a virada é o
+  //!   resultado declarado, não uma surpresa.
+  //! `assert.throws` e não `assert.rejects`, pelo MESMO motivo do `gravarConfinado` logo
+  //!   acima: a guarda estoura de forma síncrona, e medido que `assert.rejects` repassa um
+  //!   throw síncrono. E a forma agora é a mesma nos quatro caminhos, que é o ponto da
+  //!   A3(a) — antes dela, a recusa de `criar` vinha como rejeição de promessa. Invisível
+  //!   em produção: `respostaSegura` embrulha os dois casos no mesmo `try`.
+  test("A3 · recusa criar fora da pasta aberta, mesmo com raiz arbitrária do chamador", () => {
+    assert.throws(() => criarArquivoNoProjeto(deFora, "de-fora.txt"), /está fora da pasta aberta/);
+    assert.equal(existsSync(path.join(deFora, "de-fora.txt")), false);
   });
 
-  //? ⚠️ A3 — o mesmo, pelo atalho: `criar` não desfaz link, então a raiz textual bate e
-  //?   o arquivo nasce do outro lado do atalho.
-  test("A3 · HOJE o atalho para fora não é desfeito por criar", async () => {
+  test("A3 · o atalho para fora agora É desfeito por criar", () => {
     const atalho = path.join(aberta, "atalho");
     if (!existsSync(atalho)) symlinkSync(deFora, atalho, "dir");
-    const criado = await criarArquivoNoProjeto(aberta, atalho, "pelo-atalho.txt");
-    assert.equal(existsSync(path.join(deFora, "pelo-atalho.txt")), true);
-    assert.equal(criado.startsWith(aberta), true);
+    assert.throws(() => criarArquivoNoProjeto(atalho, "pelo-atalho.txt"), /está fora da pasta aberta/);
+    assert.equal(existsSync(path.join(deFora, "pelo-atalho.txt")), false);
+  });
+
+  test("A3 · recusa criar PASTA fora da pasta aberta", () => {
+    assert.throws(() => criarPastaNoProjeto(deFora, "sub-de-fora"), /está fora da pasta aberta/);
+  });
+
+  test("A3 · recusa renomear coisa que está fora da pasta aberta", () => {
+    const alheio = path.join(deFora, "alheio.txt");
+    writeFileSync(alheio, "conteúdo de outro");
+    assert.throws(() => renomearNoProjeto(alheio, "roubado.txt"), /está fora da pasta aberta/);
+    assert.equal(existsSync(alheio), true);
   });
 });
 
