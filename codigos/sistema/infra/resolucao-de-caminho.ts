@@ -23,3 +23,14 @@ export function resolverReal(alvo: string): string {
     throw new Error(`${path.basename(abs)}: a pasta de destino não existe.`);
   }
 }
+
+//* Resolve um caminho para LEITURA: link desfeito, mas sem exigir que exista.
+//! POR QUE NAO REUSA `resolverReal`: aquele ESTOURA quando a pasta de destino
+//!   nao existe, porque quem grava precisa saber disso na hora. Quem le nao —
+//!   um caminho inexistente segue adiante e o erro chega depois, na leitura,
+//!   com a mensagem do sistema de arquivos, que diz mais.
+//! A conduta e a que o handler `arquivo:ler` ja tinha: existsSync ? realpath : abs.
+export function resolverParaLeitura(alvo: string): string {
+  const abs = path.resolve(alvo);
+  return existsSync(abs) ? realpathSync(abs) : abs;
+}

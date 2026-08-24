@@ -2,43 +2,26 @@
 //!
 //! 1. Este arquivo era `janela-principal.ts`, com 707 linhas e CINCO papeis:
 //!    partida do app, ciclo da janela, a guarda de caminho, o caso de uso e os
-//!    37 handlers. Os tres primeiros ja sairam; o caso de uso sai na fatia 5 e
-//!    os handlers se dividem em oito na fatia 6.
+//!    37 handlers. Sobraram os handlers.
 //! 2. A JANELA CHEGA INJETADA (`janelaViva`), nao importada — ramo A1. Um
 //!    registrador que importa a janela nao pode ser lido sem o Electron junto.
-//! 3. Os quatro dialogos nativos sairam para `janela/dialogos-do-sistema` — ramo
-//!    A3. O registrador pede; quem conhece o `dialog` do Electron e a camada de
-//!    janela.
+//! 3. O handler NAO FAZ TRABALHO: ele confere a forma do que chegou pelo IPC e
+//!    delega. Quem chama infra, motor e persistencia na ordem certa e
+//!    `sistema/servicos/` — foi para la que a orquestracao foi.
+//! 4. Os 37 canais continuam 37, com os mesmos nomes e as mesmas cargas: a
+//!    interface nao sabe que houve refatoracao (§12·3).
 
-import { app, type BrowserWindow, ipcMain, shell } from "electron";
-import { existsSync, realpathSync, rmSync } from "node:fs";
-import { homedir } from "node:os";
-import * as path from "node:path";
-import type { Fluxo, ProjetoAberto, Resultado } from "../../compartilhado/tipos.js";
-import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";
-import { recusarEntrada } from "../../dominio/entrada-recusada.js";
-import { ehPastaProtegida } from "../../dominio/protecao-da-pasta-aberta.js";
-import { resolverReal } from "../infra/resolucao-de-caminho.js";
-import { aLixeiraAlcanca } from "../infra/alcance-da-lixeira.js";
-import { pastaPedidaNaLinha } from "../infra/argumentos-da-partida.js";
-import { RAIZ_APP } from "../janela/janela-principal.js";
+import { app, type BrowserWindow, ipcMain } from "electron";
+import type { Fluxo } from "../../compartilhado/tipos.js";
+import { ehFluxoConhecido } from "../../dominio/fluxo-conhecido.js";
+import { comoRodar } from "../infra/como-rodar-o-projeto.js";
+import { escolherImagem } from "../janela/dialogos-do-sistema.js";
 import {
-  escolherImagem,
-  escolherOndeSalvar,
-  escolherPasta,
-  perguntarExclusao,
-} from "../janela/dialogos-do-sistema.js";
-import {
-  esquecerPasta,
   gravarAparencia,
   guardarWallpaper,
   lerAparencia,
   lerWallpaper,
   tirarWallpaper,
-  pastasRecentes,
-  PASTA_CONFIG,
-  registrarPasta,
-  ultimaPasta,
 } from "../motores/configuracao-salva.js";
 import {
   abrirNoKonsole,
@@ -62,247 +45,105 @@ import {
   resetarControle,
 } from "../motores/controle-neovim-rpc.js";
 import {
-  abrirProjeto,
-  criarArquivo,
-  criarPasta,
-  ehTexto,
-  gravarArquivo,
-  lerArquivo,
-  listar,
-  listarTudo,
-  renomear,
-} from "../infra/arquivos-do-projeto.js";
-import { criarProjeto, NOME_DO_FLUXO } from "../infra/molde-de-projeto.js";
-import { comoRodar } from "../infra/como-rodar-o-projeto.js";
-
-let raizAberta: string | null = null;
-
-//* Assume uma pasta como projeto: registra nos recentes e aponta o Neovim.
-async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
-  // A leitura da pasta vem primeiro: se ela não existe mais, o erro sobe e a
-  // pasta some da lista em vez de ser registrada de novo.
-  const projeto = await abrirProjeto(raiz);
-  raizAberta = raiz;
-  // Aponta o Neovim para a pasta junto: o buscador dele nasce no lugar certo.
-  void cdNeovim(raiz).catch(() => {});
-  registrarPasta(raiz);
-  return projeto;
-}
-
-//* Recusa apagar a pasta aberta, ou qualquer pasta acima dela.
-//! A trava fica AQUI, e não só na tela: tela pode voltar a errar, e apagar a
-//!   pasta aberta leva o trabalho do dia inteiro.
-//! QUEM DECIDE é `dominio/protecao-da-pasta-aberta`; esta função só conhece a
-//!   raiz aberta e sabe redigir a recusa. A decisão saiu daqui para poder ser
-//!   testada sem subir o Electron.
-function protegerPastaDeTrabalho(alvo: string): void {
-  if (!ehPastaProtegida(alvo, raizAberta)) return;
-  throw new Error(
-    `"${path.basename(path.resolve(alvo))}" é a pasta de trabalho aberta (ou está acima dela). ` +
-      "Para tirá-la do Terminus use Fechar pasta — excluir aqui apagaria o seu trabalho.",
-  );
-}
-
-//* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
-function raizesDeEscrita(): string[] {
-  return raizAberta ? [path.resolve(raizAberta)] : [];
-}
-
-//* Resolve um caminho e exige que ele caia dentro das raízes permitidas.
-//! As TRÊS ETAPAS moram em três lugares agora, e a ordem entre elas é a regra:
-//!   1. `dominio/entrada-recusada` peneira o texto ANTES de resolver — depois de
-//!      resolver, `-c` já virou um caminho dentro da raiz e passaria;
-//!   2. `infra/resolucao-de-caminho` desfaz o link simbólico, senão um atalho no
-//!      projeto apontando para `~/.bashrc` passaria na comparação de nome;
-//!   3. `dominio/guarda-de-caminho` decide, sobre o caminho já real.
-//! Só a etapa 2 toca o disco — e é por isso que só ela ficou em `sistema/`.
-function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
-  const texto = recusarEntrada(alvo, oQue);
-  const real = resolverReal(texto);
-  if (dentroDaRaiz(real, raizes)) return real;
-  throw new Error(
-    `"${path.basename(path.resolve(texto))}" está fora da pasta aberta — o Terminus não mexe em arquivo de fora.`,
-  );
-}
-
-//* Embrulha um handler para que exceção vire erro exibível, não promessa perdida.
-function seguro<A extends unknown[], T>(
-  fn: (...args: A) => Promise<T> | T,
-): (...args: A) => Promise<Resultado<T>> {
-  return async (...args: A) => {
-    try {
-      return { ok: true, valor: await fn(...args) };
-    } catch (err) {
-      return { ok: false, erro: err instanceof Error ? err.message : String(err) };
-    }
-  };
-}
+  entrarNaPasta,
+  escolherPastaEEntrar,
+  esquecerRecente,
+  abrirPastaInicial,
+  listarRecentes,
+} from "../servicos/abertura-de-projeto.js";
+import { escolherECriar } from "../servicos/criacao-de-projeto.js";
+import { excluirCaminho } from "../servicos/exclusao-de-caminho.js";
+import {
+  criarArquivoNoProjeto,
+  criarPastaNoProjeto,
+  gravarConfinado,
+  renomearNoProjeto,
+} from "../servicos/escrita-confinada.js";
+import {
+  abrirParaTela,
+  lerParaEditor,
+  listarPasta,
+  listarProjeto,
+} from "../servicos/leitura-de-arquivo.js";
+import { respostaSegura as seguro } from "./resposta-segura.js";
 
 //* Registra os 37 canais de IPC. A janela chega INJETADA (ramo A1).
 export function registrarPonte(janelaViva: () => BrowserWindow | null): void {
-  //! Quem abre diálogo precisa de uma janela de verdade, e a recusa tem de
-  //!   chegar à tela como erro exibível — por isso estoura com a mesma frase
-  //!   que o monólito usava.
+  //! Quem abre dialogo precisa de uma janela de verdade, e a recusa tem de
+  //!   chegar a tela como erro exibivel — por isso estoura com a mesma frase que
+  //!   o monolito usava.
   const exigirJanela = (): BrowserWindow => {
     const janela = janelaViva();
     if (!janela) throw new Error("Janela não disponível.");
     return janela;
   };
 
+  // ── projeto ────────────────────────────────────────────────────────────────
+  ipcMain.handle("projeto:escolher", seguro(() => escolherPastaEEntrar(exigirJanela())));
 
-  ipcMain.handle(
-    "projeto:escolher",
-    seguro(async () => {
-      const pasta = await escolherPasta(exigirJanela(), "Abrir pasta da corrida");
-      if (!pasta) return null;
-      return entrarNaPasta(pasta);
-    }),
-  );
-
-  // Abrir uma pasta já conhecida (um recente), sem passar pelo diálogo.
+  //! `projeto:entrar` abre um recente sem passar pelo dialogo.
   ipcMain.handle("projeto:entrar", seguro((_e, raiz: string) => entrarNaPasta(raiz)));
-  ipcMain.handle("projeto:recentes", seguro(() => pastasRecentes()));
-  ipcMain.handle(
-    "projeto:esquecer",
-    seguro((_e, raiz: string) => {
-      esquecerPasta(raiz);
-      return pastasRecentes();
-    }),
-  );
+  ipcMain.handle("projeto:recentes", seguro(() => listarRecentes()));
+  ipcMain.handle("projeto:esquecer", seguro((_e, raiz: string) => esquecerRecente(raiz)));
 
-  // `projeto:abrir` também serve de "atualizar" para a árvore, e é chamado a
-  // cada criação de arquivo — religar o servidor ali reindexaria o projeto
-  // inteiro a cada toque. Por isso ele não liga nada.
-  ipcMain.handle("projeto:abrir", seguro((_e, raiz: string) => abrirProjeto(raiz)));
-  ipcMain.handle(
-    "projeto:inicial",
-    seguro(async () => {
-      // A linha de comando ganha da memória: quem digitou `bancada <pasta>`
-      // disse o que quer agora. Sem argumento, volta a última pasta aberta —
-      // reabrir o aplicativo no meio da mesma corrida é o caso comum, e
-      // procurar a pasta no diálogo todo dia é trabalho que a máquina faz.
-      const pasta = pastaPedidaNaLinha(RAIZ_APP, app.isPackaged) ?? ultimaPasta();
-      if (!pasta) return null;
-      return entrarNaPasta(pasta);
-    }),
-  );
-  /**
-   * O botão de fluxo (ADR 0027): escolher a linguagem e dizer onde, e a pasta
-   * nasce pronta com o arquivo principal aberto.
-   *
-   * `showSaveDialog` e não `showOpenDialog`: o diálogo de salvar já pergunta
-   * ONDE e COM QUE NOME de uma vez, que são as duas coisas que faltam. Com o de
-   * abrir seria escolher a pasta-mãe numa tela e digitar o nome em outra.
-   */
+  //! `projeto:abrir` tambem serve de "atualizar" para a arvore, e e chamado a
+  //!   cada criacao de arquivo — por isso ele nao liga nada.
+  ipcMain.handle("projeto:abrir", seguro((_e, raiz: string) => abrirParaTela(raiz)));
+  ipcMain.handle("projeto:inicial", seguro(() => abrirPastaInicial()));
+
   ipcMain.handle(
     "projeto:novo",
-    seguro(async (_e, fluxo: Fluxo) => {
-      const janela = exigirJanela();
-      if (fluxo !== "cpp" && fluxo !== "python" && fluxo !== "csharp") {
-        throw new Error("Fluxo desconhecido.");
-      }
-
-      const onde = await escolherOndeSalvar(
-        janela,
-        `Novo projeto ${NOME_DO_FLUXO[fluxo]}`,
-        "Criar aqui",
-        path.join(ultimaPasta() ?? homedir(), `projeto-${fluxo}`),
-      );
-      if (!onde) return null;
-
-      const principal = await criarProjeto(onde, fluxo);
-      const projeto = await entrarNaPasta(onde);
-      return { projeto, principal, fluxo };
+    seguro((_e, fluxo: Fluxo) => {
+      if (!ehFluxoConhecido(fluxo)) throw new Error("Fluxo desconhecido.");
+      return escolherECriar(exigirJanela(), fluxo);
     }),
   );
 
   /**
-   * O botão Rodar (ADR 0030): que linha roda o que está nesta pasta.
+   * O botao Rodar (ADR 0030): que linha roda o que esta nesta pasta.
    *
-   * Não executa nada — devolve a linha, e quem a executa é o mesmo caminho da
-   * linha de comando. Assim o que aparece na tela é exatamente o que rodou, e o
-   * histórico do ↑ recebe a linha como se tivesse sido digitada.
+   * Nao executa nada — devolve a linha, e quem a executa e o mesmo caminho da
+   * linha de comando. Assim o que aparece na tela e exatamente o que rodou, e o
+   * historico do seta-para-cima recebe a linha como se tivesse sido digitada.
    */
   ipcMain.handle(
     "projeto:como-rodar",
-    seguro((_e, raiz: string, fluxo: Fluxo) => {
+    seguro((_e, raiz: unknown, fluxo: unknown) => {
       if (typeof raiz !== "string" || raiz.length === 0) throw new Error("Sem pasta aberta.");
-      if (fluxo !== "cpp" && fluxo !== "python" && fluxo !== "csharp") {
+      if (!ehFluxoConhecido(fluxo)) {
         throw new Error("Marque a linguagem no botão de fluxo primeiro.");
       }
       return comoRodar(raiz, fluxo);
     }),
   );
 
-  ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listar(dir)));
-  ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarTudo(raiz)));
+  ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listarPasta(dir)));
+  ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarProjeto(raiz)));
 
-  ipcMain.handle(
-    "arquivo:ler",
-    seguro((_e, arquivo: string) => {
-      // Ler **não** é confinado à pasta aberta, e é de propósito: o traceback
-      // clicável abre o quadro dentro da biblioteca, o `F12` vai à definição no
-      // biblioteca. Fechar aqui quebraria o salto do traceback.
-      // O que se protege é o único segredo que existe.
-      if (typeof arquivo !== "string" || arquivo.length === 0 || arquivo.includes("\0")) {
-        throw new Error("O arquivo não é válido.");
-      }
-      const abs = path.resolve(arquivo);
-      const alvo = existsSync(abs) ? realpathSync(abs) : abs;
-      if (alvo === path.resolve(path.join(PASTA_CONFIG, "config.json"))) {
-        throw new Error("config.json é a configuração do Terminus — não abre no editor.");
-      }
-      if (!ehTexto(alvo)) {
-        throw new Error(`${path.basename(alvo)} não é arquivo de texto — o Terminus não sabe abrir.`);
-      }
-      return lerArquivo(alvo);
-    }),
-  );
-
+  // ── arquivo e pasta ────────────────────────────────────────────────────────
+  ipcMain.handle("arquivo:ler", seguro((_e, arquivo: unknown) => lerParaEditor(arquivo)));
   ipcMain.handle(
     "arquivo:gravar",
-    seguro((_e, arquivo: string, conteudo: string) => {
-      if (typeof conteudo !== "string") throw new Error("Conteúdo inválido.");
-      return gravarArquivo(confinado(arquivo, raizesDeEscrita(), "arquivo"), conteudo);
-    }),
+    seguro((_e, arquivo: unknown, conteudo: unknown) => gravarConfinado(arquivo, conteudo)),
   );
-
   ipcMain.handle(
     "arquivo:criar",
-    seguro((_e, raiz: string, dir: string, nome: string) => criarArquivo(raiz, dir, nome)),
+    seguro((_e, raiz: string, dir: string, nome: string) => criarArquivoNoProjeto(raiz, dir, nome)),
   );
   ipcMain.handle(
     "pasta:criar",
-    seguro((_e, raiz: string, dir: string, nome: string) => criarPasta(raiz, dir, nome)),
+    seguro((_e, raiz: string, dir: string, nome: string) => criarPastaNoProjeto(raiz, dir, nome)),
   );
   ipcMain.handle(
     "caminho:renomear",
-    seguro((_e, raiz: string, antigo: string, nome: string) => renomear(raiz, antigo, nome)),
+    seguro((_e, raiz: string, antigo: string, nome: string) => renomearNoProjeto(raiz, antigo, nome)),
   );
-
   ipcMain.handle(
     "caminho:excluir",
-    seguro(async (_e, alvo: string) => {
-      const janela = exigirJanela();
-      protegerPastaDeTrabalho(alvo);
-      const nome = path.basename(alvo);
-      const temLixeira = aLixeiraAlcanca(alvo, app.getPath("home"));
-
-      if (!(await perguntarExclusao(janela, nome, temLixeira))) return false;
-
-      // Lixeira, não `unlink`. Numa pasta pode haver arquivo insubstituível;
-      // apagar de vez a partir de um clique errado não é reversível.
-      if (temLixeira) {
-        await shell.trashItem(alvo);
-      } else {
-        rmSync(alvo, { recursive: true, force: true });
-      }
-      return true;
-    }),
+    seguro((_e, alvo: string) => excluirCaminho(alvo, exigirJanela(), app.getPath("home"))),
   );
 
-
-  // Aparência: papel de parede e tema (ADR 0010) — o que sobrou dela na casca.
+  // ── aparencia (ADR 0010) ───────────────────────────────────────────────────
   ipcMain.handle(
     "aparencia:estado",
     seguro(() => ({ ...lerAparencia(), imagem: lerWallpaper() })),

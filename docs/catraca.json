@@ -1,8 +1,8 @@
 {
-  "fatia": "4 — a janela ganha camada (A1 + A3)",
-  "M1": 12,
+  "fatia": "5 — o caso de uso ganha casa (sistema/servicos/)",
+  "M1": 11,
   "M2": 2,
   "M3": 0,
-  "M4": 12,
-  "porque": "PREVISAO ERRADA, e o portao a pegou: declarei 10 e o medido foi 12, exit 1. O mecanismo, contado aresta a aresta: saiu infra/kits-embutidos (foi para partida.ts), e entraram TRES — janela/dialogos-do-sistema (ramo A3), janela/janela-principal (so pelo RAIZ_APP) e infra/argumentos-da-partida (era inline no monolito). 10 - 1 + 3 = 12. Re-declarado com a causa medida, e o ALVO FINAL nao se move: continua <= 2 na fatia 6."
+  "M4": 13,
+  "porque": "M1 cai de 12 para 11: o registrador para de falar com infra/arquivos-do-projeto, infra/molde-de-projeto, infra/resolucao-de-caminho, infra/alcance-da-lixeira, infra/argumentos-da-partida e janela/janela-principal, e passa a falar com cinco servicos. So cai a <=2 quando o registrador se dividir (fatia 6). M4 fecha 13/13 com sistema/servicos."
 }
