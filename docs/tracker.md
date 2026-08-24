@@ -463,3 +463,55 @@ Instrumento que não morde nada não prova nada; este morde, e a mordida foi med
 | herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, prosa de laboratório | a cabeça |
 | do despacho 1 | o desvio de planta (sem `tests/arquitetura` e `tests/funcionais`), o nome do arquivo do preload, e o "empacote" descoberto na P3 | a cabeça |
 | **rede do A2** | a conduta nova do botão do Konsole **não tem teste permanente** — a prova foi sonda de uso único. Enquanto `servicos/` e `motores/` não tiverem rede, o portão fica verde se alguém a desfizer | a cabeça |
+
+---
+
+## 10. Corrida 3 — 24/08/2026: a rede de `servicos/` e do motor, e as três decisões da cabeça
+
+> **A ordem é da cabeça, e ela importa:** a rede vem PRIMEIRO (§6, test-first), porque é o que
+> a A3(a) esperava e o que faltava à A2. Só depois a A3(a), que muda conduta — com a rede no
+> lugar, o diff dos testes mostra exatamente o que passou a ser recusado. Depois A4(b) e A6.
+
+### 10.1 · ⚠️ MUDANÇA DE PERNA DECLARADA ANTES (§12·4a)
+
+A perna **P1** muda de comando e de número. Está escrito aqui **antes** da primeira linha de
+teste, porque perna declarada depois do resultado não é perna declarada.
+
+| o que muda | de | para |
+|---|---|---|
+| **comando da P1** | `node --test "tests/**/*.test.ts"` | `node --import ./tests/apoio/gancho-de-modulos.ts --test "tests/**/*.test.ts"` |
+| **nº de testes da P1** | **26** (só `dominio/`) | **26 + os novos** — o número final entra aqui medido, nunca estimado |
+
+**Por que a P1 precisa de um gancho, e é medição, não preferência.** Medi os quatro obstáculos
+antes de escolher a forma:
+
+| # | obstáculo medido | comando |
+|---|---|---|
+| 1 | `import { app } from "electron"` dá **`SyntaxError: Named export 'app' not found`** — o pacote `electron` é CJS e resolve para uma **string** com o caminho do binário. Qualquer módulo no fecho de `servicos/` morre no *link*, antes de rodar | `node --input-type=module -e 'import { app } from "electron"'` |
+| 2 | a produção importa com **`.js`** (o Vite resolve) e o disco tem **`.ts`** → `ERR_MODULE_NOT_FOUND`. Já estava declarado na P1 desde 23/08; só não mordia porque `dominio/` não tem import relativo | medido ao carregar `escrita-confinada.ts` |
+| 3 | `PASTA_CONFIG` (`configuracao-salva.ts:15`) nasce de `os.homedir()` **no carregamento do módulo** — e em ESM todo `import` estático roda **antes** da primeira linha do corpo. Redirecionar `HOME` dentro do arquivo de teste chegaria tarde | leitura da fonte |
+| 4 | `RAIZ_APP` (`janela-principal.ts:19`) avalia `app.isPackaged` **no carregamento** — o duble precisa existir antes do primeiro import | leitura da fonte |
+
+**A alternativa que EXISTE e foi recusada, com o número:** `t.mock.module()` do `node:test`.
+Medido — `typeof mock.module` é **`undefined`** neste Node (v22.23.1) sem
+`--experimental-test-module-mocks`. A flag traz `ExperimentalWarning` na saída, e a P1 exige
+saída limpa. **Recusada por medição, não por gosto.**
+
+**O que o gancho faz — exatamente duas coisas, e nenhuma muda conduta:**
+1. resolve o especificador `electron` para `tests/apoio/electron-duble.ts`;
+2. resolve `./x.js` para `./x.ts` **quando o `.js` não existe e o `.ts` existe** — é a mesma
+   ponte que `ferramentas/portao.mjs:41-42` já documenta (*"os dois viram o mesmo alvo aqui"*).
+
+**O que fica DESCOBERTO, e fica escrito porque preço não escrito é preço escondido:**
+
+| descoberto | por quê |
+|---|---|
+| o `electron` de verdade | o duble responde o que o teste mandar. A rede prova a **ordem e a decisão** do caso de uso — não prova que `dialog.showOpenDialog` abre janela. Isso é da **P5**, e é por isso que P5 não é opcional |
+| o PTY vivo | nenhum teste sobe shell de verdade. Subir um arrisca deixar processo órfão — foi o erro nº 1 do despacho 1 — e o ganho não paga. `iniciarShell`/`enviarAoShell`/`redimensionarShell` seguem cobertos só pela P5 |
+| o duble pode divergir do `electron` real | mitigado, e não só afirmado: o `tsc` continua conferindo a produção **contra os tipos reais** do `electron` (o gancho é só de runtime), e o duble mora em `tests/`, dentro do `include` do tsconfig, então também é conferido |
+
+**A trava de segurança mora no gancho, não na disciplina de cada teste.** O `HOME` é
+redirecionado para uma pasta temporária **pelo próprio gancho**, antes de qualquer módulo
+carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo pedido, porque
+"a sétima rota é a que alguém esquece" — e aqui esquecer significa escrever no
+`~/.config/terminus/` **de quem roda a suíte**.
