@@ -1,8 +1,8 @@
 {
-  "fatia": "5 — o caso de uso ganha casa (sistema/servicos/)",
-  "M1": 11,
+  "fatia": "6 — o registrador se divide em oito (E2): o alvo da corrida",
+  "M1": 2,
   "M2": 2,
   "M3": 0,
   "M4": 13,
-  "porque": "M1 cai de 12 para 11: o registrador para de falar com infra/arquivos-do-projeto, infra/molde-de-projeto, infra/resolucao-de-caminho, infra/alcance-da-lixeira, infra/argumentos-da-partida e janela/janela-principal, e passa a falar com cinco servicos. So cai a <=2 quando o registrador se dividir (fatia 6). M4 fecha 13/13 com sistema/servicos."
+  "porque": "O ALVO. M1 cai de 11 para 2 — o teto do E2. Nenhum registrador alcanca mais que dois modulos de sistema/ fora da propria camada."
 }
