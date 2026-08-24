@@ -15,8 +15,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["codigos/**/*.ts", "codigos/**/*.d.ts", "electron.vite.config.ts"],
+  "include": ["codigos/**/*.ts", "codigos/**/*.d.ts", "tests/**/*.ts", "electron.vite.config.ts"],
   "exclude": ["node_modules", "out", "legado-extensao"]
 }
