@@ -6,8 +6,13 @@
 //!    ordem errada — é o que o teste da pasta sumida faz.
 //! 2. ⚠️ AS ABERTURAS BEM-SUCEDIDAS MORAM NO CORPO DO MÓDULO, e não em `before` nem dentro
 //!    de `test`. Motivo medido (árvore **A8**): `entrarNaPasta` dispara `cdNeovim`, que
-//!    produz rejeição não tratada quando o socket do Neovim não existe — e o `node --test`
+//!    produzia rejeição não tratada quando o socket do Neovim não existe — e o `node --test`
 //!    reprova o arquivo se ela nascer dentro de gancho ou de teste, mesmo com tratador.
+//!    ⚠️ **A CAUSA MORREU EM 24/08**, e fica escrito para não virar comentário mentiroso: a
+//!    A8 foi consertada no mesmo dia, `cdNeovim` não vaza mais nada, e a metade do parágrafo
+//!    acima que fala do `node --test` continua verdadeira mas **não se aplica mais aqui**.
+//!    A forma poderia voltar ao `before` idiomático — não voltou porque isso é refatoração
+//!    de andaime, fora da fatia que consertou a A8. Registrado como árvore **A11**.
 //! 3. A abertura que FALHA pode ficar dentro do teste, e a razão é do código: `abrirProjeto`
 //!    estoura ANTES de `cdNeovim` ser chamado. Se um dia a ordem mudar, este arquivo passa a
 //!    reprovar — e isso é o aviso funcionando, não um teste frágil.
@@ -18,7 +23,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { casa, pastaNova } from "../apoio/casa-de-teste.ts";
 import { PASTA_CONFIG } from "../../codigos/sistema/motores/configuracao-salva.ts";
-import { esperarAsAtrasadas, inesperadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { esperarAsAtrasadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import {
   entrarNaPasta,
   esquecerRecente,
@@ -104,8 +109,10 @@ describe("recentes", () => {
 });
 
 describe("o andaime não está escondendo nada", () => {
-  test("nenhuma rejeição INESPERADA vazou durante a suíte", async () => {
+  test("NENHUMA rejeição não tratada vazou durante a suíte", async () => {
     await esperarAsAtrasadas();
-    assert.deepEqual(inesperadas(), []);
+    //! A asserção era "nada INESPERADO" enquanto a A8 vazava o `connect ENOENT` do socket
+    //!   do Neovim. Consertada a A8 em 24/08, o perdão saiu e a exigência passou a ser total.
+    assert.deepEqual(naoTratadas, []);
   });
 });

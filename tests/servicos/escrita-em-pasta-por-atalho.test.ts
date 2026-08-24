@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { casa, pastaNova } from "../apoio/casa-de-teste.ts";
-import { esperarAsAtrasadas, inesperadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { esperarAsAtrasadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import {
   entrarNaPasta,
   pastaAberta,
@@ -43,6 +43,7 @@ symlinkSync(real, atalho, "dir");
 const deFora = pastaNova("fora-do-projeto");
 
 //! No corpo do módulo pela A8 — ver `tests/servicos/abertura-de-projeto.test.ts`, item 2.
+//!   A A8 foi consertada em 24/08 e a forma sobreviveu à causa (árvore **A11**).
 const aberto = await entrarNaPasta(atalho);
 await esperarAsAtrasadas();
 
@@ -103,8 +104,10 @@ describe("consertar a A9 NÃO afrouxou a guarda", () => {
 });
 
 describe("o andaime não está escondendo nada", () => {
-  test("nenhuma rejeição INESPERADA vazou durante a suíte", async () => {
+  test("NENHUMA rejeição não tratada vazou durante a suíte", async () => {
     await esperarAsAtrasadas();
-    assert.deepEqual(inesperadas(), []);
+    //! A asserção era "nada INESPERADO" enquanto a A8 vazava o `connect ENOENT` do socket
+    //!   do Neovim. Consertada a A8 em 24/08, o perdão saiu e a exigência passou a ser total.
+    assert.deepEqual(naoTratadas, []);
   });
 });

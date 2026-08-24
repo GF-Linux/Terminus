@@ -6,6 +6,8 @@
 //! 2. ⚠️ A CRIAÇÃO BEM-SUCEDIDA MORA NO CORPO DO MÓDULO (árvore **A8**): ela chama
 //!    `entrarNaPasta`, que dispara `cdNeovim`. O caso que RECUSA pode ficar dentro do teste,
 //!    porque estoura antes de chegar lá.
+//!    ⚠️ A CAUSA MORREU EM 24/08 — A8 consertada, `cdNeovim` não vaza mais. Ver o item 2 de
+//!    `tests/servicos/abertura-de-projeto.test.ts` e a árvore **A11**.
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
@@ -13,7 +15,7 @@ import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import * as path from "node:path";
 import { casa, janelaDeTeste, pastaNova } from "../apoio/casa-de-teste.ts";
 import { controle } from "../apoio/electron-duble.ts";
-import { esperarAsAtrasadas, inesperadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { esperarAsAtrasadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import { pastaAberta } from "../../codigos/sistema/servicos/abertura-de-projeto.ts";
 import { escolherECriar } from "../../codigos/sistema/servicos/criacao-de-projeto.ts";
 
@@ -75,8 +77,10 @@ describe("os dois jeitos de não criar nada", () => {
 });
 
 describe("o andaime não está escondendo nada", () => {
-  test("nenhuma rejeição INESPERADA vazou durante a suíte", async () => {
+  test("NENHUMA rejeição não tratada vazou durante a suíte", async () => {
     await esperarAsAtrasadas();
-    assert.deepEqual(inesperadas(), []);
+    //! A asserção era "nada INESPERADO" enquanto a A8 vazava o `connect ENOENT` do socket
+    //!   do Neovim. Consertada a A8 em 24/08, o perdão saiu e a exigência passou a ser total.
+    assert.deepEqual(naoTratadas, []);
   });
 });

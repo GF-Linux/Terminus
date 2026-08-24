@@ -29,6 +29,13 @@ import { decodeMultiStream, encode } from "@msgpack/msgpack";
 export interface NeovimFalso {
   /** Os pedidos que chegaram, na ordem, como `metodo(argumentos em JSON)`. É a prova do QUE foi mandado. */
   pedidos: string[];
+  /** Quantas conexões o falso ACEITOU. Uma tentativa do motor deve valer UMA. */
+  //! ⚠️ ESTE CONTADOR NASCEU DE UMA SABOTAGEM QUE NÃO MORDEU: trocar
+  //!   `attach({ reader, writer })` por `attach({ socket })` — que abre uma SEGUNDA conexão
+  //!   por dentro, ao lado da que o motor já validou — não fazia teste nenhum falhar. O
+  //!   desperdício era invisível: um descritor de arquivo a mais por tentativa, até 25 por
+  //!   ciclo de reconexão. Contar conexões é o que torna a escolha conferível.
+  conexoesAceitas: number;
   /** O que `nvim_exec_lua` devolve — é por ele que o painel de plugins recebe a lista. */
   respostaLua: unknown;
   /** Para de escutar e encerra as conexões abertas. */
@@ -48,6 +55,7 @@ export async function subirNeovimFalso(caminho: string, modo: ModoDoFalso = {}):
   const conexoes = new Set<Socket>();
 
   const servidor: Server = createServer((conexao) => {
+    controle.conexoesAceitas += 1;
     conexoes.add(conexao);
     conexao.on("close", () => conexoes.delete(conexao));
     //! Socket sem tratador de `error` derruba o processo pelo EventEmitter, não por promessa.
@@ -72,6 +80,7 @@ export async function subirNeovimFalso(caminho: string, modo: ModoDoFalso = {}):
 
   const controle: NeovimFalso = {
     pedidos,
+    conexoesAceitas: 0,
     respostaLua: [],
     async parar(): Promise<void> {
       for (const c of conexoes) c.end();

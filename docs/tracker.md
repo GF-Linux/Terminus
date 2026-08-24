@@ -551,7 +551,7 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **as opções** | **(a) pôr teto no `eval`** — `Promise.race([c.eval("1"), teto(300ms)])`, e o laço volta a tentar 25 vezes de verdade. Três linhas, e é o que faz o comentário do arquivo virar verdade. **(b) tratar o erro do socket na origem** — pegar o `error` do transporte para a rejeição não escapar, além do teto. **(c) (a)+(b) juntas**, que é o conserto inteiro. **(d) deixar como está e REGISTRAR** — a marca `//?` e esta árvore; o silêncio continua |
 | **minha recomendação** | **(c)**, e não é preferência estética: (a) sozinha destrava o laço mas a rejeição não tratada continua vazando — e ela é o que mata o processo em node puro, que é onde a **suíte** roda. As duas juntas fazem o código cumprir o que ele já promete por escrito. **Não apliquei**: é conduta, não estava no despacho, e mexe num motor sem rede — que é exatamente a ordem que este despacho está corrigindo |
 | **se ficar para depois** | **fica mais BARATO depois**, e por um motivo concreto: com a rede de `motores/` de pé, (c) nasce com teste antes. Hoje seria conserto sem rede, no motor, que é o que a corrida veio evitar |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor. Nenhuma conduta mudou. Marca `//?` posta em `controle-neovim-rpc.ts`, e a rede de `escrita-confinada` **captura** a rejeição em vez de escondê-la (`tests/apoio/rejeicoes-nao-tratadas.ts`) |
+| **DESFECHO** | **APLICADA em 24/08/2026, opção (c), decidida pela cabeça.** Adiada mais cedo no mesmo dia (devolvida pelo executor, nenhuma conduta mudou); retomada no despacho seguinte com a ordem *rede primeiro*. O conserto e as suas medições estão em **§13.2** |
 
 ### 10.4 · A9 — pasta aberta por ATALHO recusava toda escrita — árvore de decisão (§12·3a) · **APLICADA 24/08/2026**
 
@@ -949,3 +949,100 @@ As corridas 1–4 provaram conduta preservada com *"**37**, idênticos por `diff
 `projeto:fechar` **de propósito**. A asserção passa a ser: **os 37 da linha de base, idênticos
 por `diff`, mais 1 novo declarado — total 38.** Um número re-declarado com a causa ao lado vale
 mais que um número preservado em cima de um defeito.
+
+### 13.2 · A8(c) APLICADA — o laço destravado e o vazamento parado
+
+**O conserto tem duas metades, e a medição mostrou que uma sem a outra não fecha.**
+
+| metade | o que mudou | por quê, medido |
+|---|---|---|
+| **(b) a conexão é NOSSA** | `abrirSoquete()` abre o socket, espera o `connect`, e **só então** `attach({ reader, writer })` | `attach({ socket })` num socket ausente produz `connect ENOENT` em **5 ms** como **rejeição não tratada** — e ela nasce dentro do pacote (`neovim/lib/utils/transport.js:87`, `iter.next().then(...)` sem ramo de erro). ⚠️ **Pôr tratador de `error` no socket NÃO basta**: medido, com o socket já falhado o `attach` ainda vaza. O que corta é **não anexar em socket morto** |
+| **(a) teto na confirmação** | `comTeto(c.eval("1"), 300 ms)` | um socket que **aceita** a conexão e não fala msgpack faz `eval` **nunca assentar** — medido, nem em 800 ms nem nunca. É o mesmo mecanismo da A8 por outra porta, e é o único caso que a metade (b) não alcança |
+
+**Duas decisões minhas dentro do conserto, as duas por medição e nenhuma na letra da árvore:**
+
+**1. O laço passou a ser regido por PRAZO, não por contagem.** A árvore esboçava
+`Promise.race([c.eval("1"), teto(300ms)])` mantendo as 25 tentativas. A conta reprova o
+esboço: 25 × (300 + 120) = **10,5 s**, contra o *"Tenta por ~3 s"* que o arquivo promete por
+escrito — 3,5× a promessa. Com `PACIENCIA_MS = 3000` como prazo, a frase do autor volta a ser
+verdadeira qualquer que seja o custo de cada tentativa.
+
+**2. Socket largado com `end()`, nunca `destroy()`.** Medido: `destroy()` num socket já
+anexado faz o mesmo iterador rejeitar com `Premature close` — sem tratador. Largar com
+`destroy()` seria trocar o silêncio da A8 por um vazamento novo, com outro nome.
+
+#! ⚠️ UM ERRO MEU QUE O PRÓPRIO TESTE PEGOU: o laço parava **uma volta antes** do prazo, e a
+#!   asserção de "esperou o orçamento inteiro" mediu **2904 ms de 3000**. A causa era conferir
+#!   o relógio antes de dormir a espera cheia. A última espera passou a ser **aparada no que
+#!   resta**, e o "~3 s" virou literal em vez de aproximado.
+
+**A rede: três arquivos, três estados do mundo, 24 testes.**
+
+| arquivo | o mundo que ele monta | testes |
+|---|---|:---:|
+| `controle-neovim-rpc.test.ts` | **sem Neovim nenhum** — socket ausente por construção (`TMPDIR` privado) | 6 |
+| `controle-neovim-rpc-mudo.test.ts` | **socket que aceita e não fala** — a guarda do TETO | 4 |
+| `controle-neovim-rpc-com-neovim.test.ts` | **Neovim falso respondendo msgpack-RPC de verdade** | 15 |
+
+**O teste virou do avesso, e o diff é a prova.** O primeiro arquivo nasceu travando o defeito —
+*"as cinco funções PENDURAM"*, *"a rejeição VAZA"*, *"a segunda chamada herda a promessa
+morta"* — com o aviso do §12·3a·4 ao lado. Aplicada a A8(c), os **três ficaram vermelhos** e
+foram reescritos para a conduta pretendida. **A frase agora aparece de verdade**, e é ela que o
+teste cobra, verbatim, não um "algo retornou":
+
+```
+as quatro funções que carregam a frase rejeitam COM ela
+   → erro.message === "Neovim não respondeu ao canal de controle."
+```
+
+Uma quarta mudança de forma é resultado do conserto e não escolha: a montagem voltou do **corpo
+do módulo** para um `before` idiomático. Ela morava no corpo porque o `node --test` reprova o
+escopo onde uma rejeição não tratada nasce — e agora não nasce nenhuma.
+
+### 13.3 · As SABOTAGENS — quatro, e DUAS NÃO MORDERAM
+
+Cada sabotagem reverte **o conserto**, não um vizinho, e todas com `tsc` **exit 0**.
+
+| # | o que sabotei | mordeu? | resultado |
+|---|---|:---:|---|
+| 1 | `silent! write` → `write` | ✅ | 1 falha, a certa |
+| 2 | memo de `conectando` removido | ❌ → ✅ | **não mordeu**: o teste media o `cliente` guardado, não o memo. Refeito com chamadas **concorrentes**, morde: 1 falha |
+| 3 | teto neutralizado (metade **a**) | ✅ | 3 falhas no arquivo do socket mudo |
+| 4 | guarda `if (soquete)` removida (metade **b**) | ✅ | **6 falhas** — a do vazamento mais as 5 asserções de rejeição das suítes de `servicos/` |
+| 5 | `attach({reader,writer})` → `attach({socket})` | ❌ → ✅ | **não mordeu**: a suíte inteira seguiu verde abrindo **duas** conexões por tentativa. Fechado com contador de conexões no falso; refeito, morde: `expected 1, actual 2` |
+
+> **As duas que não morderam valem mais que as três que morderam.** Cada uma expôs um teste meu
+> que media a coisa errada — e o segundo caso era um desperdício de descritor de arquivo por
+> tentativa, até 25 por ciclo, que **nenhuma perna do portão veria**.
+
+#! ⚠️ E UMA TERCEIRA SABOTAGEM FOI REPROVADA POR MIM MESMO: a primeira tentativa de derrubar a
+#!   guarda deixou `tsc` em **exit 2** (o `soquete` ficava `Socket | null` na chamada de
+#!   `largarSoquete`). Pela lei que a corrida 4 escreveu — *sabotagem que quebra a compilação é
+#!   ruído* — ela não conta, e foi refeita com `tsc` limpo antes de eu acreditar no vermelho.
+
+#! ⚠️ E A SABOTAGEM DO TETO PENDUROU A SUÍTE: pus o teto em 24 h para "neutralizá-lo", e o
+#!   `setTimeout` de um dia **segura o laço de eventos** — o processo de teste não podia sair,
+#!   e o comando estourou 300 s. Morto por PID (nunca `pkill -f`, §15.4·8). O vermelho que eu
+#!   queria já estava colhido; a lição é que **neutralizar com um número absurdo cria um
+#!   segundo defeito** — um valor grande porém finito teria bastado.
+
+### 13.4 · O que a A8 arrastou junto, porque a causa dela morreu
+
+| onde | o que era | o que virou |
+|---|---|---|
+| `tests/apoio/rejeicoes-nao-tratadas.ts` | um filtro perdoava a assinatura da A8 por regex, e a asserção das suítes era *"nada INESPERADO vazou"* | o filtro e o regex **saíram**. A asserção é **"nada vazou"**, em 6 arquivos. Um perdão por assinatura sobrevive ao defeito e vira **buraco**: quem reintroduzisse o vazamento amanhã acharia a suíte verde |
+| `escrita-confinada.test.ts` | um `console.log` imprimia a contagem de rejeições **sem entrar no veredito** | removido. Era o enfeite que o §12·2 proíbe, e agora o número **trava** |
+| 5 arquivos de `servicos/` | comentários justificavam a montagem no corpo do módulo *"pela A8"* | anotados: a medição sobre o `node --test` continua verdadeira, **a rejeição não existe mais**, e a forma sobreviveu à causa → árvore **A11** |
+| `tests/apoio/gancho-de-modulos.ts` | a suíte dependia de o Terminus estar aberto na máquina de quem roda | `TMPDIR` redirecionado: o socket é **privado do processo** |
+
+### 13.5 · O portão da fatia A8
+
+| perna | resultado |
+|---|---|
+| P1 teste da peça | **ok — 127 passaram** (eram 102: +24 do canal de controle, +1 do contador de conexões) |
+| P2 verificação de tipo | ok |
+| P3 build | ok |
+| P4 alvo da corrida | M1 **2** · M2 **0** · M3 **0** · M4 **13/13** — como previsto em §13.1d |
+| P5 conduta | ok — porta+renderer+ipc responderam |
+
+**PORTÃO VERDE 5/5.** Duração da P1: **1,07 s → 6,5 s** (previsto ~7 s em §13.1a).

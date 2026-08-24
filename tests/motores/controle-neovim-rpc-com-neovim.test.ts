@@ -19,7 +19,7 @@
 
 import { test, describe, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { inesperadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import { subirNeovimFalso } from "../apoio/neovim-falso.ts";
 import { SOCKET_NEOVIM } from "../../codigos/sistema/motores/motor-neovim-pty.ts";
 import {
@@ -45,6 +45,7 @@ beforeEach(() => {
   //!   teste leria os pedidos do primeiro e passaria por herança.
   resetarControle();
   falso.pedidos.length = 0;
+  falso.conexoesAceitas = 0;
   falso.respostaLua = [];
 });
 
@@ -145,6 +146,16 @@ describe("cdNeovim — a pasta do editor segue a pasta da casca", () => {
 });
 
 describe("a conexão é reaproveitada, e `resetarControle` a descarta", () => {
+  test("uma tentativa abre UMA conexão, não duas — a que o motor validou é a que ele usa", async () => {
+    //! ⚠️ ESTE TESTE FECHA UM BURACO QUE UMA SABOTAGEM ABRIU. Trocar
+    //!   `attach({ reader, writer })` por `attach({ socket })` deixava a suíte inteira VERDE:
+    //!   o motor validava uma conexão e o pacote abria OUTRA por dentro, ao lado dela. Nada
+    //!   quebrava — só sobrava um descritor de arquivo por tentativa, até 25 por ciclo de
+    //!   reconexão. Só contando as conexões o desperdício vira falha.
+    await salvarNeovim();
+    assert.equal(falso.conexoesAceitas, 1);
+  });
+
   test("duas chamadas SEGUIDAS dão UM aperto de mão só — o cliente fica guardado", async () => {
     await salvarNeovim();
     await desfazerNeovim();
@@ -173,7 +184,6 @@ describe("a conexão é reaproveitada, e `resetarControle` a descarta", () => {
 
 describe("com o Neovim de pé, nada vaza", () => {
   test("nenhuma rejeição não tratada em toda a suíte", () => {
-    assert.deepEqual(inesperadas(), []);
     assert.deepEqual(naoTratadas, []);
   });
 });

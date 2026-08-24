@@ -17,12 +17,13 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { casa, janelaDeTeste, pastaNova } from "../apoio/casa-de-teste.ts";
 import { controle, reiniciarDuble } from "../apoio/electron-duble.ts";
-import { esperarAsAtrasadas, inesperadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { esperarAsAtrasadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import { entrarNaPasta } from "../../codigos/sistema/servicos/abertura-de-projeto.ts";
 import { excluirCaminho } from "../../codigos/sistema/servicos/exclusao-de-caminho.ts";
 
 const aberta = pastaNova("excluir");
 //! No corpo do módulo pela A8 — ver `tests/servicos/abertura-de-projeto.test.ts`, item 2.
+//!   A A8 foi consertada em 24/08 e a forma sobreviveu à causa (árvore **A11**).
 await entrarNaPasta(aberta);
 await esperarAsAtrasadas();
 
@@ -98,8 +99,10 @@ describe("os dois ramos, e a diferença entre eles", () => {
 });
 
 describe("o andaime não está escondendo nada", () => {
-  test("nenhuma rejeição INESPERADA vazou durante a suíte", async () => {
+  test("NENHUMA rejeição não tratada vazou durante a suíte", async () => {
     await esperarAsAtrasadas();
-    assert.deepEqual(inesperadas(), []);
+    //! A asserção era "nada INESPERADO" enquanto a A8 vazava o `connect ENOENT` do socket
+    //!   do Neovim. Consertada a A8 em 24/08, o perdão saiu e a exigência passou a ser total.
+    assert.deepEqual(naoTratadas, []);
   });
 });

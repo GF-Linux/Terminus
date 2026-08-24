@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { casa, pastaNova } from "../apoio/casa-de-teste.ts";
-import { esperarAsAtrasadas, inesperadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { esperarAsAtrasadas, naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import { entrarNaPasta, raizesDeEscrita } from "../../codigos/sistema/servicos/abertura-de-projeto.ts";
 import {
   confinado,
@@ -40,6 +40,12 @@ import {
 //!   o `node --test` atribui a rejeição ao escopo do gancho, não ao relógio. O corpo do
 //!   módulo roda antes de o runner começar a atribuir — é o único lugar onde o defeito
 //!   herdado não contamina o veredito da rede.
+//! ⚠️ A CAUSA MORREU EM 24/08, e isto fica escrito para o parágrafo acima não virar mentira:
+//!   a A8 foi consertada no mesmo dia — a conexão passou a ser aberta pelo motor, com
+//!   tratador na origem — e `entrarNaPasta` não vaza mais nada. A tabela de cinco medições
+//!   continua verdadeira sobre o `node --test`; o que não existe mais é a rejeição. A forma
+//!   sobreviveu à causa, e voltar ao `before` idiomático é refatoração de andaime, fora da
+//!   fatia que consertou a A8: registrado como árvore **A11**.
 const aberta: string = pastaNova("aberta");
 const deFora: string = pastaNova("de-fora");
 //! A pasta só fica gravável depois de ABERTA — é `entrarNaPasta` quem diz ao main qual é
@@ -183,14 +189,15 @@ describe("criar e renomear — confinados como o gravar, desde a A3(a)", () => {
 });
 
 describe("o andaime não está escondendo nada", () => {
-  test("nenhuma rejeição INESPERADA vazou durante a suíte", async () => {
+  test("NENHUMA rejeição não tratada vazou durante a suíte", async () => {
     await esperarAsAtrasadas();
-    //! A única explicada é a A8 (`connect ENOENT` no socket do Neovim), herdada e
-    //!   registrada no tracker. Qualquer outra reprova aqui em vez de sumir.
-    assert.deepEqual(inesperadas(), []);
-    //! Impresso, não afirmado: numa máquina com o Terminus aberto o socket existe e a
-    //!   A8 não aparece. Contar é informação; exigir seria falhar pelo ambiente alheio.
-    console.log(`      [A8] rejeições não tratadas nesta corrida: ${naoTratadas.length}`);
+    //! ⚠️ ESTA ASSERÇÃO ENDURECEU EM 24/08, e o que a afrouxava era um defeito, não uma
+    //!   limitação. Ela cobrava "nada INESPERADO", perdoando por assinatura o
+    //!   `connect ENOENT` que a A8 vazava daqui — e ao lado dela havia um `console.log`
+    //!   com a contagem, impressa sem entrar no veredito, que é justamente o enfeite que o
+    //!   §12·2 proíbe. Consertada a A8, o perdão e o enfeite saíram juntos: o número agora
+    //!   TRAVA, e vale zero.
+    assert.deepEqual(naoTratadas, []);
   });
 });
 

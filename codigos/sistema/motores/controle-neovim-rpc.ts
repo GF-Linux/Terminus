@@ -1,4 +1,5 @@
 import { attach, type NeovimClient } from "neovim";
+import { createConnection, type Socket } from "node:net";
 import type { PluginNvim } from "../../compartilhado/tipos.js";
 import { SOCKET_NEOVIM } from "./motor-neovim-pty.js";
 
@@ -13,6 +14,41 @@ import { SOCKET_NEOVIM } from "./motor-neovim-pty.js";
 //!    `<C-s>` como `<Esc>:w`, que gravava e jogava para fora do modo de inserção.
 //! 5. A casca intercepta o Ctrl+S antes de ele virar tecla e manda o `write`
 //!    por aqui.
+//? A RECONEXÃO — Decisão sobre por que ela deixou de pendurar 24/08/2026 (árvore A8)
+//!
+//! 1. O laço anterior prometia 25 tentativas em ~3 s e NUNCA FAZIA A SEGUNDA VOLTA. Ele
+//!    chamava `attach({ socket })`, que abre a conexão por dentro, e depois confirmava com
+//!    `await c.eval("1")`. Sem socket do outro lado essa promessa NÃO ASSENTA — nem resolve
+//!    nem rejeita —, então o `catch` do laço nunca rodava. E `conectando` é memoizado: toda
+//!    chamada seguinte herdava a mesma promessa morta, e Ctrl+S / Ctrl+Z / F12 / o terminal
+//!    do editor / o painel de plugins penduravam em silêncio pelo resto da sessão. A frase
+//!    escrita para este caso — "Neovim não respondeu ao canal de controle." — era inalcançável.
+//! 2. O CONSERTO TEM DUAS METADES, e uma sem a outra não basta:
+//!      (a) TETO na confirmação, para promessa que não assenta virar falha e o laço andar;
+//!      (b) A CONEXÃO É NOSSA — abrimos o socket, esperamos o `connect` e só então chamamos
+//!          `attach`. É isto que impede a rejeição não tratada: sem tratador, o
+//!          `connect ENOENT` vaza e MATA o processo em Node puro, que é onde a suíte roda.
+//! 3. ⚠️ NÃO BASTA PÔR TRATADOR DE `error` NO SOCKET E ENTREGÁ-LO AO `attach` — medido em
+//!    24/08: com o socket já falhado, `attach` ainda vaza o `connect ENOENT`, porque quem
+//!    rejeita é o iterador do transporte (`neovim/lib/utils/transport.js:87`, um
+//!    `iter.next().then(...)` sem ramo de erro). Por isso a ordem é conectar PRIMEIRO,
+//!    anexar DEPOIS — e nunca anexar em socket morto.
+//! 4. O RELÓGIO MANDA, NÃO A CONTAGEM, e a razão é aritmética: com 25 tentativas fixas e
+//!    teto de 300 ms, o pior caso seria 25 × (300 + 120) = 10,5 s — três vezes e meia o
+//!    "~3 s" que este arquivo promete por escrito. Com prazo, a promessa continua verdadeira
+//!    qualquer que seja o custo de cada tentativa.
+
+/** Quanto o canal espera o socket do Neovim aparecer, no total. É o "~3 s" desta página. */
+//! Exportado porque a rede precisa dimensionar a espera dela a partir DAQUI: um teste com
+//!   número próprio ficaria mentindo no dia em que este orçamento mudasse.
+export const PACIENCIA_MS = 3000;
+
+/** Intervalo entre uma tentativa e a seguinte. */
+const ESPERA_ENTRE_TENTATIVAS_MS = 120;
+
+/** Teto de UMA confirmação: socket que aceita e não responde não pendura o canal. */
+const TETO_DA_CONFIRMACAO_MS = 300;
+
 let cliente: NeovimClient | null = null;
 let conectando: Promise<NeovimClient | null> | null = null;
 
@@ -24,33 +60,80 @@ export function resetarControle(): void {
   conectando = null;
 }
 
+//* Espera `ms` sem segurar nada além do próprio relógio.
+function espera(ms: number): Promise<void> {
+  return new Promise((pronto) => setTimeout(pronto, ms));
+}
+
+//* Corre a promessa contra um relógio: o que não assenta a tempo vira falha, não pendura.
+//! A promessa original segue viva depois do teto, e é de propósito que ela continue com
+//!   tratador aqui: se rejeitar tarde, a rejeição já tem dono e não vaza.
+function comTeto<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((pronto, falhar) => {
+    const relogio = setTimeout(() => falhar(new Error("o Neovim não confirmou a tempo")), ms);
+    void promessa.then(
+      (valor) => {
+        clearTimeout(relogio);
+        pronto(valor);
+      },
+      (erro: unknown) => {
+        clearTimeout(relogio);
+        falhar(erro as Error);
+      },
+    );
+  });
+}
+
+//* Abre o socket de controle e só devolve depois que ele ESTÁ conectado. `null` = não deu.
+//! O tratador de `error` é permanente, não de uma vez: socket sem ouvinte de `error`
+//!   derruba o processo pelo EventEmitter, e isso vale também para a queda no meio da
+//!   sessão, muito depois desta função ter voltado.
+function abrirSoquete(caminho: string): Promise<Socket | null> {
+  return new Promise((pronto) => {
+    const soquete = createConnection(caminho);
+    soquete.on("error", () => pronto(null));
+    soquete.once("connect", () => pronto(soquete));
+  });
+}
+
+//* Larga um socket que aceitou a conexão e não respondeu.
+//! `end()`, NUNCA `destroy()` — medido em 24/08: `destroy()` faz o iterador do transporte
+//!   rejeitar com `Premature close`, e essa rejeição não tem tratador dentro do pacote
+//!   `neovim`. Largar com `destroy()` seria trocar o silêncio da A8 por um vazamento novo.
+function largarSoquete(soquete: Socket): void {
+  soquete.end();
+}
+
 //* Devolve a conexão viva com o Neovim, criando-a na primeira chamada.
-//* Tenta por ~3 s porque o socket surge um instante depois do `spawn` — e
-//* alguém pode apertar Ctrl+S antes disso.
+//* Insiste por `PACIENCIA_MS` porque o socket surge um instante depois do `spawn` — e
+//* alguém pode apertar Ctrl+S antes disso. Esgotado o prazo, devolve `null`, e é esse
+//* `null` que vira a frase "Neovim não respondeu ao canal de controle." na tela.
 async function obter(): Promise<NeovimClient | null> {
   if (cliente) return cliente;
   if (conectando) return conectando;
   conectando = (async () => {
-    // O socket surge um instante depois do spawn; algumas tentativas cobrem a
-    // corrida entre o editor abrir e alguém apertar Ctrl+S logo de cara.
-    //? ⚠️ ESTE LAÇO NUNCA FAZ A SEGUNDA VOLTA — achado e medido em 24/08, árvore **A8**
-    //?   no tracker. `await c.eval("1")` NÃO ASSENTA quando o socket não existe (nem
-    //?   resolve nem rejeita), então o `catch` abaixo nunca roda e o laço trava na
-    //?   primeira tentativa. Como `conectando` é memoizado, todo Ctrl+S / F12 / painel
-    //?   de plugins seguinte pendura em silêncio — e a frase "Neovim não respondeu ao
-    //?   canal de controle" fica INALCANÇÁVEL, porque ela exige este laço terminar.
-    //?   Registrado, não consertado: é conduta em motor sem rede (§12·3a).
-    for (let tentativa = 0; tentativa < 25; tentativa++) {
-      try {
-        const c = attach({ socket: SOCKET_NEOVIM });
-        // uma chamada real confirma que o outro lado responde
-        await c.eval("1");
-        cliente = c;
-        conectando = null;
-        return c;
-      } catch {
-        await new Promise((r) => setTimeout(r, 120));
+    const prazo = Date.now() + PACIENCIA_MS;
+    for (;;) {
+      const soquete = await abrirSoquete(SOCKET_NEOVIM);
+      if (soquete) {
+        const c = attach({ reader: soquete, writer: soquete });
+        try {
+          // uma chamada real confirma que o outro lado responde
+          await comTeto(c.eval("1"), TETO_DA_CONFIRMACAO_MS);
+          cliente = c;
+          conectando = null;
+          return c;
+        } catch {
+          largarSoquete(soquete);
+        }
       }
+      //! A ÚLTIMA ESPERA É APARADA no que resta do prazo, e isto foi um teste que pegou:
+      //!   com a espera cheia, o laço parava uma volta ANTES do fim — medido, 2904 ms de um
+      //!   orçamento de 3000. Dormir além do prazo seria estourá-lo; dormir a espera inteira
+      //!   e só então conferir seria desperdiçar a última tentativa. O que resta é o certo.
+      const resta = prazo - Date.now();
+      if (resta <= 0) break;
+      await espera(Math.min(ESPERA_ENTRE_TENTATIVAS_MS, resta));
     }
     conectando = null;
     return null;

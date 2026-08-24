@@ -1,55 +1,50 @@
-//? CANAL DE CONTROLE SEM NEOVIM — a rede que trava a conduta de HOJE 24/08/2026
+//? CANAL DE CONTROLE SEM NEOVIM — a rede depois do conserto da A8 24/08/2026
 //!
-//! 1. ⚠️ TUDO O QUE ESTE ARQUIVO AFIRMA HOJE É O DEFEITO **A8**, NÃO A INTENÇÃO. É o §12·3a·4
-//!    em uso: a rede registra o que o código FAZ, com o aviso ao lado, para não passar a
-//!    mentir junto. Quando a A8 for consertada, cada teste daqui vira do avesso — e é o diff
-//!    deles que prova que o conserto pegou.
-//! 2. O DEFEITO, medido na corrida 3 e remedido aqui: o laço de `obter()` promete 25
-//!    tentativas em ~3 s, e **nunca faz a segunda volta**. `attach({socket})` num socket
-//!    ausente devolve um cliente cujo `eval` NUNCA ASSENTA — nem resolve nem rejeita —,
-//!    então o `catch` do laço nunca roda. Como `conectando` é memoizado, toda chamada
-//!    seguinte herda a mesma promessa morta.
-//! 3. A CONSEQUÊNCIA QUE ESTES TESTES TRAVAM: a frase que o autor escreveu para exatamente
-//!    este caso — *"Neovim não respondeu ao canal de controle."*, em `:66`, `:96`, `:112` e
-//!    `:121` — é **inalcançável**, porque exige que `obter()` resolva para `null`.
-//! 4. O SOCKET É GARANTIDAMENTE AUSENTE AQUI, e não por sorte: o gancho redireciona `TMPDIR`
+//! 1. ⚠️ ESTE ARQUIVO VIROU DO AVESSO EM 24/08, e o diff dele é a prova de que o conserto
+//!    pegou. Ele nasceu travando o DEFEITO — as cinco funções penduravam, a rejeição do
+//!    socket vazava, e a segunda chamada herdava a promessa morta — com o aviso do §12·3a·4
+//!    ao lado. Aplicada a A8(c), os três testes ficaram VERMELHOS e foram reescritos para a
+//!    conduta pretendida. Se este arquivo tivesse seguido verde sem mudar, o conserto não
+//!    teria pegado.
+//! 2. O QUE ELE TRAVA AGORA: que a frase que o autor escreveu para este caso —
+//!    *"Neovim não respondeu ao canal de controle."* — **aparece de verdade**. Ela existe em
+//!    quatro lugares do motor e, até 24/08, era inalcançável: exigia `obter()` resolver para
+//!    `null`, e `obter()` nunca resolvia.
+//! 3. O SOCKET É GARANTIDAMENTE AUSENTE AQUI, e não por sorte: o gancho redireciona `TMPDIR`
 //!    para a casa temporária deste processo, e `SOCKET_NEOVIM` nasce dela. Sem isso o teste
 //!    passaria ou falharia conforme o Terminus estivesse aberto na máquina de quem roda.
-//! 5. ⚠️ A MEDIÇÃO MORA NO CORPO DO MÓDULO, E NÃO DENTRO DOS TESTES, pela razão que
-//!    `escrita-confinada.test.ts:29-42` já mediu com cinco arquivos de isolamento: o
-//!    `node --test` REPROVA o teste em cujo escopo uma rejeição não tratada nasce, mesmo com
-//!    tratador instalado. E é justamente uma rejeição não tratada que a A8 produz. Tentei
-//!    primeiro dentro dos testes e colhi **3 falhas com `failureType: 'unhandledRejection'`** —
-//!    o defeito herdado reprovando a rede que veio medi-lo.
-//! 6. O TETO DE ESPERA É PROPOSITALMENTE MAIOR QUE O ORÇAMENTO DO CONSERTO. Um teto curto
-//!    diria "pendurou" também **depois** do conserto, e a rede seguiria verde escondendo a
-//!    mudança. Com `TETO_DA_ESPERA` acima do orçamento, o conserto obriga estes testes a
-//!    ficarem vermelhos — que é como o diff aparece.
+//! 4. A MONTAGEM MORA NUM `before`, E ISSO TAMBÉM É RESULTADO DO CONSERTO. Enquanto a A8
+//!    vivia, uma rejeição não tratada nascia no escopo do gancho e o `node --test` reprovava
+//!    o arquivo inteiro — medido, e é o que obrigou a versão anterior deste arquivo a fazer
+//!    as chamadas no corpo do módulo. Sem vazamento, o lugar idiomático voltou a servir.
+//! 5. UM CICLO SÓ PARA CINCO FUNÇÕES: elas dividem o `conectando` memoizado, então uma
+//!    espera de `PACIENCIA_MS` prova as cinco. Cinco esperas custariam cinco vezes o relógio.
 
-import { test, describe } from "node:test";
+import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
-import { naoTratadas, A8_SOCKET_NEOVIM } from "../apoio/rejeicoes-nao-tratadas.ts";
+import { naoTratadas } from "../apoio/rejeicoes-nao-tratadas.ts";
 import { SOCKET_NEOVIM } from "../../codigos/sistema/motores/motor-neovim-pty.ts";
 import {
   abrirNoNeovim,
   abrirTerminalNeovim,
   cdNeovim,
+  PACIENCIA_MS,
   pluginsNeovim,
   salvarNeovim,
 } from "../../codigos/sistema/motores/controle-neovim-rpc.ts";
 
-/** Acima do orçamento de paciência do canal — ver o item 6 do cabeçalho. */
-const TETO_DA_ESPERA = 5000;
+/** A frase que o autor escreveu para este caso, e que era inalcançável até 24/08. */
+const A_FRASE = "Neovim não respondeu ao canal de controle.";
 
-type Desfecho<T> = { tipo: "valor"; valor: T } | { tipo: "erro"; erro: Error } | { tipo: "pendurou" };
+type Desfecho = { tipo: "valor"; valor: unknown } | { tipo: "erro"; erro: Error } | { tipo: "pendurou" };
 
 //* Corre a promessa contra um relógio e diz QUEM GANHOU, em vez de esperar para sempre.
-//! O relógio NÃO é `unref`: no caso que este arquivo trava não há mais nada pendente no
-//!   laço de eventos, e um relógio solto deixaria o processo sair antes de ele disparar —
-//!   o teste terminaria sem veredito nenhum.
-function correrContraORelogio<T>(promessa: Promise<T>, ms: number): Promise<Desfecho<T>> {
-  return new Promise<Desfecho<T>>((pronto) => {
-    const relogio = setTimeout(() => pronto({ tipo: "pendurou" }), ms);
+//! O teto é o DOBRO do orçamento do canal, e derivado dele em vez de escrito à mão: assim
+//!   uma regressão que volte a pendurar aparece como "pendurou" — falha legível — em vez de
+//!   travar a suíte inteira sem veredito.
+function correrContraORelogio<T>(promessa: Promise<T>): Promise<Desfecho> {
+  return new Promise<Desfecho>((pronto) => {
+    const relogio = setTimeout(() => pronto({ tipo: "pendurou" }), PACIENCIA_MS * 2);
     void promessa.then(
       (valor) => {
         clearTimeout(relogio);
@@ -63,22 +58,28 @@ function correrContraORelogio<T>(promessa: Promise<T>, ms: number): Promise<Desf
   });
 }
 
-//! AS CINCO DE UMA VEZ, e não uma por vez, porque elas dividem o `conectando` memoizado:
-//!   um ciclo de espera prova as cinco, e cinco ciclos custariam cinco vezes o relógio.
-const cinco: Desfecho<unknown>[] = await Promise.all([
-  correrContraORelogio(salvarNeovim(), TETO_DA_ESPERA),
-  correrContraORelogio(abrirNoNeovim("/tmp/x.txt"), TETO_DA_ESPERA),
-  correrContraORelogio(abrirTerminalNeovim(), TETO_DA_ESPERA),
-  correrContraORelogio(pluginsNeovim(), TETO_DA_ESPERA),
-  correrContraORelogio(cdNeovim("/tmp"), TETO_DA_ESPERA),
-]);
+let cinco: Desfecho[];
+let quantoDemorou: number;
+let vazouNoCiclo: string[];
+let segundaChamada: Desfecho;
 
-/** O que vazou como rejeição não tratada durante o ciclo acima. */
-const vazou: string[] = naoTratadas.slice();
+before(async () => {
+  const comecou = Date.now();
+  cinco = await Promise.all([
+    correrContraORelogio(salvarNeovim()),
+    correrContraORelogio(abrirNoNeovim("/tmp/x.txt")),
+    correrContraORelogio(abrirTerminalNeovim()),
+    correrContraORelogio(pluginsNeovim()),
+    correrContraORelogio(cdNeovim("/tmp")),
+  ]);
+  quantoDemorou = Date.now() - comecou;
+  vazouNoCiclo = naoTratadas.slice();
 
-//! NÃO chama `resetarControle()` de propósito: o estado que sobrou do ciclo acima É o objeto
-//!   da medição seguinte. Limpá-lo mediria um canal virgem, não o canal memoizado morto.
-const segundaChamada: Desfecho<unknown> = await correrContraORelogio(salvarNeovim(), TETO_DA_ESPERA);
+  //! NÃO chama `resetarControle()` de propósito: o estado deixado pelo ciclo acima É o
+  //!   objeto da medição seguinte. Limpá-lo mediria um canal virgem, não o canal que
+  //!   acabou de desistir — que era justamente onde morava a metade memoizada do defeito.
+  segundaChamada = await correrContraORelogio(salvarNeovim());
+});
 
 describe("o socket de controle é ausente por construção, não por sorte", () => {
   test("SOCKET_NEOVIM mora na casa temporária deste processo", () => {
@@ -86,28 +87,53 @@ describe("o socket de controle é ausente por construção, não por sorte", () 
   });
 });
 
-describe("⚠️ DEFEITO A8 — a conduta de hoje, travada com o aviso ao lado (§12·3a·4)", () => {
-  test("⚠️ as quatro funções que carregam a frase PENDURAM, e cdNeovim junto", () => {
-    //? Depois do conserto, as quatro têm de REJEITAR com "Neovim não respondeu ao canal de
-    //?   controle." e o `cdNeovim` tem de VOLTAR em silêncio. Hoje nenhuma das cinco assenta.
+describe("sem Neovim escutando, o canal DESISTE e DIZ — era a A8", () => {
+  test("as quatro funções que carregam a frase rejeitam COM ela", () => {
+    //! A asserção é sobre a FRASE, não sobre "rejeitou": qualquer estouro faria um teste de
+    //!   "rejeitou" passar, inclusive o `TypeError` que a A8 produzia por outros caminhos.
+    //!   O que estava quebrado era exatamente a frase não poder aparecer.
+    const quatro = cinco.slice(0, 4);
     assert.deepEqual(
-      cinco.map((d) => d.tipo),
-      ["pendurou", "pendurou", "pendurou", "pendurou", "pendurou"],
-      "hoje nenhuma das cinco assenta — é o defeito A8",
+      quatro.map((d) => d.tipo),
+      ["erro", "erro", "erro", "erro"],
+      `esperava as quatro rejeitando; vieram ${JSON.stringify(quatro.map((d) => d.tipo))}`,
     );
+    for (const d of quatro) {
+      assert.equal((d as { erro: Error }).erro.message, A_FRASE);
+    }
   });
 
-  test("⚠️ a rejeição do socket VAZA sem tratador — é ela que mata o processo em node puro", () => {
-    //? Depois do conserto, NADA pode vazar: o erro do socket passa a ser tratado na origem.
+  test("cdNeovim volta em SILÊNCIO — ele é disparado por `entrarNaPasta`, que não pode cair", () => {
+    //? A assimetria é intencional e é do autor: `cdNeovim` tem `if (!c || !pasta) return;`.
+    //?   Abrir uma pasta com o Neovim fora do ar continua abrindo a pasta.
+    assert.deepEqual(cinco[4], { tipo: "valor", valor: undefined });
+  });
+
+  test("desiste DEPOIS de esperar o orçamento inteiro, não na primeira tentativa", () => {
+    //! O piso é a metade que importa: um "conserto" que devolvesse `null` na hora exibiria
+    //!   a frase e passaria no teste acima — e teria destruído a espera que existe para
+    //!   cobrir a corrida entre o Neovim subir e alguém apertar Ctrl+S.
     assert.ok(
-      vazou.some((m) => A8_SOCKET_NEOVIM.test(m)),
-      `esperava o connect ENOENT vazando; chegaram: ${JSON.stringify(vazou)}`,
+      quantoDemorou >= PACIENCIA_MS,
+      `esperava ao menos ${PACIENCIA_MS} ms de insistência; foram ${quantoDemorou} ms`,
+    );
+    assert.ok(
+      quantoDemorou < PACIENCIA_MS * 2,
+      `o orçamento é de ~${PACIENCIA_MS} ms e a espera foi de ${quantoDemorou} ms`,
     );
   });
 
-  test("⚠️ a segunda chamada herda a promessa MORTA em vez de tentar de novo", () => {
-    //? Depois do conserto, a segunda chamada tem de começar um ciclo NOVO e rejeitar com a
-    //?   frase — é a metade memoizada do defeito, e é ela que faz o silêncio durar a sessão inteira.
-    assert.equal(segundaChamada.tipo, "pendurou");
+  test("NADA vaza como rejeição não tratada — é o que matava o processo em Node puro", () => {
+    //? Até 24/08 o `connect ENOENT` do socket vazava aqui. Era ele que reprovava a suíte de
+    //?   `escrita-confinada` e que matou uma sonda de medição em silêncio, com exit 0.
+    assert.deepEqual(vazouNoCiclo, []);
+    assert.deepEqual(naoTratadas, []);
+  });
+
+  test("a segunda chamada TENTA DE NOVO e diz a frase — não herda promessa morta", () => {
+    //? Esta era a metade memoizada do defeito: `conectando` ficava pendente para sempre, e
+    //?   uma falha só condenava o recurso pela sessão inteira.
+    assert.equal(segundaChamada.tipo, "erro");
+    assert.equal((segundaChamada as { erro: Error }).erro.message, A_FRASE);
   });
 });
