@@ -292,6 +292,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **A2** | o botão ↗ do terminal anunciava *"Konsole aberto em …"* mesmo sem `konsole` na máquina: `abrirNoKonsole` devolvia a pasta **sincronamente**, e o ENOENT chegava depois, no `filho.on("error", () => {})`, onde morria. O `README:293-295` promete o contrário | **(a) aplicada em 24/08/2026, decidida pela cabeça:** conserto **só no motor** — ele passa a devolver `Promise<string>`, resolvendo no primeiro de {`spawn`, `error`}. Ponte, casca e README **não mudaram**: `respostaSegura` já aceitava `Promise<T> | T` e o ramo de erro da casca (:113) só era **inalcançável**. Medido de ponta a ponta — ver abaixo |
 | **A4** | `ehNossaLigacao` (`kits-embutidos.ts`) diz *"nossa"* para **qualquer** symlink, então um symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida — contra o item 5 do cabeçalho do arquivo e contra o `README:178-179` | **ADIADA — devolvida à cabeça em 24/08/2026, sem decisão.** A opção (a) do plano **não foi aplicada**: medida em fixture isolada, ela acerta **2 dos 4** casos. Conduta segue a herdada, com marca `//?` no código apontando para esta árvore |
 | **A5** | capacidade viva sem uso: os canais `arquivo:ler` e `arquivo:gravar` expostos e registrados **sem nenhum chamador no renderer**, mais dois exports órfãos sem porquê (`shellEstaVivo`, `neovimRodando`) | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os dois canais **ficam e ficam REGISTRADOS** (comentário `//?` na porta + esta árvore); os dois `EstaVivo` **saíram** — órfãos sem porquê, sem plano e sem teste |
+| **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **ADIADA — devolvida à cabeça em 24/08/2026.** Herdados (os 37 canais são idênticos à linha de base `ada7bfa`, medido). Nenhuma conduta mudou |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
 
 ### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
@@ -353,3 +354,110 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **minha recomendação** | **(b)**. O porquê do ler-largo está escrito e é bom; o que faltava era o registro da capacidade dormente — a mesma família do D4. Removê-la é decisão de **produto** sobre uma feature (traceback clicável) que só a cabeça sabe se vive |
 | **se ficar para depois** | igual — e o terceiro ato do §12·6, nascido em 24/08, faz o próximo fechamento listar isto de ofício |
 | **DESFECHO** | **(b) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A5). Fica **em aberto** para a cabeça: se o traceback clicável foi abandonado, (a) ganha força para `arquivo:ler` — o `gravar` fica, que é o confinado |
+
+### A6 · dois canais expostos sem chamador — árvore de decisão (§12·3a) · **EM ABERTO**
+
+> **De onde veio:** nenhum humano e nenhum auditor apontou estes dois. Eles saíram do **terceiro
+> ato do §12·6**, que nasceu em 24/08 justamente porque a varredura anterior era cega para o que
+> o repositório carrega **parado**. É o ato pagando o próprio preço no primeiro uso.
+
+| parte | |
+|---|---|
+| **o defeito** | **`neovim:parar`** — registrado em `ponte-neovim.ts:77`, exposto em `porta:116` como `api.neovim.parar()`. Nenhuma chamada no renderer (`interface/` **e** `design/`, busca larga). **`shell:pasta`** — registrado em `ponte-shell.ts:67-68`, exposto em `porta:144` como `api.shell.pasta()`. Nenhuma chamada. Nos dois casos **a função do motor está viva** e é usada pelo próprio main (`pararNeovim` em `janela-principal.ts:67` e `partida.ts:43`; `pastaDoShell` em `abrirNoKonsole`) — o que está morto é **o canal**, não a peça |
+| **o que custa deixar** | superfície de IPC alcançável por qualquer código do renderer, sem nenhum uso. `neovim:parar` deixa o renderer **matar o editor**; `shell:pasta` entrega a pasta corrente do shell. Hoje ninguém chama — um renderer comprometido chama. É a mesma família do A5, e a mesma gravidade: pequena, e real |
+| **as opções** | **(a) remover os dois canais** (registro + porta), preservando `pararNeovim` e `pastaDoShell`, que o main usa. Muda a contagem de canais de **37 para 35** — e essa contagem é a prova de conduta preservada da corrida 1, então o número teria de ser re-declarado com a causa. **(b) manter e REGISTRAR**, como o A5 fez: comentário na porta dizendo que dormem e por quê, se houver um porquê. **(c) deixar sem registro** — não é opção |
+| **minha recomendação** | **(a) para `neovim:parar`** — não achei intenção escrita para ele, e é o que tem o maior raio (mata o editor). **(b) para `shell:pasta`**, se a cabeça souber de uso planejado; **(a)** se não souber. **Não apliquei nenhuma das duas**: são conduta, não estavam no plano aprovado, e mexem no número que a corrida 1 usou como prova |
+| **se ficar para depois** | **igual** — não apodrece. O que muda é que o próximo fechamento os lista de novo, de ofício |
+| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, no fechamento |
+
+---
+
+## 9. Fechamento da corrida 2 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+> O passo 6 passou de **dois** atos para **três** em 24/08 (`jared-agent`, commit `28f2672`).
+> O terceiro é novo, e nasceu porque a varredura da corrida 1 era escopada ao *"que a corrida
+> moveu"* — escopo certo para o que cobre, e cego por construção para o que o repositório
+> carrega **parado**. Este é o primeiro fechamento a rodá-lo.
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+| nome/número removido ou mudado | onde ficou |
+|---|---|
+| `lerDoTwinny`, `Twinny` | **0 em código.** As 5 menções restantes são a árvore A1 no próprio tracker — registro, não uso |
+| `shellEstaVivo`, `neovimRodando` | **0 em código.** As 2 restantes são a árvore A5 aqui |
+| `PROIBIDOS` (a lista negra do M3) | **0 no repo** — trocada por `PERMITIDOS`, e `tracker:70`, que a descrevia por extenso, foi sincronizada |
+| `legado-extensao`, `extensionHost`, `*.vsix`, `make_ab1`, `comparativo-fantasma` | **0**, exceto `tracker:150` — prosa datada da árvore do D1, **listada e não alterada** de propósito |
+| as 3 frases de comentário trocadas (P2, P4) | **0 ocorrências** de cada uma |
+| **canais de IPC** | **37**, e o instrumento largo confirma: **idênticos ao fechamento da corrida 1 (`5c7dbd8`) E à linha de base (`ada7bfa`)**. Nenhum nasceu, morreu ou trocou de nome |
+| `.ts` em `codigos/` | **58** — inalterado (nenhum arquivo nasceu ou morreu) |
+| testes | **26**, todos verdes |
+| maior arquivo de `sistema/` | era **289** (`configuracao-salva`), hoje **285** (`motor-do-shell-pty`) — `tracker:239` atualizada, com a causa |
+
+⚠️ **Um erro meu de instrumento, registrado porque o método é o que precisa ser auditável
+(§15.4):** contei os canais três vezes e obtive **21**, **38** e **37**. O 38 veio de somar
+`grep -c` por arquivo (contava linha de comentário junto); o 21, de um regex de uma linha só
+(perdia as chamadas quebradas em várias linhas). **37 é o número, e é o que os docs já diziam.**
+Só o instrumento largo — regex com `re.S` sobre o arquivo inteiro — bate com a fonte.
+
+### Ato 2 — vitrine conferida
+
+| afirmação do README | conferida como | resultado |
+|---|---|---|
+| `npm run teste` — *"26 testes"* | **rodado** | 26 passaram, 0 falharam |
+| `npm run typecheck` | **rodado** | exit 0 |
+| `npm run portao` — *"as cinco pernas"* | **rodado** | **VERDE 5/5** |
+| a descrição do portão (:80-85) | lida contra `portao.mjs` | verdadeira: roda teste, tipo e build, mede M1-M4, trava em cada um, e sobe o app com `HOME` redirecionado |
+| **`README:16` — "Estado: v0.0.7"** | contra `package.json:5` **e** o topo do changelog | **os três dizem 0.0.7.** É a cláusula que a L2 acrescentou ao segundo ato, e ela fecha aqui |
+| `npx electron-rebuild -f -w node-pty` | **medido**: `node-pty` carregado dentro do runtime do Electron, com um PTY real respondendo | carrega e responde |
+| o bloco do lançador (`media/icon.png`, `media/terminus.desktop`) | `test -f` nos dois | os dois existem |
+| os 6 scripts do `package.json` | `build`, `typecheck`, `teste` rodados; `portao` rodado | exit 0 em todos |
+| `git clone git@github.com:GF-Linux/Terminus.git` | **NÃO conferido** | rede e `ssh` estão fora do que me é permitido. Fica declarado, não presumido |
+
+### Ato 3 — varredura do que NINGUÉM moveu
+
+**(a) exportado e canal SEM chamador, nome a nome, fora de `node_modules`/`out`.**
+
+| | |
+|---|---|
+| símbolos exportados em `codigos/` | **175**, examinados um a um |
+| **órfão de verdade** (sem uso em lugar nenhum) | **1** — `acharPython` (é o **D4**, já marcado e com desfecho). As 4 menções dele são documentação: órfão **conhecido**, não órfão **usado** |
+| exportados usados só dentro do próprio arquivo | **14** — `export` mais largo que o necessário. **Observação, não defeito**: têm chamador, e estreitar seria mexer no que ninguém pediu |
+| canais registrados | **37**, cada um seguido até o renderer |
+| **canais expostos sem chamador** | **4** — `arquivo:ler` e `arquivo:gravar` (**A5**, registrados) e **`neovim:parar` e `shell:pasta`** (**A6 — achados aqui, por mais nada**) |
+
+⚠️ **O instrumento do (a) foi construído, reprovado e refeito — e isto é o mais importante
+deste fechamento.** A primeira versão contava **menção** como **chamador**, e falhou duas vezes
+de formas instrutivas: **(1)** copiei o script para dentro da árvore examinada, e o
+*comentário do próprio script* citava `lerDoTwinny` — o medidor se escondeu de si mesmo;
+**(2)** uma linha de prosa neste tracker esconderia qualquer órfão que eu tivesse acabado de
+registrar. É o modo de falha nº 7 do §15.4 (*"o grep contou o texto junto do código"*), vivo.
+A versão 2 separa **código** de **prosa** e roda **de fora** da árvore. **Validação:** contra a
+árvore de ontem (`5c7dbd8`), ela acha **os quatro** órfãos que existiam — inclusive o
+`lerDoTwinny`, que é exatamente o que a varredura da v0.5.0 perdeu e que fez esta lei nascer.
+Instrumento que não morde nada não prova nada; este morde, e a mordida foi medida.
+
+**(b) resto de produto anterior — o que este repositório já foi.**
+
+| resto | destino |
+|---|---|
+| `.vscode/launch.json` e `tasks.json` (extensão de editor), `tsconfig` excluindo `legado-extensao`, `*.vsix`, bloco `tools/comparativo-fantasma/*` no `.gitignore` | **removidos** — é o P6 |
+| **`media/icon.svg:8`** — *"o erlenmeyer que estava aqui virou o ícone do painel do catálogo"*. **Não existe painel de catálogo neste repositório**: era do produto anterior, o mesmo cujo `npm run catalogo` o D1 removeu | **LISTADO**, não alterado — não estava no plano aprovado. Uma linha resolve, se a cabeça quiser |
+| **`docs/fluxo.md:314`** — *"máximo = 2 **(hoje: 7)**"*. O 7 é o número que **a própria corrida 1 retratou** no commit de fechamento dela (*"onde eu escrevi M1=7, o certo é 8"*), e "hoje" já não quer dizer hoje | **LISTADO** — afirmação falsa herdada do fechamento anterior. Não corrigida em silêncio, e não calada |
+| `tracker:150` cita `.gitignore:22-29`, que o P6 apagou | **LISTADO e deliberadamente intacto** — o tracker é registro datado (§10); reescrever o texto de uma árvore já decidida falsificaria o registro |
+| `.fasta`/`.fastq` no filtro TEXTO e a prosa *"script de laboratório"* (`arquivos-do-projeto.ts:76,84`) | **LISTADO** — o plano recusou consertar (R3) e eu concordo: fasta/fastq **são** texto e abrem legitimamente; remover pioraria a conduta |
+| `configuracao-salva.ts:156` — *"sob que nome o laboratório guarda material não publicado"* | **LISTADO** — enquadramento do produto anterior, mas o argumento (caminho de pasta é dado sensível) continua verdadeiro |
+| `*.ab1`/`*.fsa`/`*.scf`/`*.phd.1` no `.gitignore` | **MANTIDOS de propósito**, decisão da cabeça: parecem fóssil e são a última rede contra o commit acidental (§8·S1) |
+| duas pastas `CLAUDE-SECURITY-2026*/` no disco | **LISTADAS** — artefato de varredura anterior, **não rastreadas** pelo git (`git ls-files` = 0) e cobertas pelo `.gitignore`. Não vão junto de nenhum clone |
+| `casca-principal.ts:283-285`, `pagina.html:111-114` | **não são fóssil** — são o registro do que **saiu** e por quê. Ficam |
+
+### Pendências vivas ao fim desta corrida
+
+| # | o que é | quem decide |
+|---|---|---|
+| **A4** | `ehNossaLigacao` aceita qualquer symlink. Opção do plano medida em **2 de 4**; variante (b) em **4 de 4**. Devolvida | a cabeça |
+| **A6** | `neovim:parar` e `shell:pasta` expostos sem chamador. Devolvida | a cabeça |
+| **A3(a)** | uniformizar o confinamento de criar/renomear — depois que `servicos/` tiver rede de teste | a cabeça |
+| **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
+| **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
+| herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, prosa de laboratório | a cabeça |
+| do despacho 1 | o desvio de planta (sem `tests/arquitetura` e `tests/funcionais`), o nome do arquivo do preload, e o "empacote" descoberto na P3 | a cabeça |

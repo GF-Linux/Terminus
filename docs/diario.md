@@ -201,3 +201,124 @@ planta e no tracker, e a decisão de manter é da cabeça.
    e eu a segui, mas a ambiguidade que a E1 nasceu para matar sobrevive **no nome do arquivo**.
    Uma linha de `git mv` resolve, se a cabeça quiser.
 4. **P3 cobre "build" mas não "empacote"** — o Terminus não é empacotado, e isso segue descoberto.
+
+---
+
+## 2026-08-24 · Despacho 3 — o plano 02 do sugestor, bloco B. 8 propostas, 6 árvores, 8 commits.
+
+Cheguei com a lei mudada no mesmo dia: o §12 passo 6 ganhou um **terceiro ato** e o §12·3a um
+**quinto dever**. As duas emendas nasceram da corrida anterior — esta — e o fechamento de hoje
+é o primeiro a pagá-las.
+
+### O que apliquei, e o que devolvi
+
+| item | destino |
+|---|---|
+| P1 · P2 · P3 (4 sub-itens) | aplicados — doc e vitrine |
+| P4 + árvore A3(b) | aplicados — o comentário do confinamento passa a dizer a verdade |
+| P5 + P8 | aplicados — os dois mexem no medidor, e o medidor foi auditado com sabotagem |
+| P6 | aplicado — os fósseis de duas gerações |
+| P7 | aplicado — o D4 ganhou desfecho, que é a dívida que fez a lei mudar |
+| A1(a) | aplicada — `lerDoTwinny` apagado |
+| A2(a) | aplicada — **a única mudança de conduta**, e a mais medida |
+| A5(b) | aplicada — canais dormentes registrados, dois órfãos fora |
+| **A4(a)** | **NÃO aplicada — devolvida à cabeça com medição** |
+| **A6** | **nova, achada pelo terceiro ato — devolvida** |
+
+### O que MEDI, com o número
+
+| medida | valor | como |
+|---|---|---|
+| portão, todas as vezes | **VERDE 5/5** | 9 rodadas ao longo do despacho |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | catraca inalterada |
+| testes | 26, zero falhas | `npm run teste` |
+| canais de IPC | **37** — idênticos a `5c7dbd8` **e** a `ada7bfa` | extração larga + `diff` |
+| resíduo em `/tmp` antes do P5 | **1 pasta por rodada** | `ls -d /tmp/terminus-portao-*` |
+| resíduo depois do P5 | **0 em 2 rodadas seguidas** | idem |
+| `configuracao-salva.ts` | 289 → **228** linhas | `wc -l` |
+| símbolos exportados sem chamador | **1** (`acharPython`, já marcado) | instrumento próprio, validado |
+| canais expostos sem chamador | **4** (2 conhecidos, **2 novos**) | idem |
+| Node do Electron 33 | **v20.18.3**, evento `spawn` dispara | medido no runtime, não suposto |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. Meu instrumento de órfãos contou a MENÇÃO como CHAMADOR — e se escondeu de si mesmo.**
+Escrevi um script para o terceiro ato e o copiei **para dentro da árvore examinada**. O
+comentário do próprio script citava `lerDoTwinny` como exemplo — e o script então contou essa
+citação como uso e **não reportou o `lerDoTwinny` como órfão**. O medidor se apagou do próprio
+relatório. Pior: a lógica também deixava uma linha de prosa **neste tracker** esconder qualquer
+órfão que eu tivesse acabado de registrar.
+Só descobri porque **validei o instrumento contra a árvore de ontem, onde eu SABIA que havia
+três órfãos** — e ele achou dois. Se eu tivesse rodado só na árvore de hoje, teria escrito
+"zero órfãos" com um instrumento que qualquer frase silencia.
+Correção: v2 separa **código** de **prosa** (chamador mora em código; menção em doc é a outra
+coluna, e diz o contrário — órfão citado é órfão *conhecido*) e roda **de fora** da árvore.
+Revalidada: acha **os quatro** órfãos de ontem, inclusive o `lerDoTwinny`.
+> **A lição, e ela é geral: instrumento que não morde nada não prova nada.** Antes de acreditar
+> num "zero achados", rode o instrumento onde você já sabe que há achado.
+
+**2. Contei os 37 canais e obtive 21, depois 38, antes de acertar.** O 38 saiu de somar
+`grep -c` por arquivo — contava linha de comentário junto. O 21 saiu de um regex de uma linha
+só — perdia toda chamada quebrada em várias linhas, que são a maioria. Dois instrumentos
+estreitos, dois números errados, e **nenhum dos dois avisou que estava errado**. O certo veio do
+regex largo sobre o arquivo inteiro. É o §15.4 outra vez: *fechar o espaço de busca cedo demais*.
+
+**3. Minha varredura de canais esqueceu que `design/` também é renderer.** Rodei a busca de
+chamadores só em `codigos/interface/` e o relatório acusou **6** canais órfãos. Dois deles —
+`aparencia:estado` e `aparencia:tirar` — são chamados em
+`codigos/design/temas-e-papel-de-parede.ts`. Conjunto estreitado, dois falsos positivos. Peguei
+conferindo **nome a nome**, que é justamente o que a lei manda e o que eu ia economizar.
+
+**4. O plano estava errado numa varredura, e eu quase confiei.** O P8 afirmava que *"nenhum doc
+descreve a lista negra por extenso"*. Descrevia: `tracker.md:70` listava os cinco itens. O grep
+do plano procurou o **identificador** (`PROIBIDOS`), não o **conteúdo**. Achei porque fui ler a
+linha antes de mexer. Fica escrito: **varredura alheia é insumo, não prova.**
+
+**5. Fui aplicar o A4 e o próprio código me parou.** O plano mandava conferir se o alvo do
+symlink cai dentro de `kits/`. Li o comentário vizinho de `ligarUm` — *"se o Terminus mudou de
+pasta, a antiga aponta para o vazio"* — e montei uma fixture com os quatro casos que existem.
+O conserto proposto acerta **2 de 4**: passa a "respeitar" também a nossa própria ligação velha
+e a nossa ligação **pendurada** — e a pendurada é exatamente o caso que aquele comentário diz
+que a refeitura existe para consertar. Uma variante minha dá 4 de 4, e **também não a apliquei**:
+não estava na mesa aprovada. Devolvi a árvore com a tabela.
+> Se eu tivesse aplicado "conforme o plano", teria trocado um silêncio barato por um caro — e o
+> portão teria ficado **verde**, porque nenhuma perna olha para symlink de kit.
+
+**6. Descobri que o `lerDoTwinny` nem estava no pacote construído** — `grep -c twinny
+out/main/index.js` = 0. Um dos três custos que o plano alegava (*"o produto empacota capacidade
+de ler segredo"*) era **falso**: sem chamador, o empacotador já o descartava. A decisão de
+apagar não muda; a razão dela ficou honesta. Medi porque ia repetir o argumento do plano num
+commit, e argumento repetido sem conferir é argumento fabricado.
+
+**7. A descrição do P3b não cabia na largura da planta.** O texto do plano dava uma linha de
+**106** caracteres; as linhas de árvore do `fluxo.md` têm máximo medido de **97**, e as vizinhas
+truncam com `...` para caber. Encurtei para 97 com as palavras do cabeçalho do próprio arquivo.
+Substância idêntica — mas é desvio do texto aprovado, e por isso está declarado no commit.
+
+### O que decidi, e é meu para decidir
+
+- **Marquei o A4 no código com `//?`** mesmo sem consertar. O §12·3a manda *não consertar* e
+  *não ficar calado*; o cabeçalho do arquivo prometia o que o código não faz, e deixar a promessa
+  falsa de pé enquanto a cabeça decide seria a mesma dívida do P4 com outro nome.
+- **Provei o A2 com sonda de ponta a ponta, não com leitura.** Subi o app com um `PATH` que é
+  cópia de `/usr/bin` **menos** o `konsole` (2972 symlinks) e chamei o canal pelo renderer. Rodei
+  também contra o **código de ontem**, para ver o defeito vivo: `{"ok":true}` sem konsole nenhum.
+  Verde-vermelho-verde, e o vermelho é o código de ontem. O ramo de sucesso usa um `konsole`
+  **falso** no PATH — um script que sai limpo — para não abrir janela na área de trabalho de quem roda.
+- **Não rodei `npm run dev` nem `npm run start`** na vitrine. O portão já sobe o app de verdade, e
+  o `dev` deixou 2 processos vivos no despacho anterior. Está declarado no fechamento.
+- **Commitei na `main`, como as 8 fatias anteriores desta corrida.** O repositório não tem remoto
+  e a corrida inteira vive nesta linha; abrir ramo agora fragmentaria o registro sem proteger nada.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A4** e **A6** — as duas árvores devolvidas, esperando a cabeça. A A6 é a mais nova e a mais
+   interessante: **saiu do terceiro ato e de mais nada** — nenhum laudo, nenhuma matriz, nenhum
+   plano a tinha.
+2. Os **herdados listados** no §9 do tracker: `icon.svg:8` (painel de catálogo que não existe),
+   `fluxo.md:314` (*"hoje: 7"*, número que a própria corrida 1 retratou), `tracker:150`.
+3. **As pendências do despacho 1 seguem abertas**: o desvio de planta (sem `tests/arquitetura/`
+   nem `tests/funcionais/`), o nome do arquivo do preload, e o "empacote" descoberto na P3.
+4. **O instrumento de órfãos v2 mora no scratchpad e vai morrer com a sessão.** Se o terceiro ato
+   vai rodar todo fechamento, ele devia virar perna do portão ou ferramenta do repo — mas isso é
+   escopo novo, e escopo novo é da cabeça. Registro aqui para não se perder.
