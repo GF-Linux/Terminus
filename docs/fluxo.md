@@ -207,7 +207,8 @@ Terminus/
 │
 ├── ferramentas/
 │   ├── portao.mjs                      roda as 5 pernas do portão e dá o veredito (§12·4)
-│   └── gera-fluxo.py                   refaz o fluxo.png; recusa desenho sobreposto
+│   ├── gera-fluxo.py                   refaz o fluxo.png; recusa desenho sobreposto
+│   └── varre-orfaos.py                 exportado/canal sem chamador (§12·6 ato 3); auto-valida
 │
 ├── docs/
 │   ├── fluxo.md                        esta planta (fonte da verdade)

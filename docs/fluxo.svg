@@ -108,7 +108,7 @@
 <text x="70" y="799.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">139 testes (§6·R5)</text>
 <circle cx="59" cy="895" r="3.2" fill="#7fd6b5"/>
 <text x="70" y="900" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">ferramentas/</text>
-<text x="212.48000000000002" y="900" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">portao.mjs (5 pernas + M1-M4) · gera-fluxo.py</text>
+<text x="212.48000000000002" y="900" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">portao.mjs (5 pernas + M1-M4) · gera-fluxo.py · varre-orfaos.py</text>
 <circle cx="59" cy="925" r="3.2" fill="#7fd6b5"/>
 <text x="70" y="930" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">docs/</text>
 <text x="138.7" y="930" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">fluxo.md (esta planta) · tracker.md · diario.md</text>

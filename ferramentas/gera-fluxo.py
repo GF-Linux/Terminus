@@ -66,7 +66,7 @@ raizes = [
    no("servicos/", "76 · o caso de uso: a ORDEM e a DECISÃO", NOVO),
    no("motores/",  "32 · A8 consertada: o canal de controle DESISTE e diz", NOVO),
    no("infra/",    "5 · os 4 casos de ligação da A4(b)", NOVO)]),
- no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py", NOVO),
+ no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py · varre-orfaos.py", NOVO),
  no("docs/", "fluxo.md (esta planta) · tracker.md · diario.md", NOVO),
  no("kits/", "dev-kits embutidos", FG),
 ]

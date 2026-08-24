@@ -75,6 +75,7 @@ o Terminus foi testado.
 npm run teste       # 139 testes: regra pura, casos de uso, motores e kits (sem Electron)
 npm run typecheck   # tsc --noEmit
 npm run portao      # as cinco pernas do portão, e o veredito
+npm run orfaos      # exportado e canal SEM chamador — no FECHAMENTO, não a cada mudança
 ```
 
 O `portao` é o que fecha uma mudança. Ele roda os testes, a verificação de tipo e
