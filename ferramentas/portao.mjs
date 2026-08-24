@@ -112,16 +112,17 @@ function medirM2() {
 // ─────────────────────────────────────────────────────────────────────────────
 // M3 — pureza do domínio
 // ─────────────────────────────────────────────────────────────────────────────
-//! `node:path` é conta de string, não I/O — por isso não está na lista. O §1.3
-//! proíbe electron e fs; o resto da lista é o que quebraria a mesma promessa
-//! por outro caminho (pty e neovim conduzem processo).
-const PROIBIDOS = [/^electron$/, /^node:fs/, /^node-pty$/, /^neovim$/, /^node:child_process$/];
+//! LISTA-BRANCA, não negra: a planta promete "domínio importa SÓ node:path"
+//! (fluxo.md:83 e :96), e lista negra só barra o que alguém previu — `node:os`
+//! passava por fora sem violar item nenhum. O que a planta promete, o portão
+//! trava (§12·4b). `node:path` é conta de string, não I/O — por isso é o único.
+const PERMITIDOS = [/^node:path$/];
 function medirM3() {
   const dominio = path.join(RAIZ, "codigos", "dominio");
   const violacoes = [];
   for (const f of arquivosTs(dominio)) {
     for (const e of externosDe(f)) {
-      if (PROIBIDOS.some((p) => p.test(e))) violacoes.push(`${path.relative(RAIZ, f)} importa ${e}`);
+      if (!PERMITIDOS.some((p) => p.test(e))) violacoes.push(`${path.relative(RAIZ, f)} importa ${e}`);
     }
     //! o domínio também não pode alcançar sistema/ nem interface/ — seria
     //! dependência para fora do núcleo, e o núcleo é a folha do grafo.
@@ -213,6 +214,14 @@ async function pernaConduta({ silencioso = false } = {}) {
   const encerrar = () => {
     try { process.kill(-filho.pid, "SIGKILL"); } catch { /* já morreu */ }
     try { rmSync(casa, { recursive: true, force: true }); } catch { /* §13.3b: lixo meu, em /tmp, nesta execução */ }
+    //! O nvim do PTY nasce em SESSÃO própria e escapa do kill(-pid): recebe o HUP quando o
+    //! PTY morre e regrava o shada DEPOIS do rm — foi o que deixou dezenas de
+    //! /tmp/terminus-portao-* órfãs na v0.5.0 (medido pelos três laudos, e reproduzido aqui:
+    //! o que sobra é exatamente .local/state/nvim/shada/main.shada). A segunda passada,
+    //! depois de o HUP assentar, fecha a promessa da linha 14. Limite declarado: a espera
+    //! cobre o caso medido (shada regravado em <1 s), não todo caso possível.
+    spawnSync("sleep", ["1.5"]);
+    try { rmSync(casa, { recursive: true, force: true }); } catch { /* idem */ }
   };
 
   try {

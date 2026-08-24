@@ -67,7 +67,7 @@ v0.4 (o portão imprimia "CICLOS 2 / 1" e devolvia "PORTÃO VERDE", exit 0).
 |---|---|:---:|:---:|---|
 | **M1** | **acoplamento máximo de registrador** — módulos de `sistema/` que um registrador importa (E2) | **7** | **≤ 2** | grafo de import de `codigos/sistema/ponte/*.ts` |
 | **M2** | ciclos de import em `codigos/` | **2** | **0** | componentes fortemente conexos > 1 nó (Tarjan) |
-| **M3** | pureza do domínio — imports proibidos em `dominio/` | **n/a** (não existe) | **0** | `electron`, `node:fs`, `node:fs/promises`, `node-pty`, `neovim` |
+| **M3** | pureza do domínio — imports **não permitidos** em `dominio/` | **n/a** (não existe) | **0** | **lista-branca** desde 24/08: só `node:path` passa. Era lista negra (`electron`, `node:fs`, `node-pty`, `neovim`, `node:child_process`), e `node:os` escapava dela — a planta promete *"só node:path"* (`fluxo.md:83`, `:96`), e o que a planta promete o portão trava (§12·4b) |
 | **M4** | conformidade com a árvore do §1.3 | **5/13** | **13/13** | os 13 nós exigidos existem |
 
 **M1 é o alvo declarado da corrida.** Os outros três são pernas de apoio: M2 e M3 são o que
