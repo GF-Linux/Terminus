@@ -176,27 +176,32 @@ Terminus/
 │   │
 │   └── design/                         css, temas, papel de parede, fontes embutidas
 │
-├── tests/                              ESPELHA codigos/ (§6·R5) — 102 testes
+├── tests/                              ESPELHA codigos/ (§6·R5) — 139 testes
 │   ├── apoio/                          o andaime: nao e teste, e o que deixa testar
-│   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME temp
+│   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME+TMPDIR temp
 │   │   ├── electron-duble.ts               as 6 portas do main + o registro de ORDEM
 │   │   ├── casa-de-teste.ts                fixtures em disco dentro da casa temporaria
-│   │   └── rejeicoes-nao-tratadas.ts       captura a rejeicao da A8 em vez de esconder
+│   │   ├── neovim-falso.ts                 servidor msgpack-RPC de verdade, p/ o canal de controle
+│   │   └── rejeicoes-nao-tratadas.ts       captura toda rejeicao nao tratada; a suite exige ZERO
 │   ├── dominio/                        unidade: a regra pura, sem subir Electron   26
 │   │   ├── guarda-de-caminho.test.ts       6 testes
 │   │   ├── entrada-recusada.test.ts        6
 │   │   ├── protecao-da-pasta-aberta.test.ts 6
 │   │   ├── escolha-da-pasta-inicial.test.ts 4
 │   │   └── fluxo-conhecido.test.ts          4
-│   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             64
-│   │   ├── escrita-confinada.test.ts       21  as 3 etapas do confinado + A3(a)
+│   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             76
+│   │   ├── escrita-confinada.test.ts       25  as 3 etapas do confinado + A3(a) + A10
 │   │   ├── leitura-de-arquivo.test.ts      10  as 2 recusas e a NAO-recusa proposital
 │   │   ├── abertura-de-projeto.test.ts      9  a ordem: ler a pasta antes de registrar
 │   │   ├── exclusao-de-caminho.test.ts      8  a unica operacao sem volta: os 2 ramos
 │   │   ├── criacao-de-projeto.test.ts       8  moldar antes de entrar
-│   │   └── escrita-em-pasta-por-atalho.test.ts 8  A9 CONSERTADA: o atalho e a pasta real
-│   ├── motores/                        o que conduz processo vivo                    7
-│   │   └── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
+│   │   ├── escrita-em-pasta-por-atalho.test.ts 8  A9 CONSERTADA: o atalho e a pasta real
+│   │   └── fechamento-de-pasta.test.ts      8  A7 CONSERTADA: fechar chega ao main
+│   ├── motores/                        o que conduz processo vivo                   32
+│   │   ├── controle-neovim-rpc-com-neovim.test.ts 15  o que a casca MANDA no fio
+│   │   ├── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
+│   │   ├── controle-neovim-rpc.test.ts      6  A8: sem Neovim, DESISTE e diz a frase
+│   │   └── controle-neovim-rpc-mudo.test.ts 4  A8: socket que aceita e nao fala
 │   └── infra/                          I/O concreto que nao e motor                  5
 │       └── kits-embutidos.test.ts           5  os 4 casos de ligacao da A4(b)
 │
@@ -344,7 +349,7 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 
 | registrador | canais | módulos de `sistema/` que importa | teto |
 |---|---:|---|:---:|
-| `ponte-projeto.ts` | 6 | `servicos/abertura-de-projeto` · `servicos/criacao-de-projeto` | 2 ✔ |
+| `ponte-projeto.ts` | 7 | `servicos/abertura-de-projeto` · `servicos/criacao-de-projeto` | 2 ✔ |
 | `ponte-arquivo.ts` | 8 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
 | `ponte-exclusao.ts` | 1 | `servicos/exclusao-de-caminho` | 1 ✔ |
 | `ponte-como-rodar.ts` | 1 | `infra/como-rodar-o-projeto` | 1 ✔ |
@@ -352,10 +357,18 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 | `ponte-shell.ts` | 7 | `motores/motor-do-shell-pty` | 1 ✔ |
 | `ponte-neovim.ts` | 7 | `motores/motor-neovim-pty` · `motores/controle-neovim-rpc` | 2 ✔ |
 | `ponte-janela.ts` | 3 | — (recebe a janela, não importa módulo) | 0 ✔ |
-| **soma** | **37** | **máximo = 2** (hoje: 7) | |
+| **soma** | **38** | **máximo = 2** (hoje: 7) | |
 
 Os 37 canais de hoje continuam 37 depois: **a lógica muda de lugar, a conduta é preservada**
 (§12·3). Nenhum canal nasce, nenhum morre, nenhum troca de nome.
+
+⚠️ **RE-DECLARADO em 24/08/2026, e a causa é uma decisão, não um acidente.** A árvore **A7**,
+opção (a), criou `projeto:fechar` — porque "Fechar pasta" era só do renderer e o main nunca
+ficava sabendo. A asserção passou a ser: **os 37 da linha de base, idênticos por `diff`, mais 1
+novo declarado — soma 38.** O que os 37 provavam continua provado; o que mudou é que agora
+existe um canal a mais, de propósito. Medido contra `ada7bfa`: nenhum sumiu, nenhum trocou de
+nome, um nasceu. A conta do teto acima já leva `ponte-projeto.ts` com 7 canais — e o
+acoplamento dele **não mudou**, que é o que o E2 mede.
 
 ✅ **Conferido em campo, duas vezes:** os nomes dos 37 canais foram extraídos por script antes e
 depois da fatia 5 e da fatia 6, e comparados com `diff`. **Idênticos nas duas.**
@@ -401,6 +414,9 @@ Fica escrito para o portão não ser cobrado do que não prometeu:
 
 - **Os 37 canais de IPC**, com os mesmos nomes e as mesmas cargas. A interface não sabe que
   houve refatoração.
+  ⚠️ **Emendado em 24/08:** os 37 seguem intactos — nenhum sumiu, nenhum trocou de nome. O que
+  mudou é que a **A7(a)** acrescentou `projeto:fechar`, por decisão registrada, levando a soma
+  a **38**. Refatoração continua não mexendo em canal; **conserto de defeito decidido, sim**.
 - **`interface/` e `design/`**, salvo o desfazer dos 2 ciclos (`painel-lateral.ts`).
 - **`compartilhado/tipos.ts`** — a forma dos dados não muda.
 - **A conduta de cada guarda**: o que recusa hoje, recusa depois; o que aceita hoje, aceita

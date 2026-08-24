@@ -1,5 +1,29 @@
 #* Gera o mapa mental da planta do Terminus em SVG. Raiz a esquerda, galhos a
 #* direita, conectores em curva — nunca lista vertical (PADRAO §11).
+#? A RECEITA COMPLETA — Decisao sobre onde ela mora 24/08/2026
+#!
+#! 1. Este script escreve o SVG. Quem vira PNG e um segundo comando, e ate 24/08 ele NAO
+#!    ESTAVA ESCRITO EM LUGAR NENHUM DO REPOSITORIO: vivia so na memoria de quem tinha
+#!    rodado da ultima vez. O preco disso foi cobrado no mesmo dia — o PNG foi refeito sem
+#!    `-density` e saiu 1820x1155 no lugar de 2843x1804, com exit 0 e sem reclamacao nenhuma.
+#! 2. Os dois passos, na ordem, a partir da raiz do repositorio:
+#!
+#!      python3 ferramentas/gera-fluxo.py
+#!      magick -background none -density 150 docs/fluxo.svg -strip docs/fluxo.png
+#!
+#! ⚠️ SEM REDIRECIONAMENTO NO PRIMEIRO PASSO, e isto foi um erro cometido e medido em 24/08
+#!    ao escrever esta propria receita: o script ABRE `docs/fluxo.svg` e escreve nele, e
+#!    depois IMPRIME um resumo na saida padrao. Um `> docs/fluxo.svg` faz o resumo cair por
+#!    cima dos primeiros 69 bytes do arquivo que o script acabou de escrever — a tag `<svg`
+#!    some, o `magick` responde `unable to read image data`, e o PNG antigo fica no lugar
+#!    com o mesmo md5, sem ninguem reclamar. A receita errada durou 4 minutos porque foi
+#!    RODADA antes de ser commitada.
+#!
+#! 3. ⚠️ O `-density 150` NAO E ENFEITE: sem ele o ImageMagick rasteriza a 96 DPI e a imagem
+#!    sai a 1820x1155 — 150/96 = 1,5625 vezes menor em cada lado. O comando nao avisa, o
+#!    arquivo existe, e so quem ABRE a imagem percebe. O tamanho certo e 2843x1804.
+#! 4. `-strip` tira os metadados, para o PNG de duas geracoes do mesmo SVG ter o MESMO md5 —
+#!    e e isso que torna a regeracao conferivel por diff em vez de por confianca.
 #! As cores saem do PROPRIO tema do Terminus (codigos/design/estilo-da-casca.css).
 #! O rotulo de no COM FILHOS leva a descricao na LINHA DE BAIXO; o de folha, ao
 #!   lado. Levar tudo ao lado atravessava a coluna dos filhos — medido e visto.
@@ -36,11 +60,11 @@ raizes = [
    no("interface/", "renderer · a casca, 16 arquivos", FG, [
       no("painel-lateral", "desfaz os 2 ciclos de import", NOVO)]),
    no("design/", "css, temas, papel de parede, fontes", FG)]),
- no("tests/", "102 testes (§6·R5)", NOVO, [
+ no("tests/", "139 testes (§6·R5)", NOVO, [
    no("apoio/",    "o andaime: duble do electron, gancho, casa temporária", NOVO),
    no("dominio/",  "26 · a regra pura, sem Electron, em milissegundos", NOVO),
-   no("servicos/", "64 · o caso de uso: a ORDEM e a DECISÃO", NOVO),
-   no("motores/",  "7 · a conduta da A2: sem konsole, RECUSA", NOVO),
+   no("servicos/", "76 · o caso de uso: a ORDEM e a DECISÃO", NOVO),
+   no("motores/",  "32 · A8 consertada: o canal de controle DESISTE e diz", NOVO),
    no("infra/",    "5 · os 4 casos de ligação da A4(b)", NOVO)]),
  no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py", NOVO),
  no("docs/", "fluxo.md (esta planta) · tracker.md · diario.md", NOVO),
@@ -81,7 +105,7 @@ def curva(x1,y1,x2,y2):
 s=[f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {LARG} {ALT}" width="{LARG}" height="{ALT}" role="img" aria-label="Planta-alvo do Terminus: dominio puro, reino da porta e as cinco camadas de sistema, com o alvo da corrida em numeros">',
    f'<rect width="{LARG}" height="{ALT}" fill="{BG}"/>',
    f'<text x="70" y="58" font-family="{SANS}" font-size="30" font-weight="700" fill="{FG}">Terminus — a planta do prédio</text>',
-   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · 8 fatias · portão verde 5/5 · 37 canais preservados</text>',
+   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · portão verde 5/5 · 37 canais da base + 1 declarado (A7)</text>',
    f'<line x1="70" y1="108" x2="{LARG-70}" y2="108" stroke="{LINHA}" stroke-width="1"/>']
 
 for nivel, ypai, yf in arestas:

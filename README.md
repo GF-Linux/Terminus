@@ -72,7 +72,7 @@ o Terminus foi testado.
 ### Conferir antes de mexer
 
 ```
-npm run teste       # 102 testes: regra pura, casos de uso, motor e kits (sem Electron)
+npm run teste       # 139 testes: regra pura, casos de uso, motores e kits (sem Electron)
 npm run typecheck   # tsc --noEmit
 npm run portao      # as cinco pernas do portão, e o veredito
 ```

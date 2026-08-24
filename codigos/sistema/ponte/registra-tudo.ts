@@ -10,7 +10,7 @@ import { registrarNeovim } from "./ponte-neovim.js";
 import { registrarProjeto } from "./ponte-projeto.js";
 import { registrarShell } from "./ponte-shell.js";
 
-//* Registra os 37 canais de IPC, em oito registradores.
+//* Registra os 38 canais de IPC, em oito registradores.
 //! POR QUE UM INDICE, E NAO OITO CHAMADAS NA PARTIDA: a partida não precisa
 //!   saber quantos registradores existem. Quando entrar o nono, muda uma linha
 //!   aqui — e `janela/partida.ts` continua igual.
