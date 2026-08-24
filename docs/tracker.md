@@ -236,7 +236,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | M4 conformidade com a árvore §1.3 | 5/13 | **13/13** |
 | testes | **0** | **26** |
 | arquivos `.ts` em `codigos/` | 28 | **58** |
-| maior arquivo de `sistema/` | **707 linhas** (o monólito) | **289** — e é o `configuracao-salva`, que já tinha 289 antes |
+| maior arquivo de `sistema/` | **707 linhas** (o monólito) | **285** — o `motor-do-shell-pty`. Era **289** (o `configuracao-salva`, que já tinha 289 antes) até a árvore **A1** apagar o `lerDoTwinny` em 24/08 e o arquivo cair para 228 |
 | canais de IPC | 37 | **37 — idênticos** |
 
 ---
@@ -288,6 +288,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 
 | árvore | o que era | desfecho |
 |---|---|---|
+| **A1** | `lerDoTwinny` — 59 linhas em `configuracao-salva.ts` que abriam o `state.vscdb` do VS Code por `sqlite3` e devolviam endpoint, modelo e **chave de API** do provedor FIM do Twinny. **Sem chamador**, e o comentário afirmava *"Só é chamado quando o usuário aperta o botão"* — não existia botão | **(a) aplicada em 24/08/2026, decidida pela cabeça:** apagada. `Twinny` tem hoje **zero** ocorrências no repo. Se a importação virar recurso um dia, ela se reescreve a partir do git — e nasce revisada, com botão de verdade |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
 
 ### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
@@ -299,3 +300,14 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **as opções** | **(a) uniformizar** — os três `*NoProjeto` resolvem a raiz pelo dono e validam com `confinado()` antes de delegar. **Muda conduta**: pedido com raiz fora das abertas passa a ser recusado, e a frase de recusa e o comportamento da árvore da interface precisam ser decididos. E hoje **não há teste de serviço** — pela ordem do §12, primeiro a rede, depois o movimento. **(b) deixar como está + P4 + registrar** aqui como herdado conhecido. **(c) deixar sem registro** — não é opção |
 | **minha recomendação** | **(b) agora**; (a) como candidata de corrida futura, quando `servicos/` tiver teste — aí o §12 se cumpre inteiro (rede antes da mudança de conduta) |
 | **se ficar para depois** | **fica mais BARATA depois** da rede de teste de serviço |
+
+### A1 · `lerDoTwinny` — a função órfã que lia uma chave de API (§12·3a)
+
+| parte | |
+|---|---|
+| **o defeito** | `configuracao-salva.ts:230-288` (antes de apagar) abria o `state.vscdb` do VS Code por `sqlite3` e devolvia `{endpoint, modelo, chave}` do provedor FIM do Twinny. **Busca larga minha, insensível a caixa, no repo inteiro: só a definição.** Zero chamadores, zero menção em docs. Herdado — a linha era idêntica na linha de base (`git show ada7bfa`). Prova estática; nada precisou executar |
+| **o que custa deixar** | hoje nada roda, e eu **medi um limite que o plano não tinha medido**: a função também **não estava no pacote construído** (`grep -c twinny out/main/index.js` = 0) — sem chamador, o empacotador já a descartava. O custo real é outro, e é duplo: **(1)** qualquer chamador futuro liga leitura de segredo já "documentada" como se tivesse UI, sem revisão; **(2)** o comentário falso dava aparência de coisa ligada e auditada |
+| **as opções** | **(a) apagar as 59 linhas** — os imports do topo ficam (`os`, `fs` e `path` são usados pelo resto do arquivo, conferido). **(b) manter + corrigir o comentário + marcar como órfão** — a intenção fica, e o risco (1) também. **(c) deixar como está** — é a única que mantém de pé um comentário FALSO sobre função capaz de ler segredo |
+| **minha recomendação** | **(a)**. Zero chamadores medidos por dois auditores e por mim. Se a importação do Twinny virar recurso um dia, ela se reescreve numa tarde a partir do git — e nasce revisada |
+| **se ficar para depois** | o custo de apagar não muda; o risco (1) cresce a cada corrida que move o arquivo sem olhar dentro — esta já foi uma |
+| **DESFECHO** | **(a) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A1) |
