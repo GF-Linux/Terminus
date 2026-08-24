@@ -13,7 +13,7 @@
     "build": "tsc --noEmit && electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
-    "teste": "node --test \"tests/**/*.test.ts\"",
+    "teste": "node --import ./tests/apoio/gancho-de-modulos.ts --test \"tests/**/*.test.ts\"",
     "portao": "node ferramentas/portao.mjs"
   },
   "dependencies": {

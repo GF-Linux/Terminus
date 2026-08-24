@@ -303,7 +303,14 @@ console.log(`\n${CINZA}PORTÃO — fatia: ${c.fatia}${FIM_COR}\n`);
 const pernas = [];
 
 process.stdout.write("  P1 teste da peça      ");
-const p1 = rodar("node", ["--test", "tests/**/*.test.ts"]);
+//! ⚠️ PELO SCRIPT DO package.json, e NÃO por comando repetido aqui. Em 24/08 a P1
+//!   ganhou um `--import` (o gancho de módulos, tracker §10.1) e este comando ficou
+//!   para trás por uma hora: `npm run teste` rodava a suíte inteira e o portão rodava
+//!   OUTRA, sem o gancho. Perna declarada num lugar e executada de outro é o §12·4b
+//!   ao contrário — o portão mediria uma suíte que não é a declarada. Uma definição só.
+//! A trava contra `teste` virar `echo ok` continua de pé logo abaixo: sem `# pass`, a
+//!   contagem é 0 e a perna reprova.
+const p1 = rodar("npm", ["run", "--silent", "teste"]);
 const conta = Number(p1.saida.match(/# pass (\d+)/)?.[1] ?? 0);
 const falhas = Number(p1.saida.match(/# fail (\d+)/)?.[1] ?? 0);
 //! Suíte VAZIA sai exit 0 — medido. Verde vazio é o enfeite que o §12·2 proíbe:
