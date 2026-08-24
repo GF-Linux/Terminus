@@ -1101,3 +1101,52 @@ porque o tipo parou de mentir**, e o sumiço do molde é metade da prova.
 | P5 conduta | ok — porta+renderer+ipc responderam |
 
 **PORTÃO VERDE 5/5.**
+
+---
+
+### 13.8 · ⚠️ RE-DECLARAÇÃO ANTES DA A7 (§12·4a) — o número 37 muda de forma
+
+A cabeça decidiu a **A7 opção (a)** no meio deste despacho. Ela cria um canal, e **37 era a
+prova de conduta preservada das corridas 1 e 2**. O que aquele número provava continua valendo;
+o que muda é a forma da asserção.
+
+| | antes | a partir de agora |
+|---|---|---|
+| **a asserção** | *"**37**, idênticos por `diff`"* | *"os **37** da linha de base, idênticos por `diff`, **mais 1 novo declarado** — total **38**"* |
+| **a causa** | — | `projeto:fechar`, criado **de propósito**, por decisão registrada em 24/08/2026 |
+
+> Um número re-declarado com a causa escrita ao lado vale mais que um número preservado em cima
+> de um defeito. **A catraca (M1–M4) NÃO muda**: `projeto:fechar` entra no registrador de
+> projeto, que **já importa** `servicos/abertura-de-projeto` — nenhum módulo novo de `sistema/`,
+> então M1 continua **2**; sem import novo, M2 segue **0**; `dominio/` intocado (M3 **0**) e a
+> árvore de pastas idem (M4 **13/13**).
+
+### 13.9 · ⚠️ CORREÇÃO DA PRÓPRIA ÁRVORE A7 — o caminho de repro que ela afirma NÃO reproduz
+
+**Medi antes de obedecer, e o roteiro estava errado.** A árvore (§10.2) escreveu, e o despacho
+repetiu: *"abrir `~/proj`, fechar, abrir `~`, botão direito em `proj` → Excluir → recusa com o
+motivo errado"*. Rodado contra a regra de domínio, em fixture isolada:
+
+| roteiro | `ehPastaProtegida` | o que acontece |
+|---|:---:|---|
+| **o da árvore** — abrir `~/proj`, fechar, **abrir `~`**, excluir `proj` | **false** | **nenhuma recusa.** Abrir `~` reatribui `raizAberta` para `~`, e `~/proj` fica **abaixo** dela — o defeito é apagado pelo próprio passo seguinte do roteiro |
+| fechar e **não abrir mais nada**, excluir a pasta fechada | **true** | recusa com *"é a pasta de trabalho aberta"* — **a frase falsa** |
+| fechar e **não abrir mais nada**, excluir a pasta **acima** da fechada | **true** | recusa idem |
+
+**O defeito é real; o roteiro é que não é.** A raiz velha só sobrevive enquanto **nenhuma outra
+pasta é aberta** — e abrir outra é justamente o que o roteiro mandava fazer. Sigo com a **(a)**,
+que é o conserto certo para o defeito verdadeiro, e escrevo o teste no caminho **que
+reproduz**. Não devolvo a árvore porque **a opção não mudou**: o que estava errado era a prova,
+não a decisão.
+
+⚠️ **E há uma ressalva de alcance que o registro precisa carregar:** com a pasta fechada o
+renderer fica **sem árvore na tela**, então o menu de contexto — e portanto o botão Excluir —
+**não é alcançável pela interface de hoje**. O que fica alcançável é o **canal**. Isso não
+diminui o defeito, e a razão está escrita no próprio código que ele contamina: *"A trava fica
+AQUI, e não só na tela: tela pode voltar a errar"* (`exclusao-de-caminho.ts:12`). Uma trava que
+existe para sobreviver ao erro da tela **não pode depender da tela para importar**.
+
+**O sintoma mais gordo, e é o outro:** `raizesDeEscrita()` continua devolvendo a pasta fechada,
+então os **quatro** canais de escrita — `arquivo:gravar`, `arquivo:criar`, `pasta:criar`,
+`caminho:renomear` — seguem aceitando escrita numa pasta que a pessoa acredita ter desligado.
+Esse é reachable pelo canal e não depende de tela nenhuma.
