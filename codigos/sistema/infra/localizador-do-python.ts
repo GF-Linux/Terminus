@@ -8,6 +8,8 @@ import { existsSync } from "node:fs";
 //!    install x` na linha de comando.
 //! 3. Não é preciosismo — o `pip` do PATH pode instalar num Python e o `import`
 //!    procurar em outro. É das primeiras pedras de quem chega ao Linux.
+//? FORA DO CAMINHO (D4, 23/08/2026): exportado e sem chamador — nada importa este
+//?   módulo hoje. Mantido até a cabeça decidir apagar; a árvore está no tracker, D4.
 //* Devolve o Python do sistema — `/usr/bin/python3`, ou o que estiver no PATH.
 //* Serve só para reescrever `pip install x` como `python3 -m pip install x`.
 export function acharPython(): string {

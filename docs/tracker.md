@@ -274,6 +274,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **as opções** | **(a) deixar** — custo zero hoje, a confusão fica. **(b) apagar** — 20 linhas a menos; risco: se ele era o começo de um recurso planejado, a intenção some junto. **(c) manter e marcar** com um `//?` dizendo que está fora do caminho e por quê — custo de uma linha, e a próxima pessoa não perde tempo |
 | **minha recomendação** | **(c) agora, (b) depois.** Só a cabeça sabe se `acharPython` era semente de recurso. Marcar custa uma linha e resolve o custo real, que é de atenção. Se a cabeça disser que não era semente, (b) |
 | **se ficar para depois** | **igual.** Não apodrece: 20 linhas hoje, 20 linhas daqui a um ano |
+| **DESFECHO** | **(c) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, P7): a marca `//?` está em `localizador-do-python.ts:11-12`. **(b) — apagar — segue em aberto**, e só a cabeça fecha, porque só ela sabe se `acharPython` era semente de recurso. Este é o caso que fez o §12·3a ganhar o quinto dever: a recomendação "(c) agora" ficou 24 h sem ser posta nem recusada |
 
 
 ---
