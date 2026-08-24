@@ -515,3 +515,18 @@ redirecionado para uma pasta temporária **pelo próprio gancho**, antes de qual
 carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo pedido, porque
 "a sétima rota é a que alguém esquece" — e aqui esquecer significa escrever no
 `~/.config/terminus/` **de quem roda a suíte**.
+
+### 10.2 · A7 — "Fechar pasta" nunca chega ao main — árvore de decisão (§12·3a) · **EM ABERTO**
+
+> **De onde veio:** apareceu ao desenhar a rede. Para saber se os testes de `servicos/` podiam
+> dividir um processo, precisei responder *"existe como voltar ao estado sem pasta aberta?"* —
+> e a resposta é **não existe**. A pergunta era de andaime; o achado, não.
+
+| parte | |
+|---|---|
+| **o defeito** | `raizAberta` (`abertura-de-projeto.ts:18`) tem **um único escritor** em todo o repositório — a linha `:38`, dentro de `entrarNaPasta`, que só atribui valor **não-nulo**. O "Fechar pasta" da tela (`arvore-de-arquivos.ts:335,424-436`) é **só do renderer**: limpa `estado.projeto`, redesenha e avisa — e faz **zero** chamadas `api.*` (contado nas 13 linhas da função). Não há canal de fechar no main (busca larga: o único `fechar` de `sistema/` é `janela:fechar`, que fecha a **janela**). **Prova estática, nada precisou executar** |
+| **o que custa deixar** | duas coisas sobrevivem ao fechar, e a segunda é visível: **(1)** `raizesDeEscrita()` continua devolvendo a pasta fechada, então o canal `arquivo:gravar` segue aceitando escrita nela — hoje sem chamador de tela, mas é superfície que a pessoa **acredita ter desligado**; **(2)** `protegerPastaDeTrabalho` continua defendendo a pasta fechada, e a recusa diz *"é a pasta de trabalho aberta (ou está acima dela)"* — **uma frase falsa**, na tela, para uma pasta que a pessoa acabou de fechar. O caminho é real e curto: abrir `~/proj`, fechar, abrir `~`, botão direito em `proj` → Excluir → recusa com o motivo errado. É a mesma família da **A2**: a tela afirma o que o estado não sustenta |
+| **as opções** | **(a) canal novo** `projeto:fechar` → `servicos.fecharPasta()` pondo `raizAberta = null`, e o renderer passa a avisar. **Muda conduta e a contagem de canais vai de 37 a 38** — e 37 é a prova de conduta preservada das corridas 1 e 2, então o número teria de ser re-declarado com a causa. **(b) sem canal novo** — **MEDIDA E DESCARTADA**: os cinco canais de projeto são `escolher`, `entrar`, `recentes`, `esquecer`, `inicial` (`ponte-projeto.ts:18-24`), e nenhum sabe dizer *"fechei"*; `projeto:entrar` com nulo estoura em `abrirProjeto`. Não há caminho barato aqui. **(c) deixar como está e REGISTRAR** (marca `//?` no código + esta árvore), como o A5 fez com a capacidade dormente. **(d) rebaixar só a frase** da recusa de exclusão, para ela deixar de mentir sem mexer no estado — barato, e conserta o único sintoma visível |
+| **minha recomendação** | **(c) agora, (d) logo em seguida**, e não é timidez: a rede que este despacho está construindo é a pré-condição do resto. (a) muda conduta **e** mexe no número que duas corridas usaram como prova — decisão de rumo, da cabeça. (d) é três palavras e mata a frase falsa, que é a parte que a pessoa **vê** |
+| **se ficar para depois** | **igual** — não apodrece e não encarece. O que corre é o mesmo silêncio da A2: a tela dizendo o que o estado não sustenta |
+| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a prova estática acima. Nenhuma conduta mudou; marca `//?` posta em `abertura-de-projeto.ts` para o achado não se perder |

@@ -15,6 +15,12 @@ import { esquecerPasta, pastasRecentes, registrarPasta, ultimaPasta } from "../m
 //! A pasta de trabalho aberta agora. Ela tem UM dono — este módulo — e quem
 //!   precisa dela pergunta. Antes era variável solta no monólito, lida pela
 //!   guarda e escrita pelo caso de uso, e era isso que prendia os dois juntos.
+//? ⚠️ E NADA A DEVOLVE A `null` — achado em 24/08, árvore **A7** no tracker. Esta linha é o
+//?   ÚNICO escritor no repositório, e só atribui valor não-nulo. O "Fechar pasta" da tela é
+//?   só do renderer (`arvore-de-arquivos.ts:424`): não há canal que avise o main. Então,
+//?   depois de fechar, esta pasta segue gravável e segue "protegida" contra exclusão — com
+//?   a recusa dizendo que ela é a pasta ABERTA, que é frase falsa. Registrado, não consertado:
+//?   consertar muda conduta e mexe na contagem de canais, e isso é da cabeça (§12·3a).
 let raizAberta: string | null = null;
 
 //* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
