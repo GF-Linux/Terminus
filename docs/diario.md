@@ -3,6 +3,35 @@
 
 # Diário — Terminus v0500
 
+## ⚠️ LEIA ISTO PRIMEIRO — as armadilhas que já custaram DUAS vezes
+
+> **Por que este bloco existe, e ele é uma emenda ao próprio diário (24/08, decisão da cabeça):**
+> na corrida 5 o instrumento do 3º ato reprovou **quatro vezes num dia**, e a quarta era uma
+> falha **já escrita neste arquivo, com o nome do arquivo**. Eu a reproduzi mesmo assim.
+> *"Diário que não é relido não é memória — é arquivo morto."* O defeito não era eu não ter
+> escrito; era o registro morar no meio de 700 linhas cronológicas, onde ninguém tropeça nele.
+>
+> **A correção de verdade não é este bloco: é a guarda que RODA.** Onde deu para transformar a
+> lição em código que cobra sozinho, foi transformada, e a coluna da direita diz onde. Este
+> índice é o que sobra para quem chega com a janela vazia — curto de propósito, porque índice
+> comprido vira o mesmo arquivo morto que ele existe para consertar.
+
+| a armadilha | onde a guarda que a cobra VIVE |
+|---|---|
+| medidor que mora dentro da árvore que mede **se apaga do próprio relatório** (foi assim que `lerDoTwinny` sumiu) | `ferramentas/varre-orfaos.py` — caso **C2** do corpo de prova, que derruba a guarda e exige o órfão sumir |
+| **menção em prosa não é chamador** — o documento que anota o órfão era o que o escondia | idem, caso **C1** |
+| o que o `.gitignore` exclui **não é do projeto**: lixo local muda a resposta do instrumento | idem, caso **C3** |
+| `\b` não casa `$` · o namespace não é o método · parâmetro tipado parece definição · nome de método é genérico | idem, casos **A1–A4** — cada um já produziu um número errado num relatório |
+| tirar comentário de **bloco antes de linha** come o arquivo: o sigilo da casa `//*` contém `/*` | idem, caso **ORD** |
+| **rejeição não tratada dentro de gancho reprova o arquivo** no `node --test` — e a leitura errada disso custou 5 suítes na forma esquisita | `tests/apoio/rejeicoes-nao-tratadas.ts`, cabeçalho, com a tabela das 5 medições **e** a leitura errada ao lado |
+| o PNG sai **1,5625× menor sem `-density 150`**, com exit 0 e sem aviso | `ferramentas/gera-fluxo.py`, cabeçalho — ⚠️ e `docs/fluxo.md:431` tem a receita **errada**: é a árvore **A13**, em aberto |
+| `pkill -f <padrão>` **mata o próprio comando**; `grep` num `ps` casa a própria linha | sem guarda executável — mate por PID, e conte órfãos excluindo o próprio PID |
+| **sabotagem que quebra a compilação é ruído**: refaça com `tsc` exit 0 antes de acreditar no vermelho | sem guarda executável — é disciplina, e já reprovou uma sabotagem minha |
+
+**E a regra que gerou todas as outras:** *ler o registro não impede repetir o erro; validar
+contra uma resposta conhecida, sim.* Toda vez que uma dessas foi pega, foi por medição — nunca
+por releitura.
+
 ---
 
 ## 2026-08-23 · Despacho 1 — o portão de desenho (§11 / §12·1). Nenhum código movido.
@@ -736,3 +765,127 @@ A forma sobreviveu à causa. Anotei nos cinco arquivos em vez de refatorar dentr
    arquivo do preload, o "empacote" da P3.
 4. **O `console` sequestrado pelo pacote `neovim`** vale para o processo principal do produto,
    não só para as minhas sondas. Não toquei; fica escrito.
+
+---
+
+## 2026-08-24 · Despacho 7 — A12 (versionar) e A11. E o instrumento passou a se cobrar sozinho.
+
+A cabeça foi além da minha recomendação, e a razão dela é medição, não preferência: eu pedi
+**(d) registrar**; ela mandou **registrar E versionar**, depois de repetir a minha sabotagem por
+conta própria e depois de ir conferir o controle compensatório que eu invoquei. O controle não
+existia no repositório. Ela estava certa e eu tinha escrito uma correção que se apoiava no ar.
+
+### O placar
+
+| medida | chegada | partida |
+|---|:---:|:---:|
+| testes | 139 | **139** — a montagem trocou de lugar, nenhum `test()` nasceu ou morreu |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | **idênticos, previstos por escrito antes das duas fatias** |
+| instrumento do 3º ato | scratchpad, 4ª corrida | **`ferramentas/varre-orfaos.py`, `npm run orfaos`** |
+| sabotagens do próprio instrumento | — | **9, e 9 morderam** |
+| suítes com montagem no corpo do módulo | 5 | **0** |
+| símbolos órfãos · canais sem chamador na tela | 1 · 4 | 1 · 4 — os mesmos, nenhum novo |
+| árvores fechadas · devolvidas | — | **A11, A12 fechadas · A13 nova** |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. O caso de prova do C3 NÃO MORDEU, e o erro é o mesmo que ele existe para pegar.**
+Achei um defeito meu — o instrumento andava o disco com `rglob` e varria
+`CLAUDE-SECURITY-20260802-193112/`, pasta que o `.gitignore` exclui e que **só existe nesta
+máquina**. Consertei e escrevi um caso de prova: um arquivo ignorado citando o órfão. A
+sabotagem obrigatória mostrou que **o caso passava com ou sem a guarda** — eu tinha posto o
+arquivo ignorado na **raiz**, e o corpus de chamadores é restrito a `codigos/`, `tests/` e
+`ferramentas/`. Ele nunca entraria.
+> **A lição: eu escrevi um teste que media a coisa errada, dentro da ferramenta cuja razão de
+> existir é não medir a coisa errada.** E o que pegou não foi reler o código: foi a sabotagem.
+> O risco de verdade é ignorado **dentro** de pasta de chamador, e é assim que o caso está agora.
+
+**2. Previ 2 símbolos saindo da coluna "só em casa" e medi 3.** Escrevi antes: *"`confinado` e
+`PACIENCIA_MS`, que são de camadas que a suíte cobre"*. Faltou `shellEstaOcioso` — e
+`motor-do-shell-pty` **é** dessas camadas. A minha própria razão dava três; eu nomeei dois.
+Erro de contagem, não de regra, e é a terceira corrida seguida em que erro contando algo meu.
+
+**3. Ia afirmar que a forma nova é mais estrita. A medição derrubou.** Normalizada a A11, a
+montagem passou a nascer dentro de um `before` — e a tabela do `node --test` diz que rejeição
+nascida em gancho **reprova o arquivo**. Ia escrever que a rede ficou mais forte. Fui medir:
+reintroduzi o vazamento da A8 (`void Promise.reject(new Error("connect ENOENT …"))`, `tsc` exit
+0) e rodei as cinco **nas duas formas**. **1 falha em cada, idêntico.** O que pega a regressão
+não é o runner — é a asserção `naoTratadas == []` que as cinco carregam, e ela funciona igual
+nos dois lugares. Conduta preservada, que é o que o §12·3 pede, e nada além disso.
+
+**4. Cortei o PNG no lugar errado e vi um retângulo preto.** Recorte às cegas em
+`1500x300+900+1250` devolveu uma faixa vazia com meia palavra. Em vez de tentar de novo no chute,
+li a coordenada **no SVG** (`y="900"`, texto) e converti pela mesma razão que já me mordeu uma
+vez: 150/96 = 1,5625 → y ≈ 1406. Aí o nó apareceu inteiro e legível.
+> Duas vezes já: a razão 150/96 é a constante desta casa. Está no índice do topo agora.
+
+**5. Escrevi uma string Python com apóstrofo dentro de aspas simples** (`e' o que torna…`) e o
+arquivo nem carregou. Peguei na primeira execução, antes de qualquer commit — é o mesmo remédio
+do despacho 6: **rodar a coisa antes de commitá-la.**
+
+**6. Contei processos órfãos e a única linha que casou era o meu próprio comando.** Quarta
+corrida seguida. Órfãos reais: **zero**. Está no índice do topo, para a quinta não acontecer.
+
+### O que ACHEI, e não estava em laudo nenhum
+
+**A13 — a planta carrega uma SEGUNDA receita do PNG, e é a errada.** `docs/fluxo.md:431`, sob o
+título *"Como refazer o `fluxo.png`"*, ensina o comando **sem `-density 150`**. Medido em cópia
+isolada por `git archive`: **1820×1155** contra os **2843×1804** da receita do `gera-fluxo.py`,
+que reproduz o PNG versionado com **md5 idêntico**. O agravante é que a corrida 5 escreveu que
+a receita *"agora mora no cabeçalho de `gera-fluxo.py`"* — verdade, e incompleto: **ela também
+continuou aqui, errada.** É a *emenda sem varredura* do §15.4 acontecendo dentro do conserto que
+existia para acabar com ela. Devolvida, não consertada.
+
+**O instrumento antigo tinha um QUINTO ponto cego, e só apareceu ao versionar.** O regex de
+definição não enxergava `export let`: `doca`, `painelLateral`, `lateralAberta` — e o `$` de
+`base-da-tela.ts:19`. 171 → **175** exportados, e o conjunto novo **contém o antigo inteiro**,
+conferido símbolo a símbolo. Nenhum foi perdido na troca.
+
+**A premissa da A11 já estava provada no disco, e não por mim.** Antes de mexer fui medir se o
+`before` funciona depois do conserto da A8 — e não precisou de experimento:
+`tests/servicos/fechamento-de-pasta.test.ts:46`, escrito **ontem**, depois do conserto, já chama
+`entrarNaPasta` dentro de um `beforeEach` e está verde desde então. **Um arquivo irmão já era a
+resposta.** Procurar antes de experimentar economizou a fatia inteira.
+
+**A validação contra `ada7bfa` devolveu `lerDoTwinny`** — o símbolo cuja **desaparição** criou a
+armadilha C2. A resposta conhecida e a armadilha são o mesmo caso, e isso é o melhor argumento
+que eu tenho para a regra de validar onde se sabe a resposta.
+
+### O que decidi, e é meu para decidir
+
+- **A lição vira CÓDIGO QUE RODA, não outro parágrafo.** A cabeça perguntou se havia lugar
+  melhor que o diário. Há: o corpo de prova dentro do próprio instrumento — seis armadilhas
+  viradas em árvore de mentira, rodada **antes de qualquer relatório**, com **exit 2 e nenhum
+  relatório impresso** se um número não bater. Prosa depende de alguém reler; isto cobra sozinho.
+- **E o diário ganhou índice no topo**, porque o defeito que a cabeça nomeou não era eu não ter
+  escrito — era o registro morar no meio de 700 linhas cronológicas. Curto de propósito, e cada
+  linha aponta para a guarda executável em vez de repeti-la.
+- **NÃO é perna de portão**, e a recusa está escrita no cabeçalho do arquivo com a razão: órfão
+  transitório entre fatias é estado legítimo e daria vermelho falso no meio da refatoração.
+  Achar órfão sai **0**; o único exit não-zero é **2**, quando o corpo de prova reprova.
+- **Coluna nova, `chamados só por tests/`.** O corpus antigo era só `codigos/`, então um símbolo
+  que só o teste usa aparecia misturado com "export largo demais". São perguntas diferentes e
+  agora são colunas diferentes — e a decisão sobre elas é da cabeça, não minha.
+- **`Awaited<ReturnType<typeof …>>` em vez de escrever o tipo à mão**, nas três suítes que
+  capturam valor. Nenhum `any` entrou, e o teste acompanha a assinatura em vez de duplicá-la.
+- **A tabela do `node --test` mudou de casa** — de `escrita-confinada.test.ts` para
+  `tests/apoio/rejeicoes-nao-tratadas.ts` — porque é fato sobre o **runner**, não sobre aquela
+  suíte. E foi junto a **leitura errada** que ela permitia, que é o que custou cinco arquivos na
+  forma esquisita: ela não diz *"monte no corpo do módulo"*, diz *"não deixe vazar rejeição"*.
+- **Não normalizei `controle-neovim-rpc-com-neovim.test.ts`.** Ele também monta no corpo do
+  módulo, mas **não é A11** — tem razão própria escrita. Listei em vez de mexer, e listei também
+  que a razão escrita lá **é discutível**: um `before` também roda antes de qualquer teste.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A13**, nova — a segunda receita do PNG, na planta, errada. Minha recomendação é **(a)**:
+   apagar o bloco e apontar para o cabeçalho de `gera-fluxo.py`. O defeito não é a receita estar
+   errada, é ela estar **duplicada**.
+2. **A5, D4(b)** — as antigas. O `acharPython` é **quinta corrida** como único órfão do repositório.
+3. **A tag `v0.0.7`**, terceira listagem.
+4. **O `console` sequestrado pelo pacote `neovim`** — vale para o processo principal do produto.
+   Não tocado, segunda corrida escrito.
+5. As antigas do despacho 1: o desvio de planta, o nome do arquivo do preload, o "empacote" da P3.
+6. **O que eu NÃO consigo cobrir e fica dito:** o portão continua sem enxergar a última camada
+   de qualquer conserto que termine no renderer (é a A12, e a decisão foi registrar). Hoje o ato
+   3 pega — e agora pega **por uma ferramenta que existe no repositório**, que era o buraco real.
