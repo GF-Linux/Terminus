@@ -17,8 +17,9 @@ import { respostaSegura as seguro } from "./resposta-segura.js";
 
 //* Liga os canais de leitura e escrita de arquivo.
 //! Este registrador não conhece `fs` nem a pasta aberta: ele confere a forma do
-//!   que chegou pelo IPC e entrega ao serviço. O confinamento mora em
-//!   `servicos/escrita-confinada`, que é quem sabe qual raiz vale agora.
+//!   que chegou pelo IPC e entrega ao serviço. O confinamento de GRAVAR mora em
+//!   `servicos/escrita-confinada` (raízes do dono); criar/renomear são conferidos na
+//!   infra (`dentroDe` + `validarNome`), contra a raiz que a interface enviar.
 export function registrarArquivo(): void {
   //! `projeto:abrir` também serve de "atualizar" para a árvore, e é chamado a
   //!   cada criação de arquivo — por isso ele não liga nada.

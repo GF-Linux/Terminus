@@ -1,4 +1,6 @@
-//* O caso de uso de ESCREVER: nada sai da pasta aberta.
+//* O caso de uso de ESCREVER. `gravar` é confinado AQUI: realpath + guarda, contra as
+//*   raízes que o dono conhece. Criar/renomear conferem nome e continência na infra
+//*   (`dentroDe`), contra a raiz que o CHAMADOR enviar — herdado assim; ver A3.
 
 import * as path from "node:path";
 import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";
@@ -30,17 +32,17 @@ export function gravarConfinado(arquivo: unknown, conteudo: unknown): Promise<vo
   return gravarArquivo(confinado(arquivo, raizesDeEscrita(), "arquivo"), conteudo);
 }
 
-//* Cria arquivo dentro da pasta aberta.
+//* Cria arquivo sob a raiz recebida — continência conferida na infra, sem realpath.
 export function criarArquivoNoProjeto(raiz: string, dir: string, nome: string): Promise<string> {
   return criarArquivo(raiz, dir, nome);
 }
 
-//* Cria pasta dentro da pasta aberta.
+//* Cria pasta sob a raiz recebida — continência conferida na infra, sem realpath.
 export function criarPastaNoProjeto(raiz: string, dir: string, nome: string): Promise<string> {
   return criarPasta(raiz, dir, nome);
 }
 
-//* Renomeia dentro da pasta aberta.
+//* Renomeia sob a raiz recebida — continência conferida na infra, sem realpath.
 export function renomearNoProjeto(raiz: string, antigo: string, nome: string): Promise<string> {
   return renomear(raiz, antigo, nome);
 }

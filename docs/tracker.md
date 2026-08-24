@@ -275,3 +275,26 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **minha recomendação** | **(c) agora, (b) depois.** Só a cabeça sabe se `acharPython` era semente de recurso. Marcar custa uma linha e resolve o custo real, que é de atenção. Se a cabeça disser que não era semente, (b) |
 | **se ficar para depois** | **igual.** Não apodrece: 20 linhas hoje, 20 linhas daqui a um ano |
 
+
+---
+
+## 8. Corrida 2 — 24/08/2026: as árvores e os seus DESFECHOS (§12·3a·5)
+
+> **Por que esta seção existe:** em 24/08 o §12·3a ganhou o **quinto dever** — *toda árvore
+> devolvida tem desfecho registrado: aplicada, recusada ou adiada, com quem decidiu e quando*.
+> O D4 da seção 7 é o caso que fez a regra nascer (recomendou "(c) agora" e a marca nunca foi
+> posta nem recusada). Aqui nenhuma árvore sai sem a linha de desfecho.
+
+| árvore | o que era | desfecho |
+|---|---|---|
+| **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
+
+### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
+
+| parte | |
+|---|---|
+| **o defeito** | `arquivos-do-projeto.ts:134-139` (`dentroDe`) compara **texto**, sem `realpath`, contra a `raiz` que veio do renderer; `escrita-confinada.ts:18-25` (`confinado`) resolve o link e confere contra `raizesDeEscrita()` — as raízes que o **dono** conhece. Os dois caminhos saem do mesmo registrador (`ponte-arquivo.ts`). **Herdado**: a infra é byte-idêntica à linha de base fora dois imports |
+| **o que custa deixar** | um renderer **já comprometido** cria ou renomeia fora da pasta aberta passando uma raiz arbitrária. Risco baixo — exige o renderer comprometido antes — e uma assimetria real entre canais vizinhos. Com o P4 aplicado, o custo de **ilusão** morre: o comentário deixa de prometer o que o código não faz |
+| **as opções** | **(a) uniformizar** — os três `*NoProjeto` resolvem a raiz pelo dono e validam com `confinado()` antes de delegar. **Muda conduta**: pedido com raiz fora das abertas passa a ser recusado, e a frase de recusa e o comportamento da árvore da interface precisam ser decididos. E hoje **não há teste de serviço** — pela ordem do §12, primeiro a rede, depois o movimento. **(b) deixar como está + P4 + registrar** aqui como herdado conhecido. **(c) deixar sem registro** — não é opção |
+| **minha recomendação** | **(b) agora**; (a) como candidata de corrida futura, quando `servicos/` tiver teste — aí o §12 se cumpre inteiro (rede antes da mudança de conduta) |
+| **se ficar para depois** | **fica mais BARATA depois** da rede de teste de serviço |
