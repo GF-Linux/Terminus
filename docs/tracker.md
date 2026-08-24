@@ -289,6 +289,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | árvore | o que era | desfecho |
 |---|---|---|
 | **A1** | `lerDoTwinny` — 59 linhas em `configuracao-salva.ts` que abriam o `state.vscdb` do VS Code por `sqlite3` e devolviam endpoint, modelo e **chave de API** do provedor FIM do Twinny. **Sem chamador**, e o comentário afirmava *"Só é chamado quando o usuário aperta o botão"* — não existia botão | **(a) aplicada em 24/08/2026, decidida pela cabeça:** apagada. `Twinny` tem hoje **zero** ocorrências no repo. Se a importação virar recurso um dia, ela se reescreve a partir do git — e nasce revisada, com botão de verdade |
+| **A2** | o botão ↗ do terminal anunciava *"Konsole aberto em …"* mesmo sem `konsole` na máquina: `abrirNoKonsole` devolvia a pasta **sincronamente**, e o ENOENT chegava depois, no `filho.on("error", () => {})`, onde morria. O `README:293-295` promete o contrário | **(a) aplicada em 24/08/2026, decidida pela cabeça:** conserto **só no motor** — ele passa a devolver `Promise<string>`, resolvendo no primeiro de {`spawn`, `error`}. Ponte, casca e README **não mudaram**: `respostaSegura` já aceitava `Promise<T> | T` e o ramo de erro da casca (:113) só era **inalcançável**. Medido de ponta a ponta — ver abaixo |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
 
 ### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
@@ -311,3 +312,15 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **minha recomendação** | **(a)**. Zero chamadores medidos por dois auditores e por mim. Se a importação do Twinny virar recurso um dia, ela se reescreve numa tarde a partir do git — e nasce revisada |
 | **se ficar para depois** | o custo de apagar não muda; o risco (1) cresce a cada corrida que move o arquivo sem olhar dentro — esta já foi uma |
 | **DESFECHO** | **(a) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A1) |
+
+### A2 · o botão do Konsole anunciava sucesso falso (§12·3a)
+
+| parte | |
+|---|---|
+| **o defeito** | `motor-do-shell-pty.ts:261-285` (antes) devolvia a pasta **sincronamente**. O ENOENT de `spawn` **não é síncrono**: chega pelo evento `error`, depois de `seguro()` já ter respondido — e o ouvinte `filho.on("error", () => {})` o engolia. `casca-principal.ts:110` então exibia *"Konsole aberto em …"*, e o ramo de erro (:113) era **inalcançável** para esse caso. O próprio motor confessava o mecanismo (:278-280) e declarava a intenção certa (:264-266). Herdado byte a byte da linha de base |
+| **o que custa deixar** | numa máquina **sem `konsole` — fora do KDE, exatamente o público que o README endereça** — o botão anuncia sucesso falso, e a vitrine promete um comportamento que não existe. Custa a quem chega antes de poder conferir |
+| **a prova, medida por mim de ponta a ponta** | sonda de uso único (renderer → porta → ponte → `seguro` → motor, por CDP, com `HOME` e `PATH` próprios; `PATH` = cópia de `/usr/bin` **sem** `konsole`). **Código antigo, sem konsole: `{"ok":true,"valor":"…"}`** — a tela diria "Konsole aberto". **Consertado, sem konsole: `{"ok":false,"erro":"o \\`konsole\\` não está instalado nesta máquina."}`**. **Consertado, com konsole: `{"ok":true,"valor":"…"}`**. Verde-vermelho-verde, e o vermelho é o do código de ontem |
+| **as opções** | **(a) conserto no motor, e só nele** — `Promise<string>` resolvida no primeiro de {`spawn`, `error`}. **(b) rebaixar a vitrine** — reescrever o README dizendo que a falha é silenciosa; oficializa um botão que mente. **(c) deixar sabendo** — a vitrine continua falsa |
+| **minha recomendação** | **(a)** — a única em que código, tela e README dizem a mesma coisa |
+| **a dependência que o plano declarou sem medir, e que eu medi** | o evento `spawn` exige Node ≥ 15.1. **Neste runtime: Electron 33 embute Node v20.18.3, o evento existe e dispara**, e o programa ausente chega como `error` com `code === "ENOENT"`. O plano B (resolver por timeout) **não é necessário** |
+| **DESFECHO** | **(a) aplicada em 24/08/2026, decidida pela cabeça** (plano 02 do sugestor, árvore A2) |

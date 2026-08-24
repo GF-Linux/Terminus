@@ -256,9 +256,10 @@ export function pararShell(): void {
  * defeitos dela. O pedido do autor foi trocar o terminal do Terminus pelo
  * Konsole; como embutir não dá (item 4 lá em cima), o Konsole entra inteiro.
  *
- * Devolve a pasta onde abriu, para a casca poder dizer na tela.
+ * Devolve a pasta onde abriu, para a casca poder dizer na tela — ou recusa, com
+ * a frase que a tela sabe exibir, quando o `konsole` não existe nesta máquina.
  */
-export function abrirNoKonsole(): string {
+export function abrirNoKonsole(): Promise<string> {
   const pasta = pastaDoShell();
 
   //! `konsole`, e não uma caça ao "terminal padrão do sistema". Abrir outro
@@ -275,11 +276,25 @@ export function abrirNoKonsole(): string {
     //! diferente do Konsole aberto pelo menu.
     env: ambiente(),
   });
-  //! Sem este ouvinte, um `konsole` que não existe derruba o processo principal
-  //! com ENOENT — depois de `seguro()` já ter respondido, então nem viraria
-  //! mensagem na tela.
-  filho.on("error", () => {});
-  filho.unref();
-
-  return pasta;
+  //! O ENOENT de `spawn` NÃO é síncrono: chega pelo evento `error` depois que a
+  //! resposta já teria ido — era assim que a tela dizia "Konsole aberto em ..."
+  //! sem Konsole nenhum, numa máquina fora do KDE. Esperar o PRIMEIRO de
+  //! {spawn, error} é o que torna verdadeira a frase que o leia-me promete.
+  //! Medido neste runtime (Electron 33 / Node v20.18.3): o evento `spawn`
+  //! existe e dispara, e o ausente chega como `error` com `code === "ENOENT"`.
+  return new Promise((resolver, recusar) => {
+    filho.once("spawn", () => {
+      filho.unref();
+      resolver(pasta);
+    });
+    filho.once("error", (err: NodeJS.ErrnoException) => {
+      recusar(
+        new Error(
+          err.code === "ENOENT"
+            ? "o `konsole` não está instalado nesta máquina."
+            : `o Konsole não abriu: ${err.message}`,
+        ),
+      );
+    });
+  });
 }
