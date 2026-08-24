@@ -146,10 +146,6 @@ export function redimensionarShell(cols: number, rows: number): void {
   }
 }
 
-export function shellEstaVivo(): boolean {
-  return proc !== null;
-}
-
 /**
  * A pasta em que o shell está AGORA.
  *

@@ -53,6 +53,16 @@ export interface ResumoDosKits {
   erro: string | null;
 }
 
+//? DEFEITO CONHECIDO (A4, 24/08/2026), devolvido à cabeça e ainda em aberto:
+//?   isto diz "nossa" para QUALQUER symlink. O item 5 do cabeçalho e o
+//?   `README:178-179` prometem que um arquivo alheio é deixado em paz — e um
+//?   symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida.
+//?   O conserto óbvio (conferir se o alvo cai dentro de `kits/`) NÃO foi aplicado
+//?   porque, medido em fixture isolada, ele acerta 2 dos 4 casos: passa a
+//?   RESPEITAR também a nossa própria ligação velha e a nossa ligação PENDURADA
+//?   — e é justamente a ligação pendurada que o comentário de `ligarUm` diz que a
+//?   refeitura existe para consertar. A árvore, com as opções medidas, está no
+//?   tracker §8, A4. Até a cabeça decidir, a conduta é a herdada.
 async function ehNossaLigacao(alvo: string): Promise<boolean> {
   try {
     const st = await fs.lstat(alvo);

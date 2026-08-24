@@ -89,8 +89,3 @@ export function pararNeovim(): void {
   proc?.kill();
   proc = null;
 }
-
-//* Diz se há um Neovim vivo agora.
-export function neovimRodando(): boolean {
-  return proc !== null;
-}

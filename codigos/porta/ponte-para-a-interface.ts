@@ -62,6 +62,13 @@ const api = {
   arquivosDoProjeto: (raiz: string): Promise<Resultado<string[]>> =>
     ipcRenderer.invoke("projeto:arquivos", raiz),
 
+  //? CAPACIDADE DORMENTE (A5, 24/08/2026): estes DOIS canais estão vivos e
+  //?   registrados, e **nenhum código da interface os chama hoje**. Não é
+  //?   descuido: são a capacidade planejada do traceback clicável — `ler` não é
+  //?   confinado à pasta aberta de propósito, e o porquê está escrito em
+  //?   `servicos/leitura-de-arquivo.ts`. Ficam até a feature nascer; enquanto
+  //?   ficam, são superfície alcançável por qualquer código do renderer. Dono e
+  //?   prazo são da cabeça — a árvore está no tracker §8, A5.
   ler: (arquivo: string): Promise<Resultado<string>> => ipcRenderer.invoke("arquivo:ler", arquivo),
   gravar: (arquivo: string, conteudo: string): Promise<Resultado<void>> =>
     ipcRenderer.invoke("arquivo:gravar", arquivo, conteudo),
