@@ -4,6 +4,11 @@ import { homedir } from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Fluxo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
+import { dentroDaRaiz } from "../dominio/guarda-de-caminho.js";
+import { recusarEntrada } from "../dominio/entrada-recusada.js";
+import { ehPastaProtegida } from "../dominio/protecao-da-pasta-aberta.js";
+import { resolverReal } from "./infra/resolucao-de-caminho.js";
+import { aLixeiraAlcanca } from "./infra/alcance-da-lixeira.js";
 import {
   esquecerPasta,
   limparHistoricoAntigo,
@@ -113,27 +118,15 @@ async function entrarNaPasta(raiz: string): Promise<ProjetoAberto> {
 //* Recusa apagar a pasta aberta, ou qualquer pasta acima dela.
 //! A trava fica AQUI, e não só na tela: tela pode voltar a errar, e apagar a
 //!   pasta aberta leva o trabalho do dia inteiro.
+//! QUEM DECIDE é `dominio/protecao-da-pasta-aberta`; esta função só conhece a
+//!   raiz aberta e sabe redigir a recusa. A decisão saiu daqui para poder ser
+//!   testada sem subir o Electron.
 function protegerPastaDeTrabalho(alvo: string): void {
-  if (!raizAberta) return;
-  const raiz = path.resolve(raizAberta);
-  const escolhido = path.resolve(alvo);
-  if (escolhido === raiz || raiz.startsWith(escolhido + path.sep)) {
-    throw new Error(
-      `"${path.basename(escolhido)}" é a pasta de trabalho aberta (ou está acima dela). ` +
-        "Para tirá-la do Terminus use Fechar pasta — excluir aqui apagaria o seu trabalho.",
-    );
-  }
-}
-
-//* Diz se a lixeira do sistema alcança este caminho.
-//! Existe porque o `shell.trashItem` do Electron MENTE: fora do disco de casa
-//!   ele apaga de vez e devolve sucesso. A tela prometia recuperação.
-function aLixeiraAlcanca(alvo: string): boolean {
-  try {
-    return statSync(alvo).dev === statSync(app.getPath("home")).dev;
-  } catch {
-    return false;
-  }
+  if (!ehPastaProtegida(alvo, raizAberta)) return;
+  throw new Error(
+    `"${path.basename(path.resolve(alvo))}" é a pasta de trabalho aberta (ou está acima dela). ` +
+      "Para tirá-la do Terminus use Fechar pasta — excluir aqui apagaria o seu trabalho.",
+  );
 }
 
 //* Liga Ctrl+= , Ctrl+- e Ctrl+0 para o tamanho da janela inteira.
@@ -270,34 +263,19 @@ function raizesDeEscrita(): string[] {
 
 
 //* Resolve um caminho e exige que ele caia dentro das raízes permitidas.
-//! Resolve link simbólico de propósito: sem isso, um atalho dentro do projeto
-//!   apontando para `~/.bashrc` passaria na comparação de texto.
-//! Recusa caminho que começa com `-` ANTES de resolver: viraria opção do
-//!   programa que o recebe.
+//! As TRÊS ETAPAS moram em três lugares agora, e a ordem entre elas é a regra:
+//!   1. `dominio/entrada-recusada` peneira o texto ANTES de resolver — depois de
+//!      resolver, `-c` já virou um caminho dentro da raiz e passaria;
+//!   2. `infra/resolucao-de-caminho` desfaz o link simbólico, senão um atalho no
+//!      projeto apontando para `~/.bashrc` passaria na comparação de nome;
+//!   3. `dominio/guarda-de-caminho` decide, sobre o caminho já real.
+//! Só a etapa 2 toca o disco — e é por isso que só ela ficou em `sistema/`.
 function confinado(alvo: unknown, raizes: string[], oQue = "caminho"): string {
-  if (typeof alvo !== "string" || alvo.length === 0 || alvo.includes("\0")) {
-    throw new Error(`O ${oQue} não é válido.`);
-  }
-  // Recusado antes de resolver, e não depois: `path.resolve("-c")` devolve
-  // `<pasta atual>/-c`, que cai dentro de uma raiz permitida e passaria na
-  // conferência. Um caminho que comece com traço vira opção do programa que o
-  // recebe — o Terminus não precisa de nenhum e não abre essa porta.
-  if (alvo.startsWith("-")) throw new Error(`O ${oQue} não pode começar com "-".`);
-  const abs = path.resolve(alvo);
-  let real: string;
-  try {
-    real = existsSync(abs)
-      ? realpathSync(abs)
-      : path.join(realpathSync(path.dirname(abs)), path.basename(abs));
-  } catch {
-    throw new Error(`${path.basename(abs)}: a pasta de destino não existe.`);
-  }
-  for (const raiz of raizes) {
-    const rel = path.relative(raiz, real);
-    if (rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel))) return real;
-  }
+  const texto = recusarEntrada(alvo, oQue);
+  const real = resolverReal(texto);
+  if (dentroDaRaiz(real, raizes)) return real;
   throw new Error(
-    `"${path.basename(abs)}" está fora da pasta aberta — o Terminus não mexe em arquivo de fora.`,
+    `"${path.basename(path.resolve(texto))}" está fora da pasta aberta — o Terminus não mexe em arquivo de fora.`,
   );
 }
 
@@ -456,7 +434,7 @@ function registrarPonte(): void {
       if (!janela) throw new Error("Janela não disponível.");
       protegerPastaDeTrabalho(alvo);
       const nome = path.basename(alvo);
-      const temLixeira = aLixeiraAlcanca(alvo);
+      const temLixeira = aLixeiraAlcanca(alvo, app.getPath("home"));
 
       const r = await dialog.showMessageBox(janela, {
         type: "warning",

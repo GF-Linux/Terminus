@@ -173,10 +173,26 @@ fatia mistura duas mudanças e o portão verde deixa de dizer qual delas passou.
 
 ---
 
-## 4. Ramos em aberto — decisão da cabeça (§13.1a), não minha
+## 4. Ramos — DECIDIDOS em 2026-08-23 pela concordância dupla (§13.1a)
 
-A planta está desenhada **no ramo que eu recomendo** em cada um. Escolha diferente = eu redesenho
-aquele braço. Nenhum destes foi decidido por mim.
+> ✅ **Planta aprovada.** Os cinco ramos foram decididos pela cabeça e conferidos pelo
+> orquestrador. A coluna "decidido" abaixo é a escolha; a recomendação fica ao lado porque o
+> registro do que eu propus tem de sobreviver à decisão, para o ciclo 13.2 poder comparar.
+
+| ramo | decidido | era minha recomendação? |
+|---|---|---|
+| **A** | **A1 + A3** — janela injetada por parâmetro; os 4 `dialog.*` viram `janela/dialogos-do-sistema.ts` | sim |
+| **B** | **B1** — `molde-de-projeto` e `como-rodar` vão para `sistema/infra/`. ⚠️ **E o PADRAO foi emendado** (`e38b468`): a árvore do §1.3 não os lista mais em `dominio/`, e a E3 passou a registrar que foi ela quem os tirou | sim |
+| **C** | **C1** — `node --test` nativo. A convenção dupla foi aceita **porque foi escrita como preço** | sim |
+| **D** | **D1, como fatia final** — os 2 ciclos entram depois de `sistema/` fechado. Contexto que eu não tinha: **eles sobreviveram a duas refatorações anteriores deste alvo**, porque aqueles portões não mediam ciclo | sim |
+| **E** | **E2** — o teto conta módulos **fora** de `sistema/ponte/` | sim |
+
+**Os três defeitos herdados entram na corrida:** D1 e D2 no fechamento (§12·6); **D3 na própria
+fatia que faz a E1**, não no fim.
+
+---
+
+## 4a. O que eu recomendei, para o registro
 
 | ramo | a pergunta | opções | minha recomendação |
 |---|---|---|---|
@@ -190,9 +206,41 @@ aquele braço. Nenhum destes foi decidido por mim.
 
 ## 5. Progresso das fatias
 
-Preenchido conforme fecham. Vazio agora, de propósito: **nenhuma fatia começou** — este despacho
-é o portão de desenho (§11 / §12·1), e a construção não começa sem a planta aprovada.
+**A trajetória de M1 foi declarada ANTES de começar**, e está aqui para eu não poder mover o
+alvo depois. M1 **sobe** na fatia 1 e só desce quando os registradores se separam — declarar isso
+antes é o que separa catraca de desculpa.
 
-| # | fatia | M1 declarado | M1 medido | P1 | P2 | P3 | P4 | P5 | commit |
-|---|---|:---:|:---:|:--:|:--:|:--:|:--:|:--:|---|
-| 0 | rede + portão (nada move) | 7 | — | — | — | — | — | — | — |
+| # | fatia | M1 decl. | M1 medido | M2 | M3 | M4 | portão | commit |
+|---|---|:---:|:---:|:--:|:--:|:--:|:---:|---|
+| 0 | o portão, a catraca e o runner | 8 | 8 | 2 | 0 | 5/13 | andaime | `ff4653b` |
+| 1 | a guarda vira `dominio/` + `infra/` | **10** | **10** | 2 | 0 | 8/13 | **VERDE 5/5** | — |
+| 2 | E1: `ponte/` → `porta/` + varredura D3 | 10 | — | 2 | 0 | 9/13 | — | — |
+| 3 | `motores/` e `infra/` recebem os 9 módulos | 10 | — | 2 | 0 | 10/13 | — | — |
+| 4 | `janela/` — A1 + A3 | 10 | — | 2 | 0 | 11/13 | — | — |
+| 5 | `servicos/` — o caso de uso ganha casa | 10 | — | 2 | 0 | 12/13 | — | — |
+| 6 | `ponte/` — os 8 registradores | **2** | — | 2 | 0 | 13/13 | — | — |
+| 7 | `interface/` — os 2 ciclos | 2 | — | **0** | 0 | 13/13 | — | — |
+
+### Fatia 1 — o que foi medido
+
+- **P1** 18 testes, verdes. E a rede **morde**: três sabotagens no domínio
+  (`dentroDaRaiz` voltando a comparar texto · `recusarEntrada` sem a checagem do traço ·
+  `ehPastaProtegida` sem o separador) mataram **exatamente** o teste previsto para cada uma, e
+  **só** ele. Pré-registro bateu 3 de 3.
+- **P4** `M3` também foi sabotado e mordeu nos dois sentidos: `dominio/` importando `node:fs`
+  → 1 violação; `dominio/` alcançando `sistema/infra/` → 1 violação. Antes disso ele estava
+  verde por vacuidade, e verde por vacuidade não vale (§12·2).
+- **O que NÃO mudou de conduta:** as mensagens de recusa são as mesmas, palavra por palavra, e a
+  ordem das três etapas do `confinado` foi preservada — recusar o texto **antes** de resolver,
+  porque `path.resolve("-c")` vira um caminho dentro da raiz.
+
+---
+
+## 6. O fechamento da corrida (§12 passo 6) — os dois atos
+
+Não são opcionais e não são fatia; são o que fecha a corrida.
+
+1. **Varredura do que mudou** — todo nome, caminho e número que a corrida moveu, procurado no
+   repo inteiro (docs, comentários, tracker, README) e atualizado ou listado.
+2. **Vitrine conferida** — os comandos do README **rodados**, e os números que ele afirma
+   **remedidos**. É aqui que D1 e D2 são consertados.
