@@ -621,3 +621,100 @@ há código morto a apagar — e apagaria a peça junto com o canal. A marca imp
 renderer pode **matar o editor** (`neovim:parar`) e **ler a pasta corrente do shell**
 (`shell:pasta`). Hoje ninguém chama; um renderer comprometido chama. É a mesma gravidade da
 A5 — pequena, e real — e agora está escrita nos dois lugares onde alguém vai olhar.
+
+### 10.7 · A10 — o NOME não passa por peneira nenhuma — árvore de decisão (§12·3a) · **EM ABERTO**
+
+> **De onde veio:** apareceu duas vezes no mesmo dia. Primeiro como **falso vermelho** meu — o
+> RED da A3(a) saiu `"Cannot read properties of undefined (reading 'trim')"` em vez da recusa
+> que eu esperava, e foi assim que descobri que tinha errado a aridade. Depois, ao aplicar a
+> A3(a), percebi que **o erro que me confundiu é o que chega na tela de quem usa**.
+
+| parte | |
+|---|---|
+| **o defeito** | `arquivos-do-projeto.ts:122` (`validarNome`) faz `nome.trim()` **sem conferir que `nome` é string**. A carga do IPC chega crua: `ponte-arquivo.ts` **declara** `nome: string`, e declaração de tipo não confere nada em runtime. Os vizinhos todos peneiram — `confinado` chama `recusarEntrada`, `gravarConfinado` confere `typeof conteudo` — e o **nome** ficou de fora |
+| **a prova, medida através de `respostaSegura`** (é o caminho real da tela) | `nome = 42` → **`{"ok":false,"erro":"nome.trim is not a function"}`** · `nome = {}` → idem · `nome = null` → **`{"ok":false,"erro":"Cannot read properties of null (reading 'trim')"}`** · `nome = "a.txt"` → `{"ok":true,…}`. Nada foi destruído para provar |
+| **o que custa deixar** | **falha em segurança** — nada é criado, e é por isso que a gravidade é baixa. O custo é de **vitrine**: um erro interno de JavaScript aparece na tela, com a palavra `trim` e o nome de uma variável do nosso código. É a mesma família da A2 — a tela dizendo algo que não serve a quem lê —, só que aqui a frase nem foi escrita por ninguém. Herdado: `validarNome` é igual à linha de base |
+| **as opções** | **(a) `recusarEntrada(nome, "nome")` antes do `trim`** — usa a peneira que já existe, e a frase vira *"O nome não é válido."*, que é a do resto da casa. Uma linha. Custa: `recusarEntrada` também recusa `-`, o que é **conduta nova** para nome (hoje `-x.txt` é aceito, e é um nome legítimo de arquivo). **(b) só o `typeof`** — `if (typeof nome !== "string") throw new Error("O nome não é válido.")`, sem herdar a regra do traço. **(c) tipar `nome: unknown` na ponte e no serviço**, o que faz o `tsc` cobrar a conferência — é (b) com a trava no compilador junto. **(d) deixar como está** |
+| **minha recomendação** | **(c)**, e a razão é a que a A3(a) acabou de mostrar: `unknown` na borda foi o que fez o `tsc` empurrar a peneira para o lugar certo em `dir` e `antigo`. Nome é a última entrada de `arquivo:criar`/`pasta:criar`/`caminho:renomear` ainda tipada como promessa. **(a) não**, porque herdaria a recusa do traço sem alguém ter decidido isso |
+| **se ficar para depois** | **igual** — não apodrece, e nada de novo passa a depender dele |
+| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a medição. Marca `//?` em `arquivos-do-projeto.ts` |
+
+---
+
+## 11. Fechamento da corrida 3 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+| o que mudou | onde ficou |
+|---|---|
+| **26 → 99 testes** | `README:75` atualizado (e a descrição deixou de dizer *"só regra pura"*), planta atualizada com o bloco por camada, `gera-fluxo.py` e o PNG refeitos, tracker §10.1 preenchido com a contagem **por arquivo** |
+| **comando da P1** (ganhou `--import`) | tracker §10.1 declara; §1·P1 ganhou ponteiro em vez de ser reescrito — é registro **datado** de 23/08 e falsificá-lo seria pior. E o **portão passou a rodar a P1 pelo script do `package.json`**: ele repetia o comando à mão e ficou uma hora atrás do que a P1 declarava |
+| **assinaturas de `criarArquivoNoProjeto` / `criarPastaNoProjeto` / `renomearNoProjeto`** (3 args → 2) | os 3 chamadores (`ponte-arquivo.ts`) atualizados; **o IPC não mudou** — a ponte recebe a raiz e a ignora, com `_raiz` visível |
+| **`ehNossaLigacao` / `ligarUm`** (ganharam `origem`) | chamadores internos atualizados; a marca `//?` da A4 **saiu do código**, substituída pela implementação — e `grep` por `DEFEITO CONHECIDO (A4` dá **0** |
+| **A3 · A4 · A6** saíram de "em aberto" | cabeçalhos das três árvores, a tabela de desfechos do §8 e as seções §10.5/§10.6 |
+| ⚠️ **uma duplicata que EU criei nesta corrida** | escrevi um `dentroDe` local em `kits-embutidos.ts` — **mesmo nome** de outra função privada da mesma camada (`arquivos-do-projeto.ts:140`) e **contrato oposto**: aquela estoura, a minha devolvia booleano. E a regra já existia no domínio, que a infra pode importar (§1.3). **Removida**, domínio reutilizado. Terceira cópia da mesma regra é o §6·R4 pedindo passagem |
+
+### Ato 2 — vitrine conferida
+
+| afirmação do README | conferida como | resultado |
+|---|---|---|
+| `npm run teste` — *"99 testes"* | **rodado** | 99 passaram, 0 falharam |
+| `npm run typecheck` | **rodado** | exit 0 |
+| `npm run build` | **rodado** | exit 0 |
+| `npm run portao` — *"as cinco pernas"* | **rodado** | **VERDE 5/5** |
+| **`README:16` — "Estado: v0.0.7"** | contra `package.json` **e** o topo do changelog | **os três dizem 0.0.7** |
+| **`README:178-179`** — *"se já existir um arquivo seu com esse nome, o Terminus não o toca e avisa"* | contra o código **e** contra a rede nova | **passou a ser VERDADE** com a A4(b). Era falso para symlink. O texto **não precisou mudar** — o código é que foi ao encontro dele |
+| o escopo de criar/renomear | procurado no README inteiro | **nenhuma afirmação fala disso** — a mudança de conduta da A3(a) não quebrou promessa de vitrine |
+| os 6 scripts, `media/icon.png`, `media/terminus.desktop` | `test -f` e execução | todos existem / exit 0 |
+| `git clone git@github.com:…` | **NÃO conferido** | rede e `ssh` estão fora do que me é permitido. Declarado, não presumido |
+
+### Ato 3 — varredura do que NINGUÉM moveu
+
+**⚠️ O instrumento foi reconstruído, reprovado DUAS vezes e revalidado — e as duas reprovações
+são o mais instrutivo deste fechamento.**
+
+| tentativa | o que deu errado | como apareceu |
+|---|---|---|
+| **v1** | tirava comentário de bloco **antes** do de linha. O sigilo da casa (§3) é **`//*` — e ele contém `/*`**: o regex casou de dentro do `//*` até o primeiro `*/` e **comeu 1320 de 1551 caracteres** de `ponte-projeto.ts`. Símbolos **usados** viraram órfãos | 21 falsos positivos, entre eles `escolherPastaEEntrar`, que tem chamador na linha 18 do arquivo comido |
+| **v2** | procurava o canal pelo **nome do método** solto (`.parar(`) | **falso NEGATIVO** em `neovim:parar`: o reprodutor de papel de parede também tem `.parar()`. Nome de método é genérico; `grupo.metodo` não é |
+| **v3** | lia a porta **linha a linha** | 21 canais dados como *"não exposto"* — quase toda definição da porta quebra em várias linhas |
+| **v4** | posicional: acha o canal e caminha **para trás** até a propriedade (ancorada em início de linha, senão pega o **parâmetro**) e até o grupo | **validada** |
+
+**A validação, e é a mesma regra de sempre:** rodei a v4 contra a árvore de ontem (`5c7dbd8`),
+onde eu **sei** que havia quatro canais órfãos. Ela achou **exatamente os quatro** —
+`arquivo:ler`, `arquivo:gravar`, `neovim:parar`, `shell:pasta` — e os três símbolos órfãos
+daquele dia, inclusive `lerDoTwinny`. *Instrumento que não morde nada não prova nada.*
+
+**(a) exportado e canal sem chamador, na árvore de hoje.**
+
+| | |
+|---|---|
+| símbolos exportados | **169** (eram 172 em `5c7dbd8`; os 3 a menos são `lerDoTwinny`, `shellEstaVivo`, `neovimRodando`, apagados na corrida 2) |
+| **sem uso em lugar NENHUM** | **1** — `acharPython` (é o **D4**, já marcado e com desfecho). **Zero novos** |
+| exportados usados só dentro do próprio arquivo | **17** — observação, não defeito. Dois deles (`confinado`, `shellEstaOcioso`) ganharam chamador em `tests/` nesta corrida, o que é o `export` finalmente se pagando |
+| canais registrados | **37**, idênticos em número à linha de base |
+| **canais sem chamador no renderer** | **4** — `arquivo:ler` e `arquivo:gravar` (**A5**, registrados) e `neovim:parar` e `shell:pasta` (**A6**, registrados nesta corrida). **Zero não registrados** |
+
+**(b) resto de produto anterior.** Reconferido item a item: `media/icon.svg:8` (painel de
+catálogo), `docs/fluxo.md:314` (*"hoje: 7"*, número que a corrida 1 retratou), `tracker:150`,
+a prosa de laboratório em `arquivos-do-projeto.ts` e `configuracao-salva.ts` — **todos ainda
+lá, todos LISTADOS de novo, nenhum alterado**: não estavam no despacho, e corrigir prosa
+datada de árvore já decidida falsificaria o registro. `*.ab1` e companhia seguem no
+`.gitignore` **de propósito** (decisão da cabeça, reconfirmada neste despacho). As duas pastas
+`CLAUDE-SECURITY-2026*` continuam **não rastreadas** (`git ls-files` = 0). As menções a
+`tests/arquitetura` e `tests/funcionais` são as **notas do desvio** — elas explicam a ausência,
+não apontam para o vazio; a nota da planta ganhou uma linha dizendo o que a corrida 3 mudou nisso.
+
+### Pendências vivas ao fim da corrida 3
+
+| # | o que é | quem decide |
+|---|---|---|
+| **A7** | "Fechar pasta" nunca chega ao main: a pasta fechada segue gravável, e a recusa de exclusão diz uma frase falsa. **NOVA** | a cabeça |
+| **A8** | o laço de reconexão do Neovim nunca faz a 2ª volta; sem socket, Ctrl+S/F12/plugins penduram em silêncio e o aviso escrito é inalcançável. **NOVA** | a cabeça |
+| **A9** | pasta aberta por atalho recusa toda escrita — e a A3(a) **alargou** isso de `gravar` para `criar`/`renomear`. **NOVA, e a única que encarece com o tempo** | a cabeça |
+| **A10** | o `nome` não passa por peneira: erro interno de JavaScript vira frase de interface. **NOVA** | a cabeça |
+| **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
+| **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente | a cabeça |
+| herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, prosa de laboratório | a cabeça |
+| do despacho 1 | o desvio de planta, o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
+| **o instrumento do 3º ato** | foi reconstruído do zero pela **segunda** corrida seguida, e reprovou **três** vezes antes de servir. Ele mora no scratchpad e morre com a sessão. Virar ferramenta do repo é escopo novo | a cabeça |

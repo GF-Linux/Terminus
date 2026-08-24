@@ -120,6 +120,12 @@ export async function gravarArquivo(arquivo: string, conteudo: string): Promise<
  * simples de nome.
  */
 function validarNome(nome: string): string {
+  //? ⚠️ `nome` NÃO É CONFERIDO — achado e medido em 24/08, árvore **A10** no tracker. O tipo
+  //?   `string` é declaração, não peneira: a carga do IPC chega crua. Com `42` a tela recebe
+  //?   `"nome.trim is not a function"`; com `null`, `"Cannot read properties of null"`. Falha
+  //?   em segurança (nada é criado), mas é erro interno virando frase de interface — e os
+  //?   vizinhos todos peneiram (`recusarEntrada`, `typeof conteudo`). Registrado, não
+  //?   consertado: a opção que eu recomendo muda a assinatura na borda, e isso é da cabeça.
   const limpo = nome.trim();
   if (!limpo) throw new Error("O nome não pode ser vazio.");
   if (limpo === "." || limpo === "..") throw new Error(`"${limpo}" não é um nome.`);
