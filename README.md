@@ -69,6 +69,21 @@ Sem configuração de Neovim? Ele abre igual, com o Neovim padrão. O
 [LazyVim](https://www.lazyvim.org/) é um bom ponto de partida, e é contra ele que
 o Terminus foi testado.
 
+### Conferir antes de mexer
+
+```
+npm run teste       # 26 testes de unidade da regra pura (node --test, sem Electron)
+npm run typecheck   # tsc --noEmit
+npm run portao      # as cinco pernas do portão, e o veredito
+```
+
+O `portao` é o que fecha uma mudança. Ele roda os testes, a verificação de tipo e
+o build, **mede** o acoplamento dos registradores, os ciclos de import, a pureza
+do domínio e a árvore de pastas — e trava em cada um deles. Por fim **sobe o
+aplicativo de verdade**, com `HOME` redirecionado para uma pasta temporária, e
+pergunta à tela por um sinal que só o JavaScript produz. Sem as cinco verdes, a
+mudança não fecha.
+
 ### Instalar o lançador (Linux/KDE)
 
 ```bash
@@ -245,9 +260,17 @@ esta: **nenhum modelo de linguagem escreve nesse terminal.** Nada do que a IA
 sugere chega ali sem passar pelas suas mãos.
 
 ```
-src/main/       processo principal — Neovim (PTY), canal de controle, arquivos
-src/preload/    a ponte, e a única porta para o sistema
-src/renderer/   a casca: árvore, terminal, plugins, temas
+codigos/dominio/    regra pura: a guarda de caminho e o que decide sem tocar disco
+codigos/porta/      o preload — a única passagem entre a casca e o sistema
+codigos/sistema/    o processo principal, em cinco camadas:
+     janela/          cria a janela, o zoom, os atalhos, os diálogos, a partida
+     motores/         conduzem algo vivo: o PTY do shell, o do Neovim, o RPC, a config
+     infra/           tocam o disco e voltam: arquivos, molde, kits, realpath
+     servicos/        os casos de uso — chamam infra, motor e persistência na ordem
+     ponte/           os handlers de IPC, oito registradores
+codigos/interface/  a casca: árvore, terminal, plugins, temas
+codigos/compartilhado/  os tipos que os três reinos falam
+codigos/design/     css, temas, papel de parede, fontes
 ```
 
 ---
@@ -274,7 +297,6 @@ Lista honesta, porque v0.0.7 ainda quer dizer isso:
   KPart Qt, que exige aplicativo Qt como hospedeiro, e nesta sessão Wayland não
   existe XEmbed. O que fica embutido é um terminal equivalente (mesmo shell,
   mesmo PTY, mesmo `.bashrc`, mesmo `.bash_history`).
-- **Sem testes automatizados** na casca.
 
 ## Armadilhas conhecidas (que custaram tempo)
 
@@ -440,5 +462,5 @@ Lista honesta, porque v0.0.7 ainda quer dizer isso:
 se puder ser copiado, adaptado e redistribuído por quem quiser adaptar a própria
 ponte.
 
-As fontes IBM Plex embutidas em `src/renderer/fontes/` são SIL OFL 1.1, e o aviso
+As fontes IBM Plex embutidas em `codigos/design/fontes/` são SIL OFL 1.1, e o aviso
 delas acompanha o LICENSE.

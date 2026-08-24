@@ -14,9 +14,7 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "teste": "node --test \"tests/**/*.test.ts\"",
-    "portao": "node ferramentas/portao.mjs",
-    "catalogo": "python3 tools/build_catalog.py",
-    "fontes": "python3 tools/extract_fonts.py"
+    "portao": "node ferramentas/portao.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.10.0",

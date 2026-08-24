@@ -1,5 +1,8 @@
-/* Gerado por tools/extract_fonts.py a partir do mockup aprovado de 23/07.
-   Não editar à mão: rode o gerador. */
+/* As tres fontes IBM Plex embutidas, extraidas do mockup aprovado de 23/07.
+   O gerador que produziu este arquivo (tools/extract_fonts.py) nao vive mais
+   neste repositorio — o comando que o chamava foi retirado do package.json em
+   23/08, porque apontava para uma pasta que nao existe. Trocar de fonte hoje e
+   trabalho manual: por o .woff2 em fontes/ e acrescentar o @font-face aqui. */
 @font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400 600;font-display:block;src:url('./fontes/ibm-plex-sans-400.woff2') format('woff2')}
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:block;src:url('./fontes/ibm-plex-mono-400.woff2') format('woff2')}
 @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:block;src:url('./fontes/ibm-plex-mono-500.woff2') format('woff2')}

@@ -182,7 +182,7 @@ fatia mistura duas mudanças e o portão verde deixa de dizer qual delas passou.
 | ramo | decidido | era minha recomendação? |
 |---|---|---|
 | **A** | **A1 + A3** — janela injetada por parâmetro; os 4 `dialog.*` viram `janela/dialogos-do-sistema.ts` | sim |
-| **B** | **B1** — `molde-de-projeto` e `como-rodar` vão para `sistema/infra/`. ⚠️ **E o PADRAO foi emendado** (`e38b468`): a árvore do §1.3 não os lista mais em `dominio/`, e a E3 passou a registrar que foi ela quem os tirou | sim |
+| **B** | **B1** — `molde-de-projeto` e `como-rodar` vão para `sistema/infra/`. ⚠️ **E o PADRAO foi emendado** (`e38b468`, no repo da lei `~/projetos/jared-agent`, não neste): a árvore do §1.3 não os lista mais em `dominio/`, e a E3 passou a registrar que foi ela quem os tirou | sim |
 | **C** | **C1** — `node --test` nativo. A convenção dupla foi aceita **porque foi escrita como preço** | sim |
 | **D** | **D1, como fatia final** — os 2 ciclos entram depois de `sistema/` fechado. Contexto que eu não tinha: **eles sobreviveram a duas refatorações anteriores deste alvo**, porque aqueles portões não mediam ciclo | sim |
 | **E** | **E2** — o teto conta módulos **fora** de `sistema/ponte/` | sim |
@@ -204,43 +204,74 @@ fatia que faz a E1**, não no fim.
 
 ---
 
-## 5. Progresso das fatias
+## 5. Progresso das fatias — CORRIDA FECHADA em 2026-08-23
 
-**A trajetória de M1 foi declarada ANTES de começar**, e está aqui para eu não poder mover o
-alvo depois. M1 **sobe** na fatia 1 e só desce quando os registradores se separam — declarar isso
-antes é o que separa catraca de desculpa.
+A trajetória de M1 foi declarada **antes** de cada fatia. Onde a previsão errou, o portão
+reprovou e o número foi re-declarado **com a causa medida** — nunca com o alvo final movido.
 
 | # | fatia | M1 decl. | M1 medido | M2 | M3 | M4 | portão | commit |
 |---|---|:---:|:---:|:--:|:--:|:--:|:---:|---|
 | 0 | o portão, a catraca e o runner | 8 | 8 | 2 | 0 | 5/13 | andaime | `ff4653b` |
-| 1 | a guarda vira `dominio/` + `infra/` | **10** | **10** | 2 | 0 | 8/13 | **VERDE 5/5** | — |
-| 2 | E1: `ponte/` → `porta/` + varredura D3 | 10 | — | 2 | 0 | 9/13 | — | — |
-| 3 | `motores/` e `infra/` recebem os 9 módulos | 10 | — | 2 | 0 | 10/13 | — | — |
-| 4 | `janela/` — A1 + A3 | 10 | — | 2 | 0 | 11/13 | — | — |
-| 5 | `servicos/` — o caso de uso ganha casa | 10 | — | 2 | 0 | 12/13 | — | — |
-| 6 | `ponte/` — os 8 registradores | **2** | — | 2 | 0 | 13/13 | — | — |
-| 7 | `interface/` — os 2 ciclos | 2 | — | **0** | 0 | 13/13 | — | — |
+| 1 | a guarda vira `dominio/` + `infra/` | 10 | 10 ✔ | 2 | 0 | 8/13 | **5/5** | `9eeb50a` |
+| 2 | E1: `ponte/` → `porta/` + varredura D3 | 10 | 10 ✔ | 2 | 0 | 9/13 | **5/5** | `2e07a94` |
+| 3 | `motores/` e `infra/` recebem os 9 | 10 | 10 ✔ | 2 | 0 | 10/13 | **5/5** | `2142b45` |
+| 4 | `janela/` — A1 + A3 | 10 | **12 ✗** | 2 | 0 | 12/13 | **5/5** | `048c11d` |
+| 5 | `servicos/` — o caso de uso | 11 | 11 ✔ | 2 | 0 | 13/13 | **5/5** | `1198cb1` |
+| 6 | `ponte/` — os 8 registradores | **2** | **2 ✔** | 2 | 0 | 13/13 | **5/5** | `07b7c0e` |
+| 7 | `interface/` — os 2 ciclos | 2 | 2 ✔ | **0** | 0 | 13/13 | **5/5** | `2920c30` |
+| — | fechamento: varredura e vitrine | 2 | 2 ✔ | 0 | 0 | 13/13 | **5/5** | — |
 
-### Fatia 1 — o que foi medido
+**A única previsão errada foi a da fatia 4**, e o portão a pegou (exit 1). Causa medida, aresta
+a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
+`janela/dialogos-do-sistema`, `janela/janela-principal` (só pelo `RAIZ_APP`) e
+`infra/argumentos-da-partida`. 10 − 1 + 3 = 12.
 
-- **P1** 18 testes, verdes. E a rede **morde**: três sabotagens no domínio
-  (`dentroDaRaiz` voltando a comparar texto · `recusarEntrada` sem a checagem do traço ·
-  `ehPastaProtegida` sem o separador) mataram **exatamente** o teste previsto para cada uma, e
-  **só** ele. Pré-registro bateu 3 de 3.
-- **P4** `M3` também foi sabotado e mordeu nos dois sentidos: `dominio/` importando `node:fs`
-  → 1 violação; `dominio/` alcançando `sistema/infra/` → 1 violação. Antes disso ele estava
-  verde por vacuidade, e verde por vacuidade não vale (§12·2).
-- **O que NÃO mudou de conduta:** as mensagens de recusa são as mesmas, palavra por palavra, e a
-  ordem das três etapas do `confinado` foi preservada — recusar o texto **antes** de resolver,
-  porque `path.resolve("-c")` vira um caminho dentro da raiz.
+### O placar da corrida
+
+| métrica | partida | chegada |
+|---|:---:|:---:|
+| **M1 acoplamento máximo do registrador** | **8** | **2** |
+| M2 ciclos de import | 2 | **0** |
+| M3 violações de pureza em `dominio/` | — (não existia) | **0** |
+| M4 conformidade com a árvore §1.3 | 5/13 | **13/13** |
+| testes | **0** | **26** |
+| arquivos `.ts` em `codigos/` | 28 | **58** |
+| maior arquivo de `sistema/` | **707 linhas** (o monólito) | **289** — e é o `configuracao-salva`, que já tinha 289 antes |
+| canais de IPC | 37 | **37 — idênticos** |
 
 ---
 
-## 6. O fechamento da corrida (§12 passo 6) — os dois atos
+## 6. Conduta preservada — como foi conferido
 
-Não são opcionais e não são fatia; são o que fecha a corrida.
+- **Os 37 canais** foram extraídos por script e comparados com `diff` **duas vezes** (depois da
+  fatia 5 e da fatia 6). Idênticos nas duas: nenhum nasceu, morreu ou trocou de nome.
+- **As mensagens de recusa** foram movidas palavra por palavra. A guarda que recusa hoje recusa
+  depois, com o mesmo texto na tela.
+- **A ordem das três etapas do `confinado`** — recusar o texto, resolver o link, decidir — foi
+  preservada, e é a regra: `path.resolve("-c")` vira um caminho DENTRO da raiz.
+- **A ordem de `entrarNaPasta`** — ler a pasta antes de registrar nos recentes — foi preservada,
+  e é o que faz uma pasta que sumiu do disco sair da lista em vez de voltar para ela.
+- **A perna P5 subiu o aplicativo de verdade a cada fatia**, com `HOME` redirecionado.
 
-1. **Varredura do que mudou** — todo nome, caminho e número que a corrida moveu, procurado no
-   repo inteiro (docs, comentários, tracker, README) e atualizado ou listado.
-2. **Vitrine conferida** — os comandos do README **rodados**, e os números que ele afirma
-   **remedidos**. É aqui que D1 e D2 são consertados.
+---
+
+## 7. Os defeitos, no fim
+
+| # | o que era | como fechou |
+|---|---|---|
+| **D1** | `npm run catalogo` e `npm run fontes` apontavam para `tools/*.py` inexistente (exit 2 os dois) | **os dois scripts saíram do `package.json`** |
+| **D2** | `README:248-251` desenhava `src/main\|preload\|renderer`, que não existem | **o bloco passou a desenhar a árvore real**, e a varredura achou **mais dois**: `README:443` e **`LICENSE:28`**, que apontavam para `src/renderer/fontes/` |
+| **D3** | "ponte" nomeava duas coisas; 19 menções em prosa queriam dizer *preload* | **12 trocadas na própria fatia da E1.** As outras são a marca do produto ("uma ponte amigável") e ficaram |
+| **D4** | `localizador-do-python.ts` exporta `acharPython()` e **ninguém o importa** | **NÃO consertado.** Movido para `infra/` junto com os outros, para preservar conduta. Árvore de decisão abaixo |
+| **D5** | `codigos/design/fontes.css:1` mandava *"rode o gerador"* — o gerador é o `tools/extract_fonts.py` que o D1 removeu | **corrigido**: é cauda direta do D1, e deixá-lo faria o repo mentir |
+
+### D4 · o módulo órfão — árvore de decisão (§12·3a)
+
+| parte | |
+|---|---|
+| **o defeito** | `codigos/sistema/infra/localizador-do-python.ts` (20 linhas) exporta `acharPython()`. Busca larga por `localizador\|localizarPython\|acharPython` em `.ts`, `.json`, `.md` e `.html`, fora de `node_modules` e `out`, achou **só a própria planta**. Nada no código o chama |
+| **o que custa deixar** | 20 linhas que o `tsc` compila, o Vite empacota e ninguém executa. Custa **atenção**: quem for mexer no Rodar do Python vai lê-lo achando que está no caminho, e ele não está. Não custa comportamento — não roda |
+| **as opções** | **(a) deixar** — custo zero hoje, a confusão fica. **(b) apagar** — 20 linhas a menos; risco: se ele era o começo de um recurso planejado, a intenção some junto. **(c) manter e marcar** com um `//?` dizendo que está fora do caminho e por quê — custo de uma linha, e a próxima pessoa não perde tempo |
+| **minha recomendação** | **(c) agora, (b) depois.** Só a cabeça sabe se `acharPython` era semente de recurso. Marcar custa uma linha e resolve o custo real, que é de atenção. Se a cabeça disser que não era semente, (b) |
+| **se ficar para depois** | **igual.** Não apodrece: 20 linhas hoje, 20 linhas daqui a um ano |
+

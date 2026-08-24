@@ -1,8 +1,8 @@
 {
-  "fatia": "7 — os dois ciclos de interface/ (ramo D1, fatia final)",
+  "fatia": "fechamento — varredura e vitrine (§12 passo 6)",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "M2 vai a ZERO. Os dois ciclos sobreviveram a duas refatoracoes anteriores deste alvo porque aqueles portoes nao mediam ciclo. Este mede, e trava."
+  "porque": "Os quatro no alvo. A catraca fica aqui: qualquer mudanca futura que piore um deles reprova."
 }

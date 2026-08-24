@@ -36,10 +36,9 @@ raizes = [
    no("interface/", "renderer · a casca, 16 arquivos", FG, [
       no("painel-lateral", "desfaz os 2 ciclos de import", NOVO)]),
    no("design/", "css, temas, papel de parede, fontes", FG)]),
- no("tests/", "espelha codigos/ (§6·R5)", NOVO, [
-   no("arquitetura/", "a lei virando teste: camadas, pureza, teto, ciclos", NOVO),
-   no("funcionais/",  "sobe o app e exige sinal só-do-JavaScript", NOVO)]),
- no("ferramentas/", "portao.mjs — as 5 pernas do portão e o veredito", NOVO),
+ no("tests/", "26 testes (§6·R5)", NOVO, [
+   no("dominio/", "roda sem Electron, em milissegundos", NOVO)]),
+ no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py", NOVO),
  no("docs/", "fluxo.md (esta planta) · tracker.md · diario.md", NOVO),
  no("kits/", "dev-kits embutidos", FG),
 ]
@@ -78,7 +77,7 @@ def curva(x1,y1,x2,y2):
 s=[f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {LARG} {ALT}" width="{LARG}" height="{ALT}" role="img" aria-label="Planta-alvo do Terminus: dominio puro, reino da porta e as cinco camadas de sistema, com o alvo da corrida em numeros">',
    f'<rect width="{LARG}" height="{ALT}" fill="{BG}"/>',
    f'<text x="70" y="58" font-family="{SANS}" font-size="30" font-weight="700" fill="{FG}">Terminus — a planta do prédio</text>',
-   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · HEAD ada7bfa · 34 arquivos · 5.683 linhas · 37 canais de IPC</text>',
+   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · 8 fatias · portão verde 5/5 · 37 canais preservados</text>',
    f'<line x1="70" y1="108" x2="{LARG-70}" y2="108" stroke="{LINHA}" stroke-width="1"/>']
 
 for nivel, ypai, yf in arestas:
@@ -102,9 +101,9 @@ for nivel, yy, rot, desc, cor, tem_filho in plano:
 
 ry = ALT - 100
 s.append(f'<rect x="70" y="{ry-30}" width="{LARG-140}" height="78" rx="8" fill="{SIDE}" stroke="{LINHA}"/>')
-s.append(f'<text x="94" y="{ry-7}" font-family="{MONO}" font-size="13" font-weight="700" fill="{ROTULO}">O ALVO DA CORRIDA — o que o portão mede, o portão TRAVA (§12·4b)</text>')
+s.append(f'<text x="94" y="{ry-7}" font-family="{MONO}" font-size="13" font-weight="700" fill="{ROTULO}">O ALVO DA CORRIDA — MEDIDO E ATINGIDO em 23/08 (§12·4b)</text>')
 for i,(nome,hoje,alvo) in enumerate([
-    ("M1  acoplamento máximo do registrador","7","≤ 2"),
+    ("M1  acoplamento máximo do registrador","8","2"),
     ("M2  ciclos de import","2","0"),
     ("M3  imports proibidos em dominio/","n/a","0"),
     ("M4  conformidade com a árvore §1.3","5/13","13/13")]):
@@ -114,7 +113,7 @@ for i,(nome,hoje,alvo) in enumerate([
     w = len(hoje)*9.4 + 12
     s.append(f'<text x="{x+w}" y="{ry+38}" font-family="{MONO}" font-size="15" fill="#565b74">→</text>')
     s.append(f'<text x="{x+w+27}" y="{ry+38}" font-family="{MONO}" font-size="15" font-weight="700" fill="{NOVO}">{alvo}</text>')
-s.append(f'<text x="70" y="{ALT-22}" font-family="{SANS}" font-size="12.5" fill="#565b74">verde — nasce nesta corrida   ·   vermelho — o número de hoje   ·   a fonte da verdade é docs/fluxo.md; este PNG é derivado dele</text>')
+s.append(f'<text x="70" y="{ALT-22}" font-family="{SANS}" font-size="12.5" fill="#565b74">verde — o que a corrida entregou   ·   vermelho — o número de partida   ·   a fonte da verdade é docs/fluxo.md; este PNG é derivado dele</text>')
 s.append('</svg>')
 open('docs/fluxo.svg','w').write('\n'.join(s))
 print("svg escrito · altura", ALT, "· nenhuma descricao invadiu coluna de filho")

@@ -25,7 +25,7 @@ SOFTWARE.
 Terceiros embutidos neste repositório
 =====================================
 
-**IBM Plex Sans / IBM Plex Mono** (`src/renderer/fontes/`)
+**IBM Plex Sans / IBM Plex Mono** (`codigos/design/fontes/`)
 SIL Open Font License 1.1 — Copyright © 2017 IBM Corp.
 https://github.com/IBM/plex/blob/master/LICENSE.txt
 

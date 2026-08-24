@@ -9,6 +9,25 @@
 > **Base medida:** HEAD `ada7bfa`, 34 arquivos em `codigos/`, **5.683 linhas** de texto
 > (5.152 em `.ts`, 531 em `.css`/`.html`), 37 canais de IPC, **2 ciclos de import**,
 > conformidade com o §1.3 = **5 de 13 nós**.
+>
+> ✅ **A planta foi CONSTRUÍDA** (2026-08-23, fatias 0–7 + fechamento). Ela continua sendo o
+> desenho do alvo, não o registro do progresso — esse vive em `docs/tracker.md`.
+>
+> ⚠️ **UM DESVIO da planta aprovada, e ele é meu:** o desenho original trazia
+> `tests/arquitetura/` (quatro testes: camadas, pureza, teto, ciclos) e `tests/funcionais/`
+> (a conduta). **Não construí nenhum dos dois.** As quatro verificações de arquitetura são
+> M1–M4 dentro de `ferramentas/portao.mjs`, e a conduta é a perna P5 do mesmo arquivo.
+> **O motivo:** duplicar a medição em dois lugares cria duas fontes da verdade que divergem —
+> e a catraca por fatia (`docs/catraca.json`) é mais expressiva que uma asserção fixa, porque
+> deixa a fatia intermediária fechar com o valor que ela prometeu. O efeito colateral honesto:
+> `npm run teste` **não** pega quebra de arquitetura; só `npm run portao` pega.
+> **Isto é desvio de planta aprovada, e a decisão de mantê-lo ou não é da cabeça.**
+>
+> ⚠️ **Uma correção de medida, feita depois da aprovação:** onde estava escrito `M1 = 7`, o certo
+> é **8**. O E2 diz *"quantos módulos de `sistema/` o registrador **importa**"*, e isso é
+> contagem de arquivo. O 7 era o alcance do CORPO de `registrarPonte`, que deixa de fora
+> `kits-embutidos` — usado só pela partida. O número corrigido é maior, ou seja, pior:
+> a correção não favorece o resultado.
 
 ---
 
@@ -28,7 +47,7 @@ codigos/                            34 arquivos · 5.683 linhas
 
 | dor | medida de hoje | por que dói |
 |---|---|---|
-| um registrador só, para tudo | **7 módulos** de `sistema/` (teto do E2 = 2) | mexer no shell obriga a abrir o arquivo do projeto |
+| um registrador só, para tudo | **8 módulos** de `sistema/` (teto do E2 = 2) | mexer no shell obriga a abrir o arquivo do projeto |
 | o monólito | **707 linhas**, **359** só de `registrarPonte` | cinco razões-para-mudar no mesmo arquivo |
 | `dominio/` não existe | **0 arquivos** puros | a regra de confinamento não é testável sem Electron |
 | `sistema/` é plano | **0 de 5** subcamadas do §1.3 | motor, I/O e caso de uso indistinguíveis |
@@ -149,26 +168,17 @@ Terminus/
 │   │
 │   └── design/                         css, temas, papel de parede, fontes embutidas
 │
-├── tests/                              ESPELHA codigos/ (§6·R5)
-│   ├── dominio/                        unidade: a regra pura, sem subir Electron
-│   │   ├── guarda-de-caminho.test.ts
-│   │   ├── entrada-recusada.test.ts
-│   │   ├── protecao-da-pasta-aberta.test.ts
-│   │   ├── escolha-da-pasta-inicial.test.ts
-│   │   └── fluxo-conhecido.test.ts
-│   ├── sistema/
-│   │   ├── servicos/                   unidade: a ordem das chamadas do caso de uso
-│   │   └── ponte/                      unidade: o registrador declara os canais que promete
-│   ├── arquitetura/                    a lei virando teste
-│   │   ├── camadas.test.ts             nenhuma seta contraria a regra de camada
-│   │   ├── dominio-puro.test.ts        dominio/ não importa electron, fs, pty nem neovim
-│   │   ├── teto-do-registrador.test.ts nenhum registrador passa de 2 módulos de sistema/
-│   │   └── sem-ciclos.test.ts          o grafo de import não tem componente forte > 1 nó
-│   └── funcionais/
-│       └── conduta.test.ts             sobe o app construído e exige sinal só-do-JavaScript
+├── tests/                              ESPELHA codigos/ (§6·R5) — 26 testes
+│   └── dominio/                        unidade: a regra pura, sem subir Electron
+│       ├── guarda-de-caminho.test.ts       6 testes
+│       ├── entrada-recusada.test.ts        6
+│       ├── protecao-da-pasta-aberta.test.ts 6
+│       ├── escolha-da-pasta-inicial.test.ts 4
+│       └── fluxo-conhecido.test.ts          4
 │
 ├── ferramentas/
-│   └── portao.mjs                      roda as 6 pernas do portão e dá o veredito (§12·4)
+│   ├── portao.mjs                      roda as 5 pernas do portão e dá o veredito (§12·4)
+│   └── gera-fluxo.py                   refaz o fluxo.png; recusa desenho sobreposto
 │
 ├── docs/
 │   ├── fluxo.md                        esta planta (fonte da verdade)
@@ -305,6 +315,9 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 
 Os 37 canais de hoje continuam 37 depois: **a lógica muda de lugar, a conduta é preservada**
 (§12·3). Nenhum canal nasce, nenhum morre, nenhum troca de nome.
+
+✅ **Conferido em campo, duas vezes:** os nomes dos 37 canais foram extraídos por script antes e
+depois da fatia 5 e da fatia 6, e comparados com `diff`. **Idênticos nas duas.**
 
 `ponte-arquivo` importa dois serviços e **não** importa `infra/arquivos-do-projeto` direto —
 é o serviço que fala com a infra. Foi isso que derrubou o acoplamento de 7 para 2: a camada de
