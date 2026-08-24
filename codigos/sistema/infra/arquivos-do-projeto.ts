@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import type { NoArquivo, ProjetoAberto } from "../compartilhado/tipos.js";
+import type { NoArquivo, ProjetoAberto } from "../../compartilhado/tipos.js";
 
 /** Pastas que nunca interessam numa pasta de corrida e só poluem a árvore. */
 const IGNORAR = new Set([".git", "__pycache__", ".venv", "node_modules", ".ipynb_checkpoints"]);

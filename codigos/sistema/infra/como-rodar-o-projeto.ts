@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { ComoRodar, Fluxo } from "../compartilhado/tipos.js";
+import type { ComoRodar, Fluxo } from "../../compartilhado/tipos.js";
 
 //? COMO RODAR O PROJETO — Decisão sobre o botão que substitui o dotnet build 17/08/2026
 //!

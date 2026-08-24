@@ -21,7 +21,7 @@ import {
   PASTA_CONFIG,
   registrarPasta,
   ultimaPasta,
-} from "./configuracao-salva.js";
+} from "./motores/configuracao-salva.js";
 import {
   abrirNoKonsole,
   enviarAoShell,
@@ -31,13 +31,13 @@ import {
   pararShell,
   pastaDoShell,
   redimensionarShell,
-} from "./motor-do-shell-pty.js";
+} from "./motores/motor-do-shell-pty.js";
 import {
   enviarNeovim,
   iniciarNeovim,
   pararNeovim,
   redimensionarNeovim,
-} from "./motor-neovim-pty.js";
+} from "./motores/motor-neovim-pty.js";
 import {
   abrirNoNeovim,
   abrirTerminalNeovim,
@@ -47,7 +47,7 @@ import {
   refazerNeovim,
   resetarControle,
   salvarNeovim,
-} from "./controle-neovim-rpc.js";
+} from "./motores/controle-neovim-rpc.js";
 import {
   abrirProjeto,
   criarArquivo,
@@ -58,10 +58,10 @@ import {
   listar,
   listarTudo,
   renomear,
-} from "./arquivos-do-projeto.js";
-import { criarProjeto, NOME_DO_FLUXO } from "./molde-de-projeto.js";
-import { comoRodar } from "./como-rodar-o-projeto.js";
-import { ligarKits } from "./kits-embutidos.js";
+} from "./infra/arquivos-do-projeto.js";
+import { criarProjeto, NOME_DO_FLUXO } from "./infra/molde-de-projeto.js";
+import { comoRodar } from "./infra/como-rodar-o-projeto.js";
+import { ligarKits } from "./infra/kits-embutidos.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
 

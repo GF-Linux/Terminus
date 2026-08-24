@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { Fluxo } from "../compartilhado/tipos.js";
+import type { Fluxo } from "../../compartilhado/tipos.js";
 
 //! `execFile`, e não `exec`: sem shell, os argumentos vão separados. O caminho da
 //! pasta vem de um diálogo e pode ter espaço, aspas e cifrão — pelo shell isso

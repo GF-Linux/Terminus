@@ -1,5 +1,5 @@
 import { attach, type NeovimClient } from "neovim";
-import type { PluginNvim } from "../compartilhado/tipos.js";
+import type { PluginNvim } from "../../compartilhado/tipos.js";
 import { SOCKET_NEOVIM } from "./motor-neovim-pty.js";
 
 //? CONTROLE DO NEOVIM (RPC) — Decisão sobre quem manda nos comandos 16/08/2026
