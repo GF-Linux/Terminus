@@ -33,6 +33,13 @@ async function obter(): Promise<NeovimClient | null> {
   conectando = (async () => {
     // O socket surge um instante depois do spawn; algumas tentativas cobrem a
     // corrida entre o editor abrir e alguém apertar Ctrl+S logo de cara.
+    //? ⚠️ ESTE LAÇO NUNCA FAZ A SEGUNDA VOLTA — achado e medido em 24/08, árvore **A8**
+    //?   no tracker. `await c.eval("1")` NÃO ASSENTA quando o socket não existe (nem
+    //?   resolve nem rejeita), então o `catch` abaixo nunca roda e o laço trava na
+    //?   primeira tentativa. Como `conectando` é memoizado, todo Ctrl+S / F12 / painel
+    //?   de plugins seguinte pendura em silêncio — e a frase "Neovim não respondeu ao
+    //?   canal de controle" fica INALCANÇÁVEL, porque ela exige este laço terminar.
+    //?   Registrado, não consertado: é conduta em motor sem rede (§12·3a).
     for (let tentativa = 0; tentativa < 25; tentativa++) {
       try {
         const c = attach({ socket: SOCKET_NEOVIM });

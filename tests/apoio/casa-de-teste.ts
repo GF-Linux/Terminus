@@ -1,7 +1,7 @@
 //* Fixtures em disco para a rede de `servicos/`: pastas e arquivos de verdade, dentro da
 //*   casa temporária que o gancho criou.
 
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
 import type { BrowserWindow } from "electron";
@@ -13,13 +13,13 @@ export function casa(): string {
   return homedir();
 }
 
-//* Uma pasta nova e vazia dentro da casa. Devolve o caminho REAL (sem link no meio).
-//! `realpathSync` não é preciso aqui porque a casa já veio de `mkdtempSync` — mas em
-//!   macOS `/tmp` é link para `/private/tmp`, e por isso o teste que compara caminho
-//!   compara sempre contra `path.resolve` do que ESTA função devolveu, nunca contra
-//!   um literal montado à mão.
+//* Uma pasta nova e vazia dentro da casa, já no caminho REAL (sem link no meio).
+//! `realpathSync` NÃO é enfeite: a guarda de escrita compara caminho JÁ RESOLVIDO, e em
+//!   sistema onde `/tmp` é link (macOS aponta para `/private/tmp`) a fixture entraria com
+//!   um nome e sairia da guarda com outro. O teste falharia sem nenhum defeito no código
+//!   — e um vermelho que não é defeito ensina a suíte a ser ignorada.
 export function pastaNova(prefixo: string): string {
-  return mkdtempSync(path.join(casa(), `${prefixo}-`));
+  return realpathSync(mkdtempSync(path.join(casa(), `${prefixo}-`)));
 }
 
 //* Cria um arquivo com conteúdo, criando as pastas do caminho se faltarem.
