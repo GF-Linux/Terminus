@@ -28,7 +28,7 @@ raizes = [
    no("porta/", "preload · a ÚNICA passagem renderer↔main", ACENTO, [
       no("ponte-para-a-interface", "contextBridge: publica window.terminus", FG)]),
    no("sistema/", "main · o reino do processo principal", ACENTO, [
-      no("janela/",   "5 · cria, zoom, atalhos, diálogos, partida", FG),
+      no("janela/",   "6 · cria, vive, zoom, atalhos, diálogos, partida", FG),
       no("motores/",  "4 · conduzem algo VIVO: pty, rpc, config", FG),
       no("infra/",    "8 · tocam o disco e voltam: fs, realpath, argv", FG),
       no("servicos/", "5 · caso de uso: chamam na ordem certa", NOVO),

@@ -20,7 +20,6 @@ export const PASTA_CONFIG = PASTA;
 interface ConfigGravada {
   /** Pastas já abertas, da mais recente para a mais antiga. */
   pastas?: string[];
-  /** Linhas digitadas no terminal, da mais recente para a mais antiga. */
   /** Histórico da linha de comando, até 18/08. Só existe para ser apagado. */
   comandos?: string[];
   aparencia?: {

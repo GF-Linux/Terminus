@@ -57,7 +57,7 @@
 <text x="250" y="379.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">preload · a ÚNICA passagem renderer↔main</text>
 <circle cx="549" cy="415" r="3.2" fill="#d7d9ea"/>
 <text x="560" y="420" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">janela/</text>
-<text x="634.59" y="420" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · cria, zoom, atalhos, diálogos, partida</text>
+<text x="634.59" y="420" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">6 · cria, vive, zoom, atalhos, diálogos, partida</text>
 <circle cx="549" cy="445" r="3.2" fill="#d7d9ea"/>
 <text x="560" y="450" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">motores/</text>
 <text x="642.96" y="450" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">4 · conduzem algo VIVO: pty, rpc, config</text>

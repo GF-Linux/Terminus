@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.6.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.7.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).

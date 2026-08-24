@@ -136,6 +136,7 @@ Terminus/
 │   │   │   └── exclusao-de-caminho.ts  protege a pasta aberta e escolhe lixeira ou apagar
 │   │   │
 │   │   └── ponte/                      HANDLERS ipcMain — teto de 2 módulos de sistema/ cada
+│   │       ├── janela-exigida.ts       entrega a janela viva, ou a recusa que a tela sabe exibir
 │   │       ├── registra-tudo.ts        o único ponto de entrada: chama os 8 registradores
 │   │       ├── resposta-segura.ts      embrulha o handler: exceção vira {ok:false, erro}
 │   │       ├── ponte-projeto.ts        6 canais: escolher, entrar, inicial, novo, recentes...
@@ -307,7 +308,7 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 | `ponte-arquivo.ts` | 8 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
 | `ponte-exclusao.ts` | 1 | `servicos/exclusao-de-caminho` | 1 ✔ |
 | `ponte-como-rodar.ts` | 1 | `infra/como-rodar-o-projeto` | 1 ✔ |
-| `ponte-aparencia.ts` | 4 | `motores/configuracao-salva` | 1 ✔ |
+| `ponte-aparencia.ts` | 4 | `janela/dialogos-do-sistema` · `motores/configuracao-salva` | 2 ✔ |
 | `ponte-shell.ts` | 7 | `motores/motor-do-shell-pty` | 1 ✔ |
 | `ponte-neovim.ts` | 7 | `motores/motor-neovim-pty` · `motores/controle-neovim-rpc` | 2 ✔ |
 | `ponte-janela.ts` | 3 | — (recebe a janela, não importa módulo) | 0 ✔ |
