@@ -602,3 +602,137 @@ quinto órfão, e só ele.
    assim precisou de validação nova, porque a coluna de canais depende da forma da árvore.
 5. As pendências antigas: o desvio de planta, o nome do arquivo do preload, o "empacote"
    descoberto na P3, e os herdados listados.
+
+---
+
+## 2026-08-24 · Despacho 6 — A8(c), A10(c) e A7(a). Três árvores, e duas provas erradas minhas.
+
+Cheguei com duas decisões e recebi a terceira no meio. A ordem da cabeça estava certa e a razão
+dela também: a **A8 primeiro**, porque ela não trava só o produto — trava **quem tenta medir o
+produto**. Foi ela que avermelhou a suíte de `escrita-confinada` na corrida 3 e que matou uma
+sonda em silêncio na corrida 4. Consertá-la barateou o resto deste despacho na hora.
+
+### O placar
+
+| medida | chegada | partida |
+|---|:---:|:---:|
+| testes | **139** | 102 |
+| duração da P1 | **6,5 s** | 1,07 s |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | **idênticos, e previstos por escrito antes de cada fatia** |
+| canais de IPC | **38** — os 37 da base idênticos por `diff`, + 1 declarado | 37 |
+| símbolos exportados sem uso | **1** (`acharPython`, o D4) | 1 |
+| canais sem chamador na tela | **4** — os quatro registrados | 4 |
+| árvores fechadas | **A8, A10, A7** | — |
+| árvores novas devolvidas | **A11, A12** | — |
+| commits | **11** | — |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. Escrevi a receita do PNG e ela estava errada na PRIMEIRA LINHA.** Era pendência de duas
+corridas: a receita não existia em lugar nenhum do repo. Escrevi-a no cabeçalho de
+`gera-fluxo.py` — e mandei `python3 ferramentas/gera-fluxo.py > docs/fluxo.svg`. **O script já
+escreve o arquivo sozinho** e depois **imprime um resumo na saída padrão**: o redirecionamento
+fez o resumo cair por cima dos primeiros **69 bytes** do SVG. A tag `<svg` sumiu, o `magick`
+respondeu `unable to read image data`, e o **PNG antigo ficou no lugar com o mesmo md5**.
+Só apareceu porque eu **rodei** a receita antes de commitá-la.
+> **A lição: receita escrita e não executada é instrução fabricada.** Eu ia commitar, no lugar
+> onde a receita "devia estar", um comando que destrói o arquivo que ele diz gerar.
+
+**2. Duas das cinco sabotagens da A8 NÃO MORDERAM, e as duas expunham teste meu.**
+A primeira: removi o memo de `conectando` e a suíte seguiu verde — porque o meu teste
+"duas chamadas dão um aperto de mão só" media o **`cliente` guardado**, não o memo. O memo só
+trabalha em chamadas **concorrentes**. A segunda: troquei `attach({reader, writer})` por
+`attach({socket})` e **nada falhou** — o motor passou a abrir **duas** conexões por tentativa,
+até 25 por ciclo, e nenhuma perna do portão olha para descritor de arquivo. Fechei com um
+contador de conexões no Neovim falso.
+> **As que não mordem valem mais que as que mordem.** Cada uma me mostrou um teste que media a
+> coisa errada, e o segundo era desperdício invisível de recurso.
+
+**3. A minha sabotagem do teto PENDUROU a suíte por 300 s.** Pus o teto em 24 h para
+"neutralizá-lo" — e um `setTimeout` de um dia **segura o laço de eventos**: o processo de teste
+não podia sair. Morto por PID (nunca `pkill -f`). O vermelho que eu queria já estava colhido.
+> Neutralizar com número absurdo **cria um segundo defeito**. Grande porém finito bastava.
+
+**4. Uma sabotagem minha saiu com `tsc` exit 2, e eu a reprovei.** Ao derrubar a guarda do
+`attach`, `soquete` ficou `Socket | null` na chamada de `largarSoquete`. Pela lei que eu mesmo
+escrevi na corrida 4 — *sabotagem que quebra a compilação é ruído* — refiz com `tsc` limpo antes
+de acreditar no vermelho de 10 falhas.
+
+**5. O laço parava UMA VOLTA ANTES do prazo, e foi o meu próprio teste que pegou.** Previ que
+a desistência levaria ≥ 3000 ms e medi **2904**. A causa era conferir o relógio antes de dormir
+a espera cheia. A última espera passou a ser **aparada no que resta**, e o *"~3 s"* que o
+arquivo promete por escrito virou literal.
+
+**6. O instrumento do 3º ato reprovou QUATRO vezes hoje — e a quarta está escrita neste diário.**
+`\b` não casa `$`, então `$` saía como órfão. O regex casava o **namespace** da porta em vez do
+método. Sem âncora de início de linha, casava **parâmetro tipado** (`(raiz: string)`) como
+definição. E, na quarta, procurou `parar\s*\(` solto e concluiu que `neovim:parar` tinha
+chamador — **`this.parar()` existe quatro vezes no reprodutor de papel de parede**, exatamente
+como o meu diário do despacho 4 já registrava, com o nome do arquivo.
+> ⚠️ **Ler o registro não me impediu de repetir o erro. Validar contra resposta conhecida, sim.**
+> A resposta conhecida era **4**, das corridas 2 e 3; o instrumento dizia 3, e foi só por isso
+> que eu fui olhar.
+
+**7. O `neovim` sequestra o `console`, e eu perdi tempo até descobrir.** A primeira sonda saiu
+com **zero linhas e exit 0**. Bissectei até achar: `node_modules/neovim/lib/utils/logger.js:69`
+— *"Monkey-patch `console` so that it does not write to the RPC (stdio) channel"*. Passei tudo
+para `process.stderr.write`. É metade da explicação da sonda que morreu em silêncio no despacho
+anterior — e vale para o **processo principal do produto** também.
+
+**8. Contei processos órfãos e a única linha que casou era o meu próprio comando.** De novo,
+pela terceira corrida seguida. Órfãos reais: **zero**.
+
+### O que ACHEI, e não estava em laudo nenhum
+
+**O roteiro de repro da minha própria árvore A7 não reproduz.** Ela dizia — e o despacho
+repetiu — *"abrir `~/proj`, fechar, **abrir `~`**, excluir `proj`"*. Medido: `ehPastaProtegida`
+devolve **false** aí. Abrir `~` reatribui `raizAberta`, e o passo seguinte do roteiro **apaga o
+defeito**. O que reproduz é **fechar e não abrir mais nada**.
+Não devolvi a árvore: o que estava errado era a **prova**, não a **decisão** — a (a) continua
+sendo o conserto certo para o defeito verdadeiro. Corrigi o registro e escrevi o teste no
+caminho que reproduz.
+> É a quarta vez nesta cópia que **medir antes de obedecer** muda o que havia para fazer — A4,
+> A9, o resolvedor dentro da A9, e agora o roteiro da A7.
+
+**A12, achada sabotando o meu próprio conserto.** O renderer é o **único** chamador de
+`api.fecharPasta()`. Removida a chamada — a A7 inteira desfeita — a suíte dá **139/139** e o
+portão dá **VERDE 5/5**. Devolvi em vez de tapar: as duas opções de rede que eu conseguiria
+construir hoje (estender a P5, ou testar o registro do canal) **não pegam essa sabotagem**, e
+buraco tapado pela metade some do radar. ⚠️ Corrigi a árvore depois: o **ato 3 pega** — o canal
+aparece como "sem chamador na tela". O portão é que não.
+
+**A11:** cinco suítes de `servicos/` moram no corpo do módulo por causa da A8, que morreu hoje.
+A forma sobreviveu à causa. Anotei nos cinco arquivos em vez de refatorar dentro da fatia.
+
+### O que decidi, e é meu para decidir
+
+- **`TMPDIR` redirecionado no gancho, junto do `HOME`.** `SOCKET_NEOVIM` é caminho **fixo e
+  compartilhado**: sem isso a suíte se comporta de um jeito na máquina com o Terminus aberto e
+  de outro sem ele — ressalva que `rejeicoes-nao-tratadas.ts` teve de escrever e engolir. Com o
+  redirecionamento o socket é privado do processo, e **a ressalva pôde sair**.
+- **O perdão por assinatura saiu junto com o defeito.** `inesperadas()` e o regex da A8 foram
+  removidos, e as 6 suítes passaram a exigir **zero** rejeições. Filtro por assinatura sobrevive
+  ao defeito e vira buraco. Saiu junto um `console.log` que imprimia a contagem **sem entrar no
+  veredito** — o enfeite que o §12·2 proíbe.
+- **Laço por PRAZO e não por contagem.** Com 25 tentativas fixas e teto de 300 ms o pior caso
+  seria **10,5 s** contra os *"~3 s"* escritos. Desvio do esboço da árvore, por aritmética.
+- **Neovim falso que fala msgpack de verdade**, em vez de dublar o pacote `neovim`. Dublar
+  apagaria justamente a peça sob teste. `@msgpack/msgpack` entrou em `devDependencies` para
+  deixar de ser dependência-fantasma — `--offline`, uma linha em cada arquivo.
+- **A10 pela peneira `typeof`, não por `recusarEntrada`.** Aquela recusa o que começa com `-`,
+  porque **caminho** com traço vira opção de programa. **Nome de arquivo não é caminho**:
+  `-x.txt` é legítimo. Ganhou teste próprio, para a opção (a) não entrar por engano amanhã.
+- **Removi uma pasta órfã em `/tmp`** (§13.3b): casa de teste que sobreviveu ao processo que eu
+  matei por PID — `SIGTERM` não roda o gancho de `exit`. Minha, desta execução, dentro de `/tmp`.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A11 e A12** — as duas novas. A **A12 é a mais interessante**: mostra que o portão não
+   guarda a última camada de nenhum conserto que termine no renderer.
+2. **O instrumento do 3º ato segue no scratchpad — quarta corrida seguida.** Hoje ele reprovou
+   quatro vezes num dia só, uma delas repetindo falha já escrita aqui. O custo de não o
+   promover a ferramenta do repo já foi pago quatro vezes.
+3. As antigas: A5, D4(b), a tag `v0.0.7`, os herdados listados, o desvio de planta, o nome do
+   arquivo do preload, o "empacote" da P3.
+4. **O `console` sequestrado pelo pacote `neovim`** vale para o processo principal do produto,
+   não só para as minhas sondas. Não toquei; fica escrito.
