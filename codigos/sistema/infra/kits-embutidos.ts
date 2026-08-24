@@ -53,20 +53,37 @@ export interface ResumoDosKits {
   erro: string | null;
 }
 
-//? DEFEITO CONHECIDO (A4, 24/08/2026), devolvido à cabeça e ainda em aberto:
-//?   isto diz "nossa" para QUALQUER symlink. O item 5 do cabeçalho e o
-//?   `README:178-179` prometem que um arquivo alheio é deixado em paz — e um
-//?   symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida.
-//?   O conserto óbvio (conferir se o alvo cai dentro de `kits/`) NÃO foi aplicado
-//?   porque, medido em fixture isolada, ele acerta 2 dos 4 casos: passa a
-//?   RESPEITAR também a nossa própria ligação velha e a nossa ligação PENDURADA
-//?   — e é justamente a ligação pendurada que o comentário de `ligarUm` diz que a
-//?   refeitura existe para consertar. A árvore, com as opções medidas, está no
-//?   tracker §8, A4. Até a cabeça decidir, a conduta é a herdada.
-async function ehNossaLigacao(alvo: string): Promise<boolean> {
+//! A ligação é NOSSA por LUGAR ou por FORMA — A4(b), decidida pela cabeça em 24/08/2026.
+//! POR QUE DUAS PERGUNTAS, e não só a primeira: a de LUGAR (o alvo cai dentro da `kits/`
+//!   que está rodando agora) é exata, e é a que responde pela instalação normal. Mas ela
+//!   sozinha erra os dois casos em que a cópia MUDOU DE PASTA: a ligação para a cópia
+//!   anterior e a ligação PENDURADA, cuja cópia sumiu — e a pendurada é justamente o caso
+//!   que `ligarUm` diz que a refeitura existe para consertar. A de FORMA cobre esses dois.
+//! ⚠️ MEDIDO ANTES DE APLICAR, em fixture isolada com os quatro casos: só o LUGAR acerta
+//!   2 de 4; LUGAR **ou** FORMA acerta 4 de 4. O plano original propunha só o lugar.
+//! `readlink` e NÃO `realpath`: é o caminho GRAVADO na ligação que interessa, e é o único
+//!   que ainda existe quando o destino sumiu. `realpath` estouraria justo na pendurada.
+function dentroDe(pasta: string, alvo: string): boolean {
+  const rel = path.relative(pasta, alvo);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+//! A FORMA de um caminho de kit: `…/kits/funcoes/…` ou `…/kits/editor/…`. É heurística, e
+//!   por isso vem DEPOIS da pergunta exata — mas é heurística estreita: exige o segmento
+//!   `kits` inteiro (uma pasta `meus-kits` não casa) seguido de uma das duas metades.
+function temFormaDeKit(destino: string): boolean {
+  const partes = destino.split(path.sep);
+  const i = partes.lastIndexOf("kits");
+  return i >= 0 && (partes[i + 1] === "funcoes" || partes[i + 1] === "editor");
+}
+
+async function ehNossaLigacao(alvo: string, origem: string): Promise<boolean> {
   try {
     const st = await fs.lstat(alvo);
-    return st.isSymbolicLink();
+    if (!st.isSymbolicLink()) return false;
+    const gravado = await fs.readlink(alvo);
+    const apontaPara = path.resolve(path.dirname(alvo), gravado);
+    return dentroDe(origem, apontaPara) || temFormaDeKit(apontaPara);
   } catch {
     return false;
   }
@@ -78,9 +95,13 @@ async function ehNossaLigacao(alvo: string): Promise<boolean> {
  * Devolve `"ligado"`, `"respeitado"` (já existe um arquivo que não é nosso) ou
  * a mensagem do erro.
  */
-async function ligarUm(fonte: string, alvo: string): Promise<"ligado" | "respeitado" | string> {
+async function ligarUm(
+  fonte: string,
+  alvo: string,
+  origem: string,
+): Promise<"ligado" | "respeitado" | string> {
   const jaExiste = await fs.lstat(alvo).then(() => true).catch(() => false);
-  if (jaExiste && !(await ehNossaLigacao(alvo))) return "respeitado";
+  if (jaExiste && !(await ehNossaLigacao(alvo, origem))) return "respeitado";
   try {
     //! Refaz a ligação sempre: se o Terminus mudou de pasta, a antiga aponta
     //! para o vazio e o editor deixaria de achar o kit em silêncio.
@@ -134,7 +155,7 @@ export async function ligarKits(raizApp: string): Promise<ResumoDosKits> {
     await fs.mkdir(para, { recursive: true });
     for (const arquivo of arquivos) {
       anotar(
-        await ligarUm(path.join(de, arquivo), path.join(para, PREFIXO + arquivo)),
+        await ligarUm(path.join(de, arquivo), path.join(para, PREFIXO + arquivo), origem),
         path.join("snippets", filetype, PREFIXO + arquivo),
       );
     }
@@ -151,7 +172,7 @@ export async function ligarKits(raizApp: string): Promise<ResumoDosKits> {
     await fs.mkdir(paraEditor, { recursive: true });
     for (const arquivo of luas) {
       anotar(
-        await ligarUm(path.join(deEditor, arquivo), path.join(paraEditor, PREFIXO + arquivo)),
+        await ligarUm(path.join(deEditor, arquivo), path.join(paraEditor, PREFIXO + arquivo), origem),
         path.join("lua/plugins", PREFIXO + arquivo),
       );
     }

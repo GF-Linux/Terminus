@@ -290,7 +290,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 |---|---|---|
 | **A1** | `lerDoTwinny` — 59 linhas em `configuracao-salva.ts` que abriam o `state.vscdb` do VS Code por `sqlite3` e devolviam endpoint, modelo e **chave de API** do provedor FIM do Twinny. **Sem chamador**, e o comentário afirmava *"Só é chamado quando o usuário aperta o botão"* — não existia botão | **(a) aplicada em 24/08/2026, decidida pela cabeça:** apagada. `Twinny` tem hoje **zero** ocorrências no repo. Se a importação virar recurso um dia, ela se reescreve a partir do git — e nasce revisada, com botão de verdade |
 | **A2** | o botão ↗ do terminal anunciava *"Konsole aberto em …"* mesmo sem `konsole` na máquina: `abrirNoKonsole` devolvia a pasta **sincronamente**, e o ENOENT chegava depois, no `filho.on("error", () => {})`, onde morria. O `README:293-295` promete o contrário | **(a) aplicada em 24/08/2026, decidida pela cabeça:** conserto **só no motor** — ele passa a devolver `Promise<string>`, resolvendo no primeiro de {`spawn`, `error`}. Ponte, casca e README **não mudaram**: `respostaSegura` já aceitava `Promise<T> | T` e o ramo de erro da casca (:113) só era **inalcançável**. Medido de ponta a ponta — ver abaixo |
-| **A4** | `ehNossaLigacao` (`kits-embutidos.ts`) diz *"nossa"* para **qualquer** symlink, então um symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida — contra o item 5 do cabeçalho do arquivo e contra o `README:178-179` | **ADIADA — devolvida à cabeça em 24/08/2026, sem decisão.** A opção (a) do plano **não foi aplicada**: medida em fixture isolada, ela acerta **2 dos 4** casos. Conduta segue a herdada, com marca `//?` no código apontando para esta árvore |
+| **A4** | `ehNossaLigacao` (`kits-embutidos.ts`) diz *"nossa"* para **qualquer** symlink, então um symlink do usuário chamado `terminus-*` é apagado e refeito a cada partida — contra o item 5 do cabeçalho do arquivo e contra o `README:178-179` | **(b) aplicada em 24/08/2026, decidida pela cabeça** — a variante do executor, medida em **4 de 4**: é nossa se o alvo cai na origem atual **ou** se o caminho tem a forma `…/kits/{funcoes,editor}/…`. Ver §10.5 |
 | **A5** | capacidade viva sem uso: os canais `arquivo:ler` e `arquivo:gravar` expostos e registrados **sem nenhum chamador no renderer**, mais dois exports órfãos sem porquê (`shellEstaVivo`, `neovimRodando`) | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os dois canais **ficam e ficam REGISTRADOS** (comentário `//?` na porta + esta árvore); os dois `EstaVivo` **saíram** — órfãos sem porquê, sem plano e sem teste |
 | **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **ADIADA — devolvida à cabeça em 24/08/2026.** Herdados (os 37 canais são idênticos à linha de base `ada7bfa`, medido). Nenhuma conduta mudou |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — segue em aberto** para corrida futura, depois que `servicos/` tiver rede de teste |
@@ -343,7 +343,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **as opções** | **(a) como o plano escreveu** — alvo dentro da origem atual. Conserta o caso do usuário e **cria** dois silêncios novos. **(b) por FORMA do caminho** — é nossa se o alvo cai na origem atual **ou** se o caminho tem a forma `…/kits/{funcoes,editor}/…`. Medida na mesma fixture: **4 de 4**. Custa uma heurística de forma, que é mais frouxa que a de lugar. **(c) deixar como está**, com a marca `//?` que já foi posta — a promessa do README continua falsa. **(d) rebaixar a promessa** no README e no cabeçalho: *"symlink com nome `terminus-` é considerado nosso e refeito"* — três linhas, e oficializa sobrescrever coisa alheia |
 | **minha recomendação** | **(b)**, e a razão é que ela é a única medida em 4 de 4. Mas **(b) não estava na mesa que a cabeça aprovou** — a aprovação foi de (a) —, e (b) muda conduta em três casos em vez de um. Por isso não a apliquei: rumo é da cabeça, e o cardápio, com os números, é meu |
 | **se ficar para depois** | **igual** — nenhuma das opções encarece. O que corre é o silêncio: cada partida com um link alheio no lugar o sobrescreve de novo |
-| **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a medição acima. Nenhuma conduta mudou; a marca `//?` em `kits-embutidos.ts:56-65` impede que o achado se perca |
+| **DESFECHO** | **(b) aplicada em 24/08/2026, decidida pela cabeça.** A marca `//?` saiu do código, substituída pela implementação e pelo porquê. Os quatro casos viraram **rede permanente** (`tests/infra/kits-embutidos.test.ts`) — ver §10.5 |
 
 ### A5 · capacidade viva sem uso — árvore de decisão (§12·3a)
 
@@ -565,3 +565,35 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **minha recomendação** | **(a)**, e a razão é que ela é a única que faz a frase da tela voltar a ser verdadeira. **Não apliquei**: muda o que a interface exibe, é conduta, e não estava no despacho |
 | **se ficar para depois** | **fica mais CARO depois da A3(a)**, e isto é o único item desta corrida que encarece: hoje o silêncio existe em `gravar`; aplicada a A3(a), existe em `gravar`, `criar` e `renomear`. O conserto é o mesmo, mas o estrago corrente triplica |
 | **DESFECHO** | **adiada em 24/08/2026** — devolvida à cabeça pelo executor, com a medição. Marca `//?` em `abertura-de-projeto.ts`, e a recusa nova travada na rede com o aviso ao lado |
+
+### 10.5 · A4(b) aplicada — e a rede que reproduz o número da árvore
+
+A cabeça decidiu pela variante **(b)**, a do executor: uma ligação é nossa se o alvo cai na
+**origem atual** *ou* se o caminho tem a **forma** `…/kits/{funcoes,editor}/…`.
+
+**O que mudou no código.** `ehNossaLigacao` deixou de responder *"é symlink?"* e passou a
+responder *"é symlink NOSSO?"*. Ela agora recebe a `origem` e lê o destino com **`readlink`**,
+não `realpath` — e essa escolha é o que faz o quarto caso funcionar: `realpath` estoura
+justamente na ligação **pendurada**, que é a que a refeitura existe para consertar.
+
+**O número da árvore virou teste, e o teste o confirma.** A A4 dizia, a partir de uma fixture
+de uso único, que a opção (a) do plano acerta **2 de 4**. Reduzi a implementação à opção (a)
+— só o LUGAR — e rodei a suíte:
+
+| caso | opção (a), medida pela rede | (b), aplicada |
+|---|---|---|
+| `terminus-basico` — nossa, aponta para a cópia que roda | **REFAZ** ✔ | REFAZ ✔ |
+| `terminus-do-usuario` — alheia, com o nosso prefixo | **RESPEITA** ✔ | RESPEITA ✔ |
+| `terminus-velha` — nossa, aponta para a cópia anterior | **RESPEITA** ✘ | REFAZ ✔ |
+| `terminus-pendurada` — nossa, e a cópia sumiu | **RESPEITA** ✘ | REFAZ ✔ |
+| | **2 de 4** | **4 de 4** |
+
+A lista `respeitados` sob a opção (a) saiu com **três** entradas em vez de uma —
+`do-usuario`, `pendurada` e `velha` — e é essa saída crua que prova o 2 de 4. **A árvore
+foi escrita a partir de uma fixture que morreu com a sessão; agora o mesmo número tem rede
+permanente**, e quem mexer nisso amanhã descobre na hora.
+
+**A vitrine passou a dizer a verdade.** `README:178-179` promete *"se já existir um arquivo
+seu com esse nome, o Terminus não o toca e avisa"*. Antes disso a frase era falsa para
+symlink; agora é verdadeira, e o texto **não precisou mudar** — o código é que foi ao encontro
+dele. Conferido lendo as duas fontes, não presumido.
