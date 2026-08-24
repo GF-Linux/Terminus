@@ -11,7 +11,7 @@ export default defineConfig({
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      rollupOptions: { input: { index: resolve("codigos/ponte/ponte-para-a-interface.ts") } },
+      rollupOptions: { input: { index: resolve("codigos/porta/ponte-para-a-interface.ts") } },
     },
   },
   renderer: {

@@ -1,4 +1,4 @@
-import type { ApiTerminus } from "../ponte/ponte-para-a-interface.js";
+import type { ApiTerminus } from "../porta/ponte-para-a-interface.js";
 
 declare global {
   interface Window {

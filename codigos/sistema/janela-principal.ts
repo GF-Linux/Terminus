@@ -506,7 +506,7 @@ function registrarPonte(): void {
    *
    * Aquele desenho nasceu no SteamOS, que não compilava módulo nativo. A trava
    * acabou: o `node-pty` já roda o Neovim neste mesmo aplicativo desde a ADR
-   * 0025. Então o terminal vira o que o Konsole é, e esta ponte fica com o
+   * 0025. Então o terminal vira o que o Konsole é, e esta porta fica com o
    * mesmo formato da do Neovim: teclado sobe, bytes descem, ninguém interpreta.
    *
    * O histórico de comandos também saiu do `config.json`: quem guarda histórico

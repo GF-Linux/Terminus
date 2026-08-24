@@ -1,5 +1,5 @@
 //! O painel de plugins do Neovim, que ocupou o lugar do antigo "Extensions".
-//! A lista vem do lazy.nvim pela ponte; clicar abre a pasta do plugin.
+//! A lista vem do lazy.nvim pela porta; clicar abre a pasta do plugin.
 
 import type { PluginNvim } from "../compartilhado/tipos.js";
 import { $, abrirPainel, api, esc, terminal } from "./nucleo-da-casca.js";

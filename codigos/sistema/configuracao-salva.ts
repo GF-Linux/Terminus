@@ -112,7 +112,7 @@ export function gravarAparencia(parcial: Partial<Aparencia>): Aparencia {
 }
 
 //* Lê a imagem de fundo e devolve como `data:` URL.
-//* É `data:` porque a interface não tem acesso ao disco (ver a ponte).
+//* É `data:` porque a interface não tem acesso ao disco (ver a porta).
 export function lerWallpaper(): string | null {
   const caminho = lerAparencia().wallpaper;
   if (!caminho) return null;

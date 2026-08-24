@@ -234,7 +234,7 @@ autocomplete nem LSP. Isso é do Neovim e do ecossistema dele.
 
 Segurança da casca: `contextIsolation` ligado, `nodeIntegration` desligado. A
 interface não tem `require`, `fs` nem `child_process` — toda a superfície está em
-`codigos/ponte/ponte-para-a-interface.ts`.
+`codigos/porta/ponte-para-a-interface.ts`.
 
 **E o terminal alcança o que você alcança.** É um shell, com a sua conta e as
 suas permissões, igual ao Konsole. Até a v0.0.6 o Terminus recusava `|`, `>`,
@@ -408,7 +408,7 @@ Lista honesta, porque v0.0.7 ainda quer dizer isso:
    depois recusava tudo com "há algo rodando". Ninguém na interface escutava o
    fim do processo desde a virada para o Neovim, então a trava ligava e não
    desligava mais. A saída dos programas também não aparecia, pelo mesmo motivo.
-7. **Conserto:** a janela do terminal nascia travada. A ponte prometia um
+7. **Conserto:** a janela do terminal nascia travada. A porta prometia um
    `boolean` e entregava um objeto, e objeto é sempre verdadeiro em JavaScript.
    O tipo estava errado desde sempre; ninguém tinha chamado aquilo até agora.
 

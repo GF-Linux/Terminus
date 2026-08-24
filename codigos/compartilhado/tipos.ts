@@ -1,8 +1,8 @@
-//? TIPOS COMPARTILHADOS — Decisão sobre o que atravessa a ponte 29/07/2026
+//? TIPOS COMPARTILHADOS — Decisão sobre o que atravessa a porta 29/07/2026
 //!
-//! 1. É o único arquivo importado pelos três lados (sistema, ponte, interface).
+//! 1. É o único arquivo importado pelos três reinos (sistema, porta, interface).
 //! 2. Nada aqui pode depender de `electron`, de `node:*` ou do DOM. Só
-//!    descreve a FORMA dos dados que atravessam a ponte de IPC.
+//!    descreve a FORMA dos dados que atravessam a porta de IPC.
 /** Um nó da árvore de arquivos do projeto aberto. */
 export interface NoArquivo {
   nome: string;
@@ -43,7 +43,7 @@ export interface ProjetoNovo {
 //! `EventoExecucao` e `RespostaComando` saíram (19/08). Descreviam a saída de um
 //! comando rodado por canos e a resposta de uma linha triada — as duas coisas
 //! deixaram de existir quando o terminal virou um shell com PTY. O que atravessa
-//! a ponte agora são bytes crus, que não precisam de forma.
+//! a porta agora são bytes crus, que não precisam de forma.
 
 /** Resultado de qualquer operação que pode falhar por culpa do ambiente. */
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string };

@@ -10,7 +10,7 @@ import type {
   Resultado,
 } from "../compartilhado/tipos.js";
 
-//? PONTE PARA A INTERFACE — Decisão sobre a única porta para o sistema 29/07/2026
+//? A PORTA PARA A INTERFACE — Decisão sobre a única passagem renderer/main 29/07/2026
 //!
 //! 1. Tudo que a tela consegue fazer no computador está listado NESTE arquivo.
 //!    Se não está aqui, a interface não faz.
@@ -88,7 +88,7 @@ const api = {
 
   /**
    * O motor de edição (ADR 0025): o `nvim` de verdade, rodando por PTY no
-   * processo principal. Esta ponte só transporta bytes — teclado sobe, ANSI
+   * processo principal. Esta porta só transporta bytes — teclado sobe, ANSI
    * desce — e não interpreta nada. O canal de controle (`:edit`, `:w`) é o
    * socket msgpack-RPC, não esta superfície.
    */
@@ -124,7 +124,7 @@ const api = {
    * O terminal da casca (19/08): um shell de verdade, num pseudo-terminal.
    *
    * Simétrico ao `neovim` acima de propósito — são as duas telas do mesmo
-   * desenho: teclado sobe, ANSI desce, e esta ponte não interpreta nada do que
+   * desenho: teclado sobe, ANSI desce, e esta porta não interpreta nada do que
    * passa. Quem interpreta é o bash, do outro lado.
    */
   shell: {

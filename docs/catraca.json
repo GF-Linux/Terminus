@@ -1,8 +1,8 @@
 {
-  "fatia": "1 — a guarda de caminho vira dominio puro + infra de disco",
+  "fatia": "2 — E1: o preload ganha reino proprio (porta/), e a prosa e varrida (D3)",
   "M1": 10,
   "M2": 2,
   "M3": 0,
-  "M4": 8,
-  "porque": "M1 SOBE de 8 para 10 nesta fatia, e isso e previsto: o monolito passa a importar as duas pecas novas de sistema/infra. Ele so cai quando os registradores se separarem (fatia 6). A catraca compara com o DECLARADO, e o declarado foi escrito antes de medir."
+  "M4": 9,
+  "porque": "M4 sobe de 8 para 9 com codigos/porta/. M1 nao muda: o monolito continua importando os mesmos modulos de sistema/."
 }

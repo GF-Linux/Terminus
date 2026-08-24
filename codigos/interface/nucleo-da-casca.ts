@@ -101,7 +101,7 @@ export function abrirPainel(): void {
   definirPainel(true);
 }
 
-//* Desembrulha um Resultado da ponte, mostrando o erro no terminal em vez de
+//* Desembrulha um Resultado da porta, mostrando o erro no terminal em vez de
 //* sumir com ele em silêncio.
 export function ou<T>(r: Resultado<T>, aoFalhar: T): T {
   if (r.ok) return r.valor;
