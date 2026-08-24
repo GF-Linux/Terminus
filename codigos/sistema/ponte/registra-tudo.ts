@@ -1,17 +1,35 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
-import { existsSync, realpathSync, rmSync, statSync } from "node:fs";
+//? REGISTRA TUDO — os handlers de ipcMain, e nada alem deles 23/08/2026
+//!
+//! 1. Este arquivo era `janela-principal.ts`, com 707 linhas e CINCO papeis:
+//!    partida do app, ciclo da janela, a guarda de caminho, o caso de uso e os
+//!    37 handlers. Os tres primeiros ja sairam; o caso de uso sai na fatia 5 e
+//!    os handlers se dividem em oito na fatia 6.
+//! 2. A JANELA CHEGA INJETADA (`janelaViva`), nao importada — ramo A1. Um
+//!    registrador que importa a janela nao pode ser lido sem o Electron junto.
+//! 3. Os quatro dialogos nativos sairam para `janela/dialogos-do-sistema` — ramo
+//!    A3. O registrador pede; quem conhece o `dialog` do Electron e a camada de
+//!    janela.
+
+import { app, type BrowserWindow, ipcMain, shell } from "electron";
+import { existsSync, realpathSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import type { Fluxo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
-import { dentroDaRaiz } from "../dominio/guarda-de-caminho.js";
-import { recusarEntrada } from "../dominio/entrada-recusada.js";
-import { ehPastaProtegida } from "../dominio/protecao-da-pasta-aberta.js";
-import { resolverReal } from "./infra/resolucao-de-caminho.js";
-import { aLixeiraAlcanca } from "./infra/alcance-da-lixeira.js";
+import type { Fluxo, ProjetoAberto, Resultado } from "../../compartilhado/tipos.js";
+import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";
+import { recusarEntrada } from "../../dominio/entrada-recusada.js";
+import { ehPastaProtegida } from "../../dominio/protecao-da-pasta-aberta.js";
+import { resolverReal } from "../infra/resolucao-de-caminho.js";
+import { aLixeiraAlcanca } from "../infra/alcance-da-lixeira.js";
+import { pastaPedidaNaLinha } from "../infra/argumentos-da-partida.js";
+import { RAIZ_APP } from "../janela/janela-principal.js";
+import {
+  escolherImagem,
+  escolherOndeSalvar,
+  escolherPasta,
+  perguntarExclusao,
+} from "../janela/dialogos-do-sistema.js";
 import {
   esquecerPasta,
-  limparHistoricoAntigo,
   gravarAparencia,
   guardarWallpaper,
   lerAparencia,
@@ -21,33 +39,28 @@ import {
   PASTA_CONFIG,
   registrarPasta,
   ultimaPasta,
-} from "./motores/configuracao-salva.js";
+} from "../motores/configuracao-salva.js";
 import {
   abrirNoKonsole,
   enviarAoShell,
   iniciarShell,
   linhaDeCd,
   mandarLinha,
-  pararShell,
   pastaDoShell,
   redimensionarShell,
-} from "./motores/motor-do-shell-pty.js";
+} from "../motores/motor-do-shell-pty.js";
 import {
   enviarNeovim,
   iniciarNeovim,
   pararNeovim,
   redimensionarNeovim,
-} from "./motores/motor-neovim-pty.js";
+} from "../motores/motor-neovim-pty.js";
 import {
   abrirNoNeovim,
-  abrirTerminalNeovim,
   cdNeovim,
   pluginsNeovim,
-  desfazerNeovim,
-  refazerNeovim,
   resetarControle,
-  salvarNeovim,
-} from "./motores/controle-neovim-rpc.js";
+} from "../motores/controle-neovim-rpc.js";
 import {
   abrirProjeto,
   criarArquivo,
@@ -58,49 +71,10 @@ import {
   listar,
   listarTudo,
   renomear,
-} from "./infra/arquivos-do-projeto.js";
-import { criarProjeto, NOME_DO_FLUXO } from "./infra/molde-de-projeto.js";
-import { comoRodar } from "./infra/como-rodar-o-projeto.js";
-import { ligarKits } from "./infra/kits-embutidos.js";
+} from "../infra/arquivos-do-projeto.js";
+import { criarProjeto, NOME_DO_FLUXO } from "../infra/molde-de-projeto.js";
+import { comoRodar } from "../infra/como-rodar-o-projeto.js";
 
-const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
-
-/** Raiz do repositório/pacote — onde vivem data/ e tools/. Em `out/main/` o
- *  caminho sobe dois níveis; empacotado, sobe a partir de resources. */
-const RAIZ_APP = app.isPackaged
-  ? process.resourcesPath
-  : path.resolve(__dirname_, "..", "..");
-
-let janela: BrowserWindow | null = null;
-
-//* A pasta passada no comando: `terminus ~/projetos/x`.
-//! Em desenvolvimento o próprio diretório do app aparece nos argumentos
-//!   (`electron .`) e é descartado — senão o Terminus abriria a si mesmo.
-function pastaDaLinhaDeComando(): string | null {
-  const args = process.argv.slice(app.isPackaged ? 1 : 2);
-  // Em desenvolvimento o próprio diretório do aplicativo aparece entre os
-  // argumentos (`electron .`), e ele **não** é pasta de corrida: lido como se
-  // fosse, o repositório do Terminus abriria no lugar da pasta lembrada, e a
-  // memória de pasta nunca teria vez fora do pacote. Só a primeira ocorrência é
-  // descartada — quem passar o diretório de propósito continua sendo atendido.
-  let appJaVisto = app.isPackaged;
-  for (const a of args) {
-    if (a.startsWith("-")) continue;
-    const alvo = path.resolve(a);
-    if (!appJaVisto && alvo === RAIZ_APP) {
-      appJaVisto = true;
-      continue;
-    }
-    try {
-      if (statSync(alvo).isDirectory()) return alvo;
-    } catch {
-      /* não é caminho válido; segue */
-    }
-  }
-  return null;
-}
-
-/** A pasta de trabalho aberta agora. Guardada aqui para poder ser protegida. */
 let raizAberta: string | null = null;
 
 //* Assume uma pasta como projeto: registra nos recentes e aponta o Neovim.
@@ -129,138 +103,10 @@ function protegerPastaDeTrabalho(alvo: string): void {
   );
 }
 
-//* Liga Ctrl+= , Ctrl+- e Ctrl+0 para o tamanho da janela inteira.
-//! Fica no processo principal, e não no editor: "a letra está pequena" é
-//!   problema da janela, e vale com o foco em qualquer painel.
-function ligarZoom(alvo: BrowserWindow): void {
-  const LIMITE_MIN = 0.6;
-  const LIMITE_MAX = 2.5;
-  const PASSO = 0.1;
-
-  const aplicar = (fator: number): void => {
-    const preso = Math.min(LIMITE_MAX, Math.max(LIMITE_MIN, Number(fator.toFixed(2))));
-    alvo.webContents.setZoomFactor(preso);
-    gravarAparencia({ zoom: preso });
-  };
-
-  // O zoom lembrado da sessão anterior. Vai depois do primeiro carregamento
-  // porque o Electron reinicia o fator a cada navegação — aplicado antes, ele
-  // seria descartado sem aviso.
-  alvo.webContents.on("did-finish-load", () => {
-    alvo.webContents.setZoomFactor(lerAparencia().zoom);
-  });
-
-  alvo.webContents.on("before-input-event", (evento, entrada) => {
-    if (entrada.type !== "keyDown" || !entrada.control || entrada.alt || entrada.meta) return;
-    const atual = alvo.webContents.getZoomFactor();
-    if (entrada.key === "=" || entrada.key === "+") aplicar(atual + PASSO);
-    else if (entrada.key === "-" || entrada.key === "_") aplicar(atual - PASSO);
-    else if (entrada.key === "0") aplicar(1);
-    else return;
-    // Sem isto o `Ctrl 0` chegaria ao editor como digitar zero.
-    evento.preventDefault();
-  });
-}
-
-//* Os atalhos que a CASCA é dona: Ctrl+S, Ctrl+Z, Ctrl+Shift+Z e Ctrl+crase.
-//! Intercepta ANTES de virar tecla no Neovim. O LazyVim mapeia `<C-s>` como
-//!   `<Esc>:w`, que grava e joga a pessoa para fora do modo de escrita.
-function ligarAtalhosNeovim(alvo: BrowserWindow): void {
-  alvo.webContents.on("before-input-event", (evento, entrada) => {
-    if (entrada.type !== "keyDown" || !entrada.control || entrada.alt || entrada.meta) return;
-    const tecla = entrada.key.toLowerCase();
-    if (tecla === "s") {
-      evento.preventDefault();
-      void salvarNeovim().catch(() => {
-        /* sem editor aberto ainda, ou socket em pé de guerra: nada a gravar */
-      });
-    } else if (tecla === "z") {
-      evento.preventDefault();
-      void (entrada.shift ? refazerNeovim() : desfazerNeovim()).catch(() => {});
-    } else if (entrada.code === "Backquote") {
-      // Ctrl+` : a resposta ao Alt+t que o KDE rouba. Abre o terminal do Neovim.
-      evento.preventDefault();
-      void abrirTerminalNeovim().catch(() => {});
-    }
-  });
-}
-
-//* Cria a janela do Terminus, sem moldura, e liga os atalhos dela.
-function criarJanela(): void {
-  janela = new BrowserWindow({
-    width: 1340,
-    height: 820,
-    minWidth: 1000,
-    minHeight: 620,
-    show: false,
-    // O ícone da janela (e, no X11, o da barra de tarefas). PNG e não SVG: o
-    // Electron não lê SVG aqui. Gerado da marca em `media/icon.svg` (ADR 0014).
-    icon: path.join(RAIZ_APP, "media", "icon.png"),
-    // Casca própria: a barra de título é desenhada pelo Terminus (ADR 0003).
-    frame: false,
-    // O fundo da casca na paleta Jared-Linux — evita o flash branco antes do
-    // primeiro quadro.
-    backgroundColor: "#14161f",
-    webPreferences: {
-      // .mjs, não .js: o electron-vite emite o preload como ESM, e o Electron só
-      // aceita preload ESM pela extensão do arquivo (e com sandbox desligado).
-      preload: path.join(__dirname_, "..", "preload", "index.mjs"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-  });
-
-  ligarZoom(janela);
-  ligarAtalhosNeovim(janela);
-
-  // A opção `icon:` do construtor não bastou nesta máquina (a propriedade
-  // _NET_WM_ICON ficava vazia). Setar explicitamente resolve, e o aviso no
-  // console diz se o arquivo sumiu — ícone faltando é o tipo de coisa que se
-  // descobre tarde, olhando a barra de tarefas.
-  const marca = nativeImage.createFromPath(path.join(RAIZ_APP, "media", "icon.png"));
-  if (marca.isEmpty()) console.warn("ícone não carregou: media/icon.png");
-  else janela.setIcon(marca);
-
-  janela.once("ready-to-show", () => janela?.show());
-
-  // O Neovim morre com a janela que o mostrava. Sem isto ele seguiria vivo até o
-  // `window-all-closed`, escrevendo para uma interface que já não existe.
-  janela.on("closed", () => {
-    pararNeovim();
-    resetarControle();
-    //! E o shell do terminal também (19/08). Ele é um painel desta janela, não
-    //! um programa separado: deixado vivo, ficaria um bash órfão escrevendo para
-    //! uma interface que já não existe. O Konsole aberto pelo botão ↗ é o
-    //! oposto — aquele é do sistema, e não morre com o Terminus.
-    pararShell();
-  });
-
-  // Nenhum link abre dentro da janela do aplicativo: documentação vai para o
-  // navegador do sistema.
-  janela.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
-    return { action: "deny" };
-  });
-
-  const avisarEstado = (): void => {
-    janela?.webContents.send("janela:estado", janela.isMaximized());
-  };
-  janela.on("maximize", avisarEstado);
-  janela.on("unmaximize", avisarEstado);
-
-  if (process.env["ELECTRON_RENDERER_URL"]) {
-    void janela.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-  } else {
-    void janela.loadFile(path.join(__dirname_, "..", "renderer", "interface", "pagina.html"));
-  }
-}
-
 //* A única pasta em que o Terminus aceita ESCREVER: a que está aberta.
 function raizesDeEscrita(): string[] {
   return raizAberta ? [path.resolve(raizAberta)] : [];
 }
-
 
 //* Resolve um caminho e exige que ele caia dentro das raízes permitidas.
 //! As TRÊS ETAPAS moram em três lugares agora, e a ordem entre elas é a regra:
@@ -292,18 +138,24 @@ function seguro<A extends unknown[], T>(
   };
 }
 
-function registrarPonte(): void {
+//* Registra os 37 canais de IPC. A janela chega INJETADA (ramo A1).
+export function registrarPonte(janelaViva: () => BrowserWindow | null): void {
+  //! Quem abre diálogo precisa de uma janela de verdade, e a recusa tem de
+  //!   chegar à tela como erro exibível — por isso estoura com a mesma frase
+  //!   que o monólito usava.
+  const exigirJanela = (): BrowserWindow => {
+    const janela = janelaViva();
+    if (!janela) throw new Error("Janela não disponível.");
+    return janela;
+  };
+
 
   ipcMain.handle(
     "projeto:escolher",
     seguro(async () => {
-      if (!janela) throw new Error("Janela não disponível.");
-      const r = await dialog.showOpenDialog(janela, {
-        title: "Abrir pasta da corrida",
-        properties: ["openDirectory"],
-      });
-      if (r.canceled || !r.filePaths[0]) return null;
-      return entrarNaPasta(r.filePaths[0]);
+      const pasta = await escolherPasta(exigirJanela(), "Abrir pasta da corrida");
+      if (!pasta) return null;
+      return entrarNaPasta(pasta);
     }),
   );
 
@@ -329,7 +181,7 @@ function registrarPonte(): void {
       // disse o que quer agora. Sem argumento, volta a última pasta aberta —
       // reabrir o aplicativo no meio da mesma corrida é o caso comum, e
       // procurar a pasta no diálogo todo dia é trabalho que a máquina faz.
-      const pasta = pastaDaLinhaDeComando() ?? ultimaPasta();
+      const pasta = pastaPedidaNaLinha(RAIZ_APP, app.isPackaged) ?? ultimaPasta();
       if (!pasta) return null;
       return entrarNaPasta(pasta);
     }),
@@ -345,21 +197,21 @@ function registrarPonte(): void {
   ipcMain.handle(
     "projeto:novo",
     seguro(async (_e, fluxo: Fluxo) => {
-      if (!janela) throw new Error("Janela não disponível.");
+      const janela = exigirJanela();
       if (fluxo !== "cpp" && fluxo !== "python" && fluxo !== "csharp") {
         throw new Error("Fluxo desconhecido.");
       }
 
-      const r = await dialog.showSaveDialog(janela, {
-        title: `Novo projeto ${NOME_DO_FLUXO[fluxo]}`,
-        buttonLabel: "Criar aqui",
-        defaultPath: path.join(ultimaPasta() ?? homedir(), `projeto-${fluxo}`),
-        properties: ["createDirectory"],
-      });
-      if (r.canceled || !r.filePath) return null;
+      const onde = await escolherOndeSalvar(
+        janela,
+        `Novo projeto ${NOME_DO_FLUXO[fluxo]}`,
+        "Criar aqui",
+        path.join(ultimaPasta() ?? homedir(), `projeto-${fluxo}`),
+      );
+      if (!onde) return null;
 
-      const principal = await criarProjeto(r.filePath, fluxo);
-      const projeto = await entrarNaPasta(r.filePath);
+      const principal = await criarProjeto(onde, fluxo);
+      const projeto = await entrarNaPasta(onde);
       return { projeto, principal, fluxo };
     }),
   );
@@ -431,25 +283,12 @@ function registrarPonte(): void {
   ipcMain.handle(
     "caminho:excluir",
     seguro(async (_e, alvo: string) => {
-      if (!janela) throw new Error("Janela não disponível.");
+      const janela = exigirJanela();
       protegerPastaDeTrabalho(alvo);
       const nome = path.basename(alvo);
       const temLixeira = aLixeiraAlcanca(alvo, app.getPath("home"));
 
-      const r = await dialog.showMessageBox(janela, {
-        type: "warning",
-        buttons: [temLixeira ? "Mover para a lixeira" : "Apagar de vez", "Cancelar"],
-        defaultId: 1,
-        cancelId: 1,
-        message: `Excluir "${nome}"?`,
-        detail: temLixeira
-          ? "Vai para a lixeira do sistema — dá para recuperar de lá."
-          : "Este arquivo está em outro disco — pendrive, disco externo ou pasta " +
-            "temporária —, e a lixeira do sistema não vale para ele.\n\n" +
-            "Apagar aqui NÃO TEM VOLTA. Numa pasta de corrida pode haver arquivo " +
-            "que não se refaz.",
-      });
-      if (r.response !== 0) return false;
+      if (!(await perguntarExclusao(janela, nome, temLixeira))) return false;
 
       // Lixeira, não `unlink`. Numa pasta pode haver arquivo insubstituível;
       // apagar de vez a partir de um clique errado não é reversível.
@@ -478,14 +317,9 @@ function registrarPonte(): void {
   ipcMain.handle(
     "aparencia:escolher",
     seguro(async () => {
-      if (!janela) throw new Error("Janela não disponível.");
-      const r = await dialog.showOpenDialog(janela, {
-        title: "Escolher papel de parede",
-        properties: ["openFile"],
-        filters: [{ name: "Imagens", extensions: ["png", "jpg", "jpeg", "webp", "gif"] }],
-      });
-      if (r.canceled || !r.filePaths[0]) return null;
-      return { ...guardarWallpaper(r.filePaths[0]), imagem: lerWallpaper() };
+      const imagem = await escolherImagem(exigirJanela(), "Escolher papel de parede");
+      if (!imagem) return null;
+      return { ...guardarWallpaper(imagem), imagem: lerWallpaper() };
     }),
   );
   ipcMain.handle(
@@ -644,42 +478,12 @@ function registrarPonte(): void {
   });
   ipcMain.on("neovim:parar", () => pararNeovim());
 
-  ipcMain.on("janela:minimizar", () => janela?.minimize());
-  ipcMain.on("janela:alternar-maximo", () =>
-    janela?.isMaximized() ? janela.unmaximize() : janela?.maximize(),
-  );
-  ipcMain.on("janela:fechar", () => janela?.close());
+  ipcMain.on("janela:minimizar", () => janelaViva()?.minimize());
+  ipcMain.on("janela:alternar-maximo", () => {
+    const janela = janelaViva();
+    if (!janela) return;
+    if (janela.isMaximized()) janela.unmaximize();
+    else janela.maximize();
+  });
+  ipcMain.on("janela:fechar", () => janelaViva()?.close());
 }
-
-void app.whenReady().then(() => {
-  registrarPonte();
-
-  //! O histórico da linha de comando mudou de dono (19/08): quem guarda agora é
-  //! o bash. O que já estava no `config.json` é apagado na primeira abertura —
-  //! comando é dado sensível, e dado sensível esquecido num campo que ninguém
-  //! mais lê é o pior dos dois mundos.
-  const antigos = limparHistoricoAntigo();
-  if (antigos > 0) console.log(`histórico antigo da linha de comando apagado (${antigos} linhas)`);
-
-  //! As funções embutidas ficam disponíveis no editor antes de a janela abrir
-  //! (ADR 0036). Falhar aqui NÃO impede o Terminus de subir: sem os kits ele
-  //! continua sendo um editor inteiro, e travar a abertura por causa de um
-  //! atalho de escrita seria trocar o essencial pelo acessório.
-  void ligarKits(RAIZ_APP).then((r) => {
-    if (r.erro) console.error("kits embutidos:", r.erro);
-    for (const nome of r.respeitados) {
-      console.warn(`kit não instalado, já existe arquivo seu em ${nome}`);
-    }
-  });
-
-  criarJanela();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) criarJanela();
-  });
-});
-
-app.on("window-all-closed", () => {
-  pararShell();
-  pararNeovim();
-  if (process.platform !== "darwin") app.quit();
-});

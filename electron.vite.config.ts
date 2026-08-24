@@ -5,7 +5,7 @@ export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     build: {
-      rollupOptions: { input: { index: resolve("codigos/sistema/janela-principal.ts") } },
+      rollupOptions: { input: { index: resolve("codigos/sistema/janela/partida.ts") } },
     },
   },
   preload: {
