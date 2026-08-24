@@ -1,33 +1,16 @@
 node_modules/
 out/
-*.vsix
 __pycache__/
 *.pyc
 
-# Dado de corrida real nunca entra no repositorio. Os .ab1 do LHV sao material
-# nao publicado, e um arquivo desses commitado por engano so sai reescrevendo o
-# historico inteiro. A excecao e o exemplo sintetico, que o make_ab1.py gera e
-# que precisa estar versionado para o visualizador ter o que abrir.
+# Dado de sequenciamento real nunca entra no repositório.
 *.ab1
-!exemplos/sintetico_*.ab1
 *.fsa
 *.scf
 *.phd.1
 
 # Relatorios da varredura de seguranca: ficam na maquina, nao no repositorio.
 CLAUDE-SECURITY-*/
-
-# O copilot.ts empacotado para o verificador rodar contra o modulo de verdade, e
-# o arquivo em edicao que os casos reescrevem a cada corrida. Os dois sao
-# gerados; versionar seria guardar uma copia que envelhece em silencio.
-tools/comparativo-fantasma/.copilot.build.mjs
-tools/comparativo-fantasma/.copilot.correcao.mjs
-tools/comparativo-fantasma/.fantasma-empacotado.mjs
-tools/comparativo-fantasma/.fronteira-empacotada.mjs
-tools/comparativo-fantasma/.fronteira-entrada.ts
-tools/comparativo-fantasma/.recados-empacotado.mjs
-tools/comparativo-fantasma/.copilot.bloco.mjs
-tools/comparativo-fantasma/ws/analise.py
 
 # configuração local do Claude Code (por máquina, não do projeto)
 .claude/

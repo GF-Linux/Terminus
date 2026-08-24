@@ -19,5 +19,5 @@
     "noEmit": true
   },
   "include": ["codigos/**/*.ts", "codigos/**/*.d.ts", "tests/**/*.ts", "electron.vite.config.ts"],
-  "exclude": ["node_modules", "out", "legado-extensao"]
+  "exclude": ["node_modules", "out"]
 }
