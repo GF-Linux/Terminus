@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 5 fatia 4 — A7(a) APLICADA: fechar pasta passa a fechar de verdade",
+  "fatia": "corrida 6 fatia 1 — A12(registrar+versionar): o instrumento do 3o ato entra no repositorio",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro no alvo e INALTERADOS, previsao escrita ANTES de medir (§12·4a, ja declarada no tracker §13.8). A A7(a) acrescenta UM canal ao registrador de projeto, que ja importa `servicos/abertura-de-projeto` — nenhum modulo novo de `sistema/`, entao M1 continua 2; sem import novo, M2 segue 0; `dominio/` intocado (M3) e a arvore de pastas idem (M4). O numero que MUDA e a contagem de canais de IPC, 37 -> 38, e essa mudanca foi re-declarada com a causa antes de o canal existir."
+  "porque": "Os quatro INALTERADOS, e a previsao foi escrita antes de rodar (§12·4a): esta fatia acrescenta `ferramentas/varre-orfaos.py` e um script no package.json, e NAO toca uma linha de `codigos/`. M1 mede acoplamento de registrador, M2 ciclos de import, M3 pureza de dominio/ e M4 nos da arvore §1.3 — nenhum deles enxerga `ferramentas/`. Medido depois: 2 · 0 · 0 · 13/13, PORTAO VERDE 5/5. O numero que MUDA e do relatorio do 3o ato, nao do portao: a coluna `usados so dentro do proprio arquivo` cai de 18 para 15, porque 3 deles passaram a ter coluna propria (`chamados so por tests/`). Previ 2, medi 3 — o erro esta registrado no tracker e no diario."
 }

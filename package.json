@@ -14,7 +14,8 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "teste": "node --import ./tests/apoio/gancho-de-modulos.ts --test \"tests/**/*.test.ts\"",
-    "portao": "node ferramentas/portao.mjs"
+    "portao": "node ferramentas/portao.mjs",
+    "orfaos": "python3 ferramentas/varre-orfaos.py"
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.10.0",
