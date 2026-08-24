@@ -1578,3 +1578,70 @@ idêntico**. E o recorte do nó novo foi **aberto e olhado**, não só gerado.
 | **minha recomendação** | **(a).** O defeito não é a receita estar errada, é ela estar **duplicada** — corrigir a cópia (opção b) conserta o sintoma e deixa a doença, e a doença já cobrou uma vez. A planta é mapa de navegação (§11): apontar para onde a receita mora é o serviço dela. E a indireção é curta, porque o nó de `ferramentas/` na mesma planta já diz o que o `gera-fluxo.py` faz |
 | **se ficar para depois** | **fica mais caro devagar.** Cada corrida que refaz o desenho é uma chance de alguém abrir a planta primeiro. E o PNG errado passa pelo portão — nenhuma das cinco pernas olha para dimensão de imagem |
 | **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
+
+### Ato 2 — vitrine conferida
+
+| o que o README afirma | como foi conferido | resultado |
+|---|---|---|
+| `npm run teste` → *"139 testes"* | **rodado** | 139, 0 falhas ✔ |
+| `npm run typecheck` → `tsc --noEmit` | **rodado** | exit 0 ✔ |
+| `npm run portao` → *"as cinco pernas e o veredito"* | **rodado** | VERDE 5/5 ✔ |
+| `npm run orfaos` — **novo hoje** | **rodado**, e as outras duas formas do cabeçalho (`--ref`, `--raiz`) também | corpo de prova OK, relatório impresso ✔ |
+| **Estado: v0.0.7** | contra as **três** fontes do §12 passo 6 | `package.json` **0.0.7** ✔ · changelog **v0.0.7** ✔ · **tag mais nova: v0.0.6** ✖ |
+
+**A tag segue uma corrida atrás — terceira corrida em que isto é listado.** Não é afirmação
+falsa (as três fontes que **existem** concordam), então continua **listada** e não vira árvore:
+marcar mexe no histórico do repositório, que é da lista negativa (§13.3a).
+
+**`npm run dev` e `npm run start` NÃO foram rodados**, declarado como nas corridas anteriores:
+o portão já sobe o aplicativo de verdade na perna P5, e o `dev` deixou dois processos vivos num
+despacho anterior.
+
+### Ato 3 — varredura do que NINGUÉM moveu · **agora pelo instrumento versionado**
+
+> É o ponto desta corrida: o terceiro ato deixou de depender da memória de quem o rodou.
+> `npm run orfaos`, com o corpo de prova aprovado antes de o relatório existir.
+
+**(a) exportado e canal sem chamador.**
+
+| coluna | hoje | novos nesta corrida |
+|---|:---:|:---:|
+| símbolos sem chamador em lugar nenhum | **1** — `acharPython` (o **D4**, registrado), citado em doc 14× | **0** |
+| chamados **só por `tests/`** — coluna nova (§15.4) | **3** — `PACIENCIA_MS`, `confinado`, `shellEstaOcioso` | — |
+| usados só dentro do próprio arquivo | **15** | **0** |
+| canais registrados e **não expostos** pela porta | **0** de 38 | **0** |
+| canais expostos e **sem chamador na tela** | **4** — `arquivo:ler`/`arquivo:gravar` (**A5**) e `neovim:parar`/`shell:pasta` (**A6**), os quatro registrados | **0** |
+
+**(b) restos de produto anterior.** Reconferido item a item. `.gitignore`, `tsconfig.json` e
+`electron.vite.config.ts`: **todo caminho citado existe ou é padrão de exclusão legítimo** —
+os quatro `include` do `tsconfig` resolvem para 58 + 1 + 22 + 1 arquivos. Nenhuma pasta de
+ferramenta de outro produto (`.vscode`, `.idea`, `.vs`). Os herdados já listados seguem onde
+estavam: `media/icon.svg:8`, `docs/fluxo.md:314`, `tracker:150`, `tracker:162`, a prosa de
+laboratório, e `*.ab1`/`*.fsa`/`*.scf`/`*.phd.1` **mantidos de propósito por decisão da cabeça**.
+
+#### ⚠️ O instrumento reprovou UMA vez hoje — e a comparação com ontem é o número que interessa
+
+| corrida | reprovações do instrumento no dia | onde ele morava |
+|---|:---:|---|
+| 2, 3, 4 | 3 acumuladas | scratchpad, reconstruído a cada vez |
+| **5** | **4 num dia só**, uma delas repetindo falha **já escrita no diário** | scratchpad |
+| **6 (hoje)** | **1** — e foi pega pelo **próprio corpo de prova**, não por mim relendo nada | `ferramentas/varre-orfaos.py`, versionado |
+
+A única de hoje: o caso **C3** não mordia porque eu tinha posto o arquivo ignorado na raiz, e o
+corpus de chamadores é restrito a `codigos/`, `tests/` e `ferramentas/` — ele nunca entraria,
+com ou sem a guarda. **A sabotagem obrigatória é que a pegou**, não a leitura do código.
+
+### 16.2 · Pendências vivas ao fim da corrida 6
+
+| # | o que é | quem decide |
+|---|---|---|
+| **A13** | **NOVA.** `docs/fluxo.md:431` ensina a receita do PNG **sem `-density 150`** — segunda cópia, e é a errada. Medida em cópia isolada: 1820×1155 contra 2843×1804 | a cabeça |
+| **A12** | **FECHADA** — instrumento versionado, `npm run orfaos` | — |
+| **A11** | **FECHADA** — as cinco suítes normalizadas | — |
+| **A5** | se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair | a cabeça |
+| **D4(b)** | apagar `localizador-do-python.ts` — só a cabeça sabe se era semente. **Quinta corrida como único órfão do repositório** | a cabeça |
+| **a tag v0.0.7 que não existe** | herdada da corrida 4, terceira listagem | a cabeça |
+| herdados listados | `icon.svg:8`, `fluxo.md:314`, `tracker:150`, `tracker:162`, prosa de laboratório | a cabeça |
+| do despacho 1 | o desvio de planta (sem `tests/arquitetura/` nem `tests/funcionais/`), o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
+| **o `console` sequestrado pelo `neovim`** | `node_modules/neovim/lib/utils/logger.js:69`. Vale para o processo principal do produto, não só para sondas. Não tocado | a cabeça |
+| **`controle-neovim-rpc-com-neovim.test.ts`** | monta no corpo do módulo por razão própria, **não A11** — e a razão escrita lá é discutível (um `before` também roda antes de qualquer teste). Listado, não mexido | a cabeça |
