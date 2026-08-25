@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 6 fatia 2 — A11: as cinco suites voltam ao `before` idiomatico",
+  "fatia": "corrida 7 fatia 1 — a janela preta em `npm run dev`: o endereco da pagina vira dominio",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro INALTERADOS, previsao escrita antes de rodar (§12·4a): a fatia mexe SO em `tests/servicos/` (5 arquivos) e no cabecalho de `tests/apoio/rejeicoes-nao-tratadas.ts`. Nenhuma linha de `codigos/`. M1 (acoplamento de registrador), M2 (ciclos de import), M3 (pureza de dominio/) e M4 (nos da arvore §1.3) medem so `codigos/` — nenhum enxerga `tests/`. A contagem de testes tambem NAO muda: a montagem trocou de lugar, nenhum `test()` nasceu ou morreu (139). Medido depois: 2 · 0 · 0 · 13/13 e 139 passaram."
+  "porque": "Os quatro INALTERADOS, previsao escrita ANTES de rodar (§12·4a) e com a razao de cada um. Nasce `codigos/dominio/endereco-da-pagina.ts` e `janela-principal.ts` passa a chamar dois nomes dele. M1: `janela-principal.ts` nao registra canal (`ipcMain` ausente), logo nao e registrador; e `dominio/` nao fica sob `sistema/`, que e o que M1 conta. M2: `dominio/` e folha do grafo, a seta nova e `janela -> dominio` em sentido unico. M3: o modulo novo importa SO `node:path`, que e a lista-branca inteira (portao.mjs:119). M4: `tests/funcionais/` nao esta em NOS_EXIGIDOS (portao.mjs:142-147), entao a pasta nova nao move o numero. O que MUDA e a contagem da P1: 139 -> 145 previstos (+4 unidade, +2 funcionais), declarado em docs/tracker.md §17.2."
 }

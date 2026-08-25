@@ -124,6 +124,12 @@ node ferramentas/portao.mjs --conduta
 
 **Sem as cinco verdes, não avança.**
 
+> ⚠️ **Ponteiro, e não reescrita: nasceu uma SEXTA perna em 24/08 — a P6 · conduta em `dev`
+> (§17.1).** A tabela acima é registro **datado de 23/08** e falsificá-la seria pior que
+> apontar para o novo — é a mesma decisão que a P1 já recebeu na §10.1. A P6 **não tem comando
+> próprio de propósito**: ela anda dentro de `npm run teste`, porque o defeito que a fez nascer
+> sobreviveu justamente por morar num comando que nenhuma perna rodava.
+
 ---
 
 ## 2. Fatia 0 — o que precisa existir antes da fatia 1
@@ -1645,3 +1651,88 @@ com ou sem a guarda. **A sabotagem obrigatória é que a pegou**, não a leitura
 | do despacho 1 | o desvio de planta (sem `tests/arquitetura/` nem `tests/funcionais/`), o nome do arquivo do preload, o "empacote" descoberto na P3 | a cabeça |
 | **o `console` sequestrado pelo `neovim`** | `node_modules/neovim/lib/utils/logger.js:69`. Vale para o processo principal do produto, não só para sondas. Não tocado | a cabeça |
 | **`controle-neovim-rpc-com-neovim.test.ts`** | monta no corpo do módulo por razão própria, **não A11** — e a razão escrita lá é discutível (um `before` também roda antes de qualquer teste). Listado, não mexido | a cabeça |
+
+---
+
+## 17. Corrida 7 — 24/08/2026: a janela preta em `npm run dev`
+
+Defeito achado **em campo pela cabeça**, abrindo o programa. Não por perna de portão — e a
+razão de nenhuma perna tê-lo pego é o assunto desta corrida.
+
+### 17.1 · ⚠️ DECLARADO ANTES DA FATIA 1 (§12·4a) — a perna P6 e o que muda de número
+
+**O defeito, medido antes de consertar.** Em `dev` o renderer é servido por HTTP. A config
+declara `root: codigos` (`electron.vite.config.ts:18`) com a entrada em `interface/pagina.html`
+(`:22`) — então a página **não fica na raiz do servidor**. Mas `janela-principal.ts:89-90`
+carrega a raiz. Medido por mim, três vezes, por três caminhos independentes:
+
+| como medi | `GET /` | `GET /interface/pagina.html` |
+|---|---|---|
+| arnês headless (`resolveConfig` + `vite.createServer`, o mesmo par que o `electron-vite dev` usa em `lib-t2ExBjL5.mjs:58`) | **HTTP 404, 0 bytes** | **HTTP 200, 7075 bytes** |
+| o mesmo arnês contra `git archive 0ace461` (a base da corrida), em cópia isolada | **HTTP 404, 0 bytes** | **HTTP 200, 7075 bytes** |
+| o **`npm run dev` de verdade**, nesta máquina, com `HOME` redirecionado | **HTTP 404, 0 bytes** | **HTTP 200, 7075 bytes** |
+
+7075 = os 7020 bytes do arquivo em disco + os 55 do `<script src="/@vite/client">` que o Vite
+injeta — conferido linha a linha contra o disco, não suposto.
+
+⚠️ **Uma medição minha nasceu errada e o número denunciou:** a primeira sonda imprimiu **7003**
+e eu ia registrar isso. `fetch().text().length` conta **unidade UTF-16, não byte**, e a página
+tem acento. Refeita com `Buffer.byteLength`, deu 7075 — e só então bateu com a cabeça. Foi o
+número surpreendente pedindo segunda fonte (§7·D1) que pegou o instrumento, não releitura.
+
+**NÃO é regressão desta corrida — conferido, não aceito.** Os três determinantes do endereço em
+`dev` são **byte a byte** os da base `0ace461`: as duas linhas de carga, o bloco `renderer` da
+config (`diff` vazio) e o lugar de `pagina.html`. O defeito nasceu com o produto.
+
+**A forma do conserto foi MEDIDA, não escolhida por gosto.** A pergunta era se o `electron-vite`
+oferece o caminho completo por configuração. Não oferece:
+`node_modules/electron-vite/dist/chunks/lib-t2ExBjL5.mjs:67` monta
+`process.env.ELECTRON_RENDERER_URL = ${protocol}//${host}:${port}` — **origem pura, sem caminho**,
+sem knob. Então o caminho tem de ser composto por nós, e o conserto é no código.
+
+#### Por que nenhuma perna viu, e por que a perna nova NÃO ganha comando próprio
+
+A P3 roda `electron-vite build`; a P5 sobe o app **construído**. O comando que o README manda um
+recém-chegado usar — `npm run dev` — é o único que **nenhuma perna cobre**.
+
+> **A lição, e ela decide a forma da P6:** o defeito sobreviveu porque a cobertura morava num
+> comando que ninguém rodava. Dar à perna nova um **comando próprio** repetiria exatamente esse
+> erro. Por isso a P6 anda dentro de `npm run teste`, que a P1 já obriga a estar verde.
+
+**E o preço foi medido antes de decidir**, porque perna cara que ninguém roda é pior que perna
+nenhuma:
+
+| forma | custo medido | veredito |
+|---|---|---|
+| subir o `electron-vite dev` inteiro a cada fatia | build de main+preload + Electron + **janela abrindo na cara de quem roda** | recusada |
+| **arnês headless** (`resolveConfig` + `createServer` + `fetch`) | **274 ms / 269 ms** em duas corridas | **escolhida** |
+| — para comparar, a P1 hoje | **6,5 s** (`time npm run teste`) | a P6 é ~4% dela |
+
+### P6 · CONDUTA EM DEV — a página que a janela carrega existe
+
+```bash
+npm run teste          # a P6 anda aqui dentro, junto da P1
+# sozinha, para depurar:
+node --import ./tests/apoio/gancho-de-modulos.ts --test tests/funcionais/carga-da-pagina-em-dev.test.ts
+```
+
+| | |
+|---|---|
+| **o que ela pergunta** | sobe o servidor de dev do renderer pelo **mesmo par de funções** que o `electron-vite dev` usa, chama a `criarJanela()` **de verdade** com o `electron` dublado, **captura a URL que a produção passou ao `loadURL`**, e faz `GET` nela exigindo **HTTP 200 e corpo não vazio**. |
+| **por que capturar do `loadURL`, e não perguntar à função de domínio** | um teste que chamasse a função de domínio direto passaria **mesmo que `janela-principal.ts` nunca a chamasse** — mediria a peça, não a ligação. O defeito de hoje é exatamente uma ligação errada. A perna tem de morder onde dói. |
+| **headless de propósito** | nada de tela, nada de GPU, nada de `xvfb`. O `BrowserWindow` é o duble; quem sobe de verdade é só o servidor HTTP. |
+| **o que fica DESCOBERTO** | ela prova que **o endereço serve a página**; não prova que a página **renderiza** em dev. Renderização em dev continua sem rede — a P5 só cobre o app **construído**. Declarado, não resolvido. |
+
+### 17.2 · Os números que MUDAM, escritos antes de rodar
+
+| medida | hoje | previsto ao fim | por quê |
+|---|:---:|:---:|---|
+| **P1 · testes** | 139 | **145** | +4 unidade (`tests/dominio/endereco-da-pagina.test.ts`) +2 funcionais (`tests/funcionais/carga-da-pagina-em-dev.test.ts`) |
+| M1 acoplamento | 2 | **2** | `janela-principal.ts` não é registrador (não tem `ipcMain`), e `dominio/` não fica sob `sistema/` |
+| M2 ciclos | 0 | **0** | `dominio/` é folha do grafo; a seta nova é `janela → dominio`, sentido único |
+| M3 pureza | 0 | **0** | o módulo novo importa **só `node:path`**, que é a lista-branca inteira (`portao.mjs:119`) |
+| M4 nós da árvore | 13/13 | **13/13** | `tests/funcionais/` **não** está em `NOS_EXIGIDOS` (`portao.mjs:142-147`) — nascer não move o número |
+
+**`tests/funcionais/` nasce aqui, e isso encosta no desvio de planta do despacho 1** — mas não o
+fecha: a planta pedia `funcionais/` para **a conduta**, que hoje é a P5. Nasce a pasta, com um
+morador; o desvio segue de pé e segue sendo da cabeça.
