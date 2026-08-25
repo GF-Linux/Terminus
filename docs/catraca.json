@@ -1,8 +1,8 @@
 {
-  "fatia": "corrida 7 fatia 1 — a janela preta em `npm run dev`: o endereco da pagina vira dominio",
+  "fatia": "corrida 8 — as pendencias fechadas antes do push: A13, D4(b), A5(a), A14 e a sujeira do tracker",
   "M1": 2,
   "M2": 0,
   "M3": 0,
   "M4": 13,
-  "porque": "Os quatro INALTERADOS, previsao escrita ANTES de rodar (§12·4a) e com a razao de cada um. Nasce `codigos/dominio/endereco-da-pagina.ts` e `janela-principal.ts` passa a chamar dois nomes dele. M1: `janela-principal.ts` nao registra canal (`ipcMain` ausente), logo nao e registrador; e `dominio/` nao fica sob `sistema/`, que e o que M1 conta. M2: `dominio/` e folha do grafo, a seta nova e `janela -> dominio` em sentido unico. M3: o modulo novo importa SO `node:path`, que e a lista-branca inteira (portao.mjs:119). M4: `tests/funcionais/` nao esta em NOS_EXIGIDOS (portao.mjs:142-147), entao a pasta nova nao move o numero. O que MUDA e a contagem da P1: 139 -> 145 previstos (+4 unidade, +2 funcionais), declarado em docs/tracker.md §17.2."
+  "porque": "Os quatro INALTERADOS, previsao escrita ANTES da fatia 1 (§12·4a, docs/tracker.md §19.1) e com a razao de cada um. M1: `ponte-arquivo.ts` perde DOIS handlers mas CONTINUA importando os mesmos dois modulos de servicos/ — sobra irmao vivo em cada um (criar/pasta/renomear em escrita-confinada, abrir/listar/arquivos em leitura-de-arquivo). Tirar handler nao tira import de modulo. M2: nenhum import nasce; dois somem de dentro de chaves, e apagar arquivo-folha (`localizador-do-python.ts`) nao fecha ciclo. M3: o arquivo removido mora em sistema/infra/, e dominio/ nao e tocado. M4: `codigos/sistema/infra` sobrevive com 7 arquivos (eram 8) — o no exigido e a PASTA, nao a contagem dela (portao.mjs:148-153). O que MUDA e a contagem de CANAIS: 38 -> 36, re-declarada com a causa em §19.1, e a lista de partida para o diff esta em §19.4. Testes: 145 -> 145, nenhum test() nasce ou morre."
 }

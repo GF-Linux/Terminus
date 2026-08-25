@@ -2193,3 +2193,21 @@ mostrou o recurso **vivo, ligado e servido por outro canal**. O desmentido intei
 | **se ficar para depois** | **igual.** Não apodrece; reaparece a cada árvore fechada |
 | **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
 
+### 20.4 · ⚠️ Duas mensagens de commit desta corrida carregam a afirmação falsa
+
+`git log` desta corrida tem duas linhas escritas **antes** da medição que as desmentiu:
+
+```
+f880316  declara ANTES da corrida 8: 38 -> 36 canais, e a A5(a) diz a palavra ABANDONADO (§12·4a)
+27524ae  A5(a): os dois canais do traceback saem -- 38 -> 36, e a palavra ABANDONADO fica escrita no codigo
+```
+
+**Não as reescrevi, e a razão é a lista negativa (§13.3a):** reescrita de história não é coisa que
+eu faça sozinho. E há um argumento melhor que a regra: **elas são registro fiel do que aconteceu.**
+Eu escrevi aquela palavra, e o commit `ee1f940` a desmente logo depois. Um histórico que mostra o
+erro e a correção vale mais que um histórico limpo que finge que a primeira versão não existiu.
+
+**Quem ler o `git log` isolado será enganado por essas duas linhas** — por isso este parágrafo, e
+por isso o desmentido mora na §19.2, no README, na planta e em cinco arquivos de código. Se a
+cabeça preferir o histórico reescrito antes do push, é decisão dela e é uma ordem, não um pedido.
+
