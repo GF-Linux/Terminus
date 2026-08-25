@@ -1,4 +1,4 @@
-//? PORTÃO DA CORRIDA — as cinco pernas do §12·4, e o veredito 23/08/2026
+//? PORTÃO DA CORRIDA — as pernas do §12·4, e o veredito 23/08/2026
 //!
 //! 1. O §12·4 não é lista fixa de comandos: é contrato de três cláusulas. As
 //!    pernas foram declaradas ANTES da fatia 1, em docs/tracker.md §1, cada uma
@@ -9,6 +9,12 @@
 //!    garante: cada fatia declara o esperado, e piorar reprova.
 //! 3. Cláusula (c): a perna de CONDUTA sobe o app de verdade. As outras quatro
 //!    aprovam fatia sem nunca ligar o programa.
+//! 3a. E ela vem em DUAS, desde 24/08: a P5 sobe o app CONSTRUÍDO, e a P6 exercita o
+//!    caminho de `dev`. A P6 nasceu de defeito achado em campo — `npm run dev` abria a
+//!    janela preta desde que o produto existe, porque a P3 constrói e a P5 sobe o
+//!    construído, e o comando que o README manda usar era o único que NENHUMA perna
+//!    rodava. A P6 tem linha própria aqui de propósito: cobertura que o veredito não
+//!    NOMEIA é cobertura que a próxima corrida esquece — foi assim que esta faltou.
 //! 4. A conduta roda com HOME redirecionado. Sem isso a partida do Terminus
 //!    escreve em ~/.config/terminus/ e cria symlink em ~/.config/nvim/ — medido.
 //!    Portão que suja a máquina de quem roda não é portão.
@@ -297,7 +303,7 @@ if (arg === "--conduta") {
   process.exit(r.ok ? 0 : 1);
 }
 
-//* Sem argumento: as CINCO pernas, e o veredito.
+//* Sem argumento: as SEIS pernas, e o veredito.
 const c = catraca();
 console.log(`\n${CINZA}PORTÃO — fatia: ${c.fatia}${FIM_COR}\n`);
 const pernas = [];
@@ -350,6 +356,22 @@ else { const r = await pernaConduta({ silencioso: true }); p5 = r.ok;
        console.log(r.ok ? `${VERDE}ok${FIM_COR}    porta+renderer+ipc responderam` : `${VERM}FALHA${FIM_COR} ${JSON.stringify(r.valor ?? {})}`); }
 pernas.push(p5);
 
+process.stdout.write("  P6 conduta em dev      ");
+//! PELO SCRIPT DO package.json, pela mesma razão da P1: comando repetido aqui fica
+//!   para trás do declarado, e o portão passa a medir uma suíte que não é a da perna.
+//! ⚠️ ELA RODA DUAS VEZES — aqui e dentro da P1, que varre `tests/**`. É de propósito, e
+//!   o preço foi medido: ~0,4 s. Tirá-la da P1 faria `npm run teste` deixar de cobrir o
+//!   caminho de dev, que é exatamente o buraco que ela existe para tapar.
+const p6 = rodar("npm", ["run", "--silent", "teste:dev"]);
+const conta6 = Number(p6.saida.match(/# pass (\d+)/)?.[1] ?? 0);
+//! Mesma trava da P1: suíte vazia sai exit 0, e verde vazio não é verde (§12·2).
+const p6ok = p6.ok && conta6 > 0;
+console.log(!p6.ok ? `${VERM}FALHA${FIM_COR} a página que a janela carrega em dev não respondeu`
+  : conta6 === 0 ? `${VERM}FALHA${FIM_COR} suíte vazia — verde vazio não é verde`
+  : `${VERDE}ok${FIM_COR}    ${conta6} passaram — a URL da janela serve a página`);
+if (!p6.ok) console.log(CINZA + p6.saida.split("\n").filter((l) => /not ok|Error|error:|respondeu/.test(l)).slice(0, 12).join("\n") + FIM_COR);
+pernas.push(p6ok);
+
 const verde = pernas.every(Boolean);
-console.log(`\n  ${verde ? VERDE + "PORTÃO VERDE" : VERM + "PORTÃO VERMELHO"}${FIM_COR}   ${pernas.filter(Boolean).length}/5 pernas\n`);
+console.log(`\n  ${verde ? VERDE + "PORTÃO VERDE" : VERM + "PORTÃO VERMELHO"}${FIM_COR}   ${pernas.filter(Boolean).length}/${pernas.length} pernas\n`);
 process.exit(verde ? 0 : 1);

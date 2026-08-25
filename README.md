@@ -74,7 +74,7 @@ o Terminus foi testado.
 ```
 npm run teste       # 145 testes: regra pura, casos de uso, motores, kits e a carga da página em dev
 npm run typecheck   # tsc --noEmit
-npm run portao      # as cinco pernas do portão, e o veredito
+npm run portao      # as seis pernas do portão, e o veredito
 npm run orfaos      # exportado e canal SEM chamador — no FECHAMENTO, não a cada mudança
 ```
 

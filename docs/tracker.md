@@ -126,9 +126,9 @@ node ferramentas/portao.mjs --conduta
 
 > ⚠️ **Ponteiro, e não reescrita: nasceu uma SEXTA perna em 24/08 — a P6 · conduta em `dev`
 > (§17.1).** A tabela acima é registro **datado de 23/08** e falsificá-la seria pior que
-> apontar para o novo — é a mesma decisão que a P1 já recebeu na §10.1. A P6 **não tem comando
-> próprio de propósito**: ela anda dentro de `npm run teste`, porque o defeito que a fez nascer
-> sobreviveu justamente por morar num comando que nenhuma perna rodava.
+> apontar para o novo — é a mesma decisão que a P1 já recebeu na §10.1. Comando:
+> `npm run teste:dev`, com linha própria no `npm run portao`, que passou a dizer **6/6**.
+> Ela roda **também** dentro de `npm run teste` — duas vezes, ~0,4 s, e a razão está na §17.1.
 
 ---
 
@@ -1696,8 +1696,21 @@ A P3 roda `electron-vite build`; a P5 sobe o app **construído**. O comando que 
 recém-chegado usar — `npm run dev` — é o único que **nenhuma perna cobre**.
 
 > **A lição, e ela decide a forma da P6:** o defeito sobreviveu porque a cobertura morava num
-> comando que ninguém rodava. Dar à perna nova um **comando próprio** repetiria exatamente esse
-> erro. Por isso a P6 anda dentro de `npm run teste`, que a P1 já obriga a estar verde.
+> comando que ninguém rodava. Então a P6 tinha de morar num comando que o portão roda.
+
+⚠️ **EMENDA À MINHA PRÓPRIA DECLARAÇÃO, feita durante a fatia e com a razão medida.** Eu havia
+escrito aqui que a P6 **não ganharia comando próprio** e andaria só dentro de `npm run teste`.
+A varredura do ato 1 derrubou isso: com a P6 invisível, `npm run portao` seguia imprimindo
+**"5/5 pernas"** e o veredito **nunca nomeava o caminho de dev**. Isso é o modo de falha deste
+próprio defeito repetido um nível acima — *cobertura que o veredito não nomeia é cobertura que
+a próxima corrida esquece*. A P6 passou a ter **linha própria no portão** e comando concreto
+(`npm run teste:dev`, no `package.json`, para não haver duas definições — a armadilha que a P1
+já documenta).
+
+**O que NÃO mudou, e é o que a declaração acertou:** ela continua rodando dentro de
+`npm run teste` também. Roda **duas vezes**, e o preço foi medido: **~0,4 s**. Tirá-la da P1
+faria o comando que todo mundo digita deixar de cobrir o caminho de dev — que é o buraco que
+ela existe para tapar.
 
 **E o preço foi medido antes de decidir**, porque perna cara que ninguém roda é pior que perna
 nenhuma:
@@ -1711,9 +1724,9 @@ nenhuma:
 ### P6 · CONDUTA EM DEV — a página que a janela carrega existe
 
 ```bash
-npm run teste          # a P6 anda aqui dentro, junto da P1
-# sozinha, para depurar:
-node --import ./tests/apoio/gancho-de-modulos.ts --test tests/funcionais/carga-da-pagina-em-dev.test.ts
+npm run portao         # a P6 tem linha propria no veredito
+npm run teste:dev      # so a P6
+npm run teste          # ela roda aqui tambem, junto da P1 (de proposito — ~0,4 s)
 ```
 
 | | |

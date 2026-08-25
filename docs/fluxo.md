@@ -217,7 +217,7 @@ Terminus/
 │       └── carga-da-pagina-em-dev.test.ts   2  GET na URL que a janela MANDOU carregar
 │
 ├── ferramentas/
-│   ├── portao.mjs                      roda as 5 pernas do portão e dá o veredito (§12·4)
+│   ├── portao.mjs                      roda as 6 pernas do portão e dá o veredito (§12·4)
 │   ├── gera-fluxo.py                   refaz o fluxo.png; recusa desenho sobreposto
 │   └── varre-orfaos.py                 exportado/canal sem chamador (§12·6 ato 3); auto-valida
 │
