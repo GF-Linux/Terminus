@@ -17,7 +17,7 @@
 //!    caminhos escrevem. A rede está em `tests/servicos/escrita-em-pasta-por-atalho.test.ts`.
 //! 5. ⚠️ TRES DOS QUATRO TEM CANAL; `gravarConfinado` NAO TEM MAIS. Em 24/08/2026, no mesmo
 //!    dia, a cabeca removeu `arquivo:gravar` da porta e do main (arvore A5, opcao (a)),
-//!    porque o traceback clicavel foi declarado abandonado. A funcao NAO saiu junto, e a
+//!    porque nenhuma tela os chamava. A funcao NAO saiu junto, e a
 //!    razao esta escrita na propria arvore: ela e' a PECA-VITRINE do confinamento — realpath
 //!    + guarda do dominio + raizes do dono — e joga-la fora por arrasto seria perder a melhor
 //!    peca por causa da superficie da pior. Hoje so `tests/` a chama. O item 1 acima continua

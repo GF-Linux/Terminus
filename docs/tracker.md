@@ -366,7 +366,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **minha recomendação** | **(b)**. O porquê do ler-largo está escrito e é bom; o que faltava era o registro da capacidade dormente — a mesma família do D4. Removê-la é decisão de **produto** sobre uma feature (traceback clicável) que só a cabeça sabe se vive |
 | **se ficar para depois** | igual — e o terceiro ato do §12·6, nascido em 24/08, faz o próximo fechamento listar isto de ofício |
 | **DESFECHO (b)** | aplicada em 24/08/2026 (plano 02 do sugestor): os dois canais ficaram **registrados** com `//?` na porta, e os dois `EstaVivo` saíram. Ficou em aberto a pergunta que o próprio texto formulou: *"se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair"* |
-| **DESFECHO (a) — FECHADO** | **APLICADA em 24/08/2026, decidida pela cabeça** — corrida 8, fatia 3. ⚠️ **A cabeça respondeu à pergunta acima com uma decisão de PRODUTO: o traceback clicável está ABANDONADO.** Saíram **os DOIS** canais — `arquivo:ler` **e** `arquivo:gravar` — da porta (`ler()`, `gravar()`) e do main (os dois `ipcMain.handle`). **Não foi faxina**, e a palavra está escrita em três lugares de código para quem ler daqui a um ano: item 7 do cabeçalho da porta, o `//?` no lugar vago de `ponte-arquivo.ts`, e a marca em `leitura-de-arquivo.ts` avisando que **a razão do ler-largo perdeu o dono**. **Conduta preservada, medida por `diff`:** lista de canais extraída por script antes e depois — **duas remoções, zero adições, zero renomeações**; os **36** restantes idênticos um a um (§19.4). **O arrasto foi previsto por escrito antes** (§19.3) e conferiu: `lerParaEditor` e `gravarConfinado` passaram para a coluna *"chamados só por `tests/`"*, que foi de **3 para 5**; nenhum módulo ficou órfão. **Não foram apagadas junto** — a própria A5 avisou que `gravarConfinado` é a peça-vitrine do confinamento —, e o que fazer com elas é a árvore **A15**, devolvida nesta corrida |
+| **DESFECHO (a) — FECHADO** | **APLICADA em 24/08/2026, decidida pela cabeça** — corrida 8, fatia 3. ⚠️ **A cabeça respondeu à pergunta acima, e a resposta que EU escrevi para ela estava errada — desmentida por medição na mesma corrida (§19.2).** O traceback clicável **não** foi abandonado: ele está vivo e vai por `neovim:abrir`. A razão verdadeira é mais forte que a que eu supus — `arquivo:ler` lia **qualquer arquivo do disco** justificado por um recurso que **ele não servia**. A decisão da cabeça de remover fica **mais** apoiada, não menos. Saíram **os DOIS** canais — `arquivo:ler` **e** `arquivo:gravar` — da porta (`ler()`, `gravar()`) e do main (os dois `ipcMain.handle`). **Não foi faxina**, e a razão — a corrigida — está escrita em **quatro** lugares de código para quem ler daqui a um ano: item 7 do cabeçalho da porta, o `//?` no lugar vago de `ponte-arquivo.ts`, o bloco com a cadeia medida em `leitura-de-arquivo.ts`, e a nota em `infra/resolucao-de-caminho.ts`, cujo comentário citava o handler removido. **Conduta preservada, medida por `diff`:** lista de canais extraída por script antes e depois — **duas remoções, zero adições, zero renomeações**; os **36** restantes idênticos um a um (§19.4). **O arrasto foi previsto por escrito antes** (§19.3) e conferiu: `lerParaEditor` e `gravarConfinado` passaram para a coluna *"chamados só por `tests/`"*, que foi de **3 para 5**; nenhum módulo ficou órfão. **Não foram apagadas junto** — a própria A5 avisou que `gravarConfinado` é a peça-vitrine do confinamento —, e o que fazer com elas é a árvore **A15**, devolvida nesta corrida |
 
 ### A6 · dois canais expostos sem chamador — árvore de decisão (§12·3a) · **RESOLVIDA em 24/08, os dois FICAM registrados** — ver §10.6
 
@@ -1784,6 +1784,7 @@ Refeita removendo o import junto.
 | **as opções** | **(a) a config importa a constante do domínio** — uma fonte só. Custo: acopla a configuração de build ao código do aplicativo, e o `electron.vite.config.ts` é carregado por esbuild, onde a resolução `.js`→`.ts` do projeto **não vale** — teria de ser medido antes, e não foi. **(b) deixar como está, com a rede cobrindo** — a P6 e a P5 já pegam a deriva, e isso está medido acima. **(c) um comentário em cada lado apontando para o outro** — barato, resolve o custo de leitura, não resolve nada além disso |
 | **a minha recomendação** | **(b)**, e se a cabeça quiser barato, **(b) + (c)**. A duplicação é de **duas linhas**, a deriva é **pega por duas pernas independentes**, e a (a) troca um risco coberto por um acoplamento novo em terreno (esbuild) que eu **não medi**. Trocar risco medido por risco não medido é o mau negócio |
 | **se ficar para depois** | **igual.** Não encarece: o custo é constante e a rede não envelhece |
+| **DESFECHO** | **(b) — RECUSADA COM RAZÃO em 24/08/2026, decidida pela cabeça.** Nenhuma linha de código mudou, e é isso que a decisão é. A cabeça acolheu a recomendação citando a **minha própria prova**: a deriva **não passa** porque a **P6** (regime de dev) e a **P5** (regime de build) a pegam — medido em cópia isolada por `git archive`, renomeando a página e atualizando só a config: a P6 morreu com `http://localhost:5173/interface/pagina.html respondeu 404`. O que sobra é **custo de leitura**, e a (a) trocaria um risco **medido** por acoplamento em terreno (esbuild) que eu **não medi**. Nas palavras da cabeça: *"recusa medida vale mais que conserto por via das dúvidas"*. ⚠️ **A (c) — o comentário em cada lado — NÃO foi aplicada**, e a omissão é declarada em vez de silenciosa: a cabeça escolheu **(b) puro**. **Fica registrado que a duplicação de duas linhas permanece, de propósito, com a rede cobrindo** |
 
 ---
 
@@ -1899,18 +1900,57 @@ As 10 asserções de `leitura-de-arquivo.test.ts` e as de `escrita-confinada.tes
 
 ### 19.2 · ⚠️ O que a A5(a) DECLARA, e a palavra tem de estar escrita
 
-**Remover `arquivo:ler` declara o traceback clicável ABANDONADO.** Não é faxina.
+> ⚠️ **ESTA SEÇÃO FOI REESCRITA DEPOIS DE MEDIR, E A PRIMEIRA VERSÃO ESTAVA ERRADA.** Ela dizia,
+> obedecendo ao despacho e à própria árvore A5: *"remover `arquivo:ler` declara o traceback
+> clicável ABANDONADO"*. Escrevi essa frase, ou a premissa dela, em **nove lugares** — cinco
+> arquivos de código (`porta/ponte-para-a-interface`, `ponte/ponte-arquivo`,
+> `servicos/leitura-de-arquivo`, `servicos/escrita-confinada`, `infra/resolucao-de-caminho`),
+> o README, a planta e **dois** pontos deste tracker — antes de ir conferir. Contei um a um pelo
+> `git diff` da correção, porque errar a conta dentro de um desmentido seria o mesmo defeito. O terceiro ato do fechamento me obrigou a
+> conferir, e ela é **falsa**. O que segue é o que a medição mostrou; o desmentido fica escrito
+> em vez de apagado, porque o erro é meu e é instrutivo.
 
-O porquê do ler-largo está escrito em `codigos/sistema/servicos/leitura-de-arquivo.ts:34-36`:
+**A pergunta que eu deveria ter feito primeiro: o traceback clicável existe?**
+
+`codigos/sistema/servicos/leitura-de-arquivo.ts` justificava a leitura irrestrita assim:
 *"LER NAO E CONFINADO A PASTA ABERTA, e e de proposito: o traceback clicavel abre o quadro
 dentro da biblioteca, e o `F12` vai a definicao la tambem. Fechar aqui quebraria o salto do
-traceback."* A capacidade existia **para uma feature que não nasceu**. A árvore A5 escreveu, em
-24/08: *"se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair"*. A cabeça
-tomou essa decisão em 24/08/2026, e é ela que autoriza a remoção.
+traceback."* Aceitei a frase como fato — ela está no código, e a árvore A5 a citou.
 
-**Fica escrito com a palavra, para quem ler daqui a um ano não achar que foi faxina distraída:
-o traceback clicável está ABANDONADO como capacidade exposta.** O que sobra dele é a função de
-domínio e a rede em volta — e o que fazer com ela é a árvore **A15**, devolvida nesta corrida.
+**Medido em 24/08/2026, arquivo por arquivo: o traceback clicável está VIVO, ligado em produção,
+e NUNCA passou por `arquivo:ler`.**
+
+```
+interface/tela-do-terminal.ts:146   ligarTraceback -> registerLinkProvider do xterm
+interface/nucleo-da-casca.ts:64     aoAbrirQuadro: ({arquivo,linha}) => abrirArquivo(...)
+interface/nucleo-da-casca.ts:80     abrirArquivo  -> api.neovim.abrir(caminho, linha)
+porta:113                           neovim.abrir  -> invoke("neovim:abrir", ...)
+```
+
+O salto do traceback **abre o arquivo no Neovim, com o cursor na linha** — o mesmo caminho do
+clique na árvore e do `Ctrl+P` (`nucleo-da-casca.ts:79`: *"É o caminho único"*). Ele nunca leu
+bytes por IPC. O canal `neovim:abrir` tem chamador e não foi tocado.
+
+#### O que isso muda — e a decisão da cabeça fica MAIS justificada, não menos
+
+| a versão errada | o que a medição mostrou |
+|---|---|
+| a feature foi abandonada, e a superfície morreu com ela | **a feature está viva**, e a superfície **nunca foi o caminho dela** |
+| `arquivo:ler` era capacidade guardada de um recurso planejado | `arquivo:ler` era **leitura irrestrita do disco sem dono**, justificada por um recurso que ela não servia |
+| remover é encerrar um plano | remover é **tirar alcance que nunca teve razão verdadeira** |
+
+⚠️ **A frase certa, e é ela que está no código agora:** *não foi faxina, e não foi feature
+abandonada — foi um item de porta que nunca teve dono.* Se um dia a tela precisar ler ou gravar
+arquivo direto, o item volta como decisão nova, **com a razão escrita antes**.
+
+#! O QUE EU FIZ DE ERRADO, e vale mais que o acerto: aceitei como fato uma frase escrita no
+#!   código porque ela estava no código. É a mesma família do §15.4 — fechar o espaço de busca
+#!   cedo demais. Bastava um `grep -rn traceback codigos/`, que custa dois segundos, e ele estava
+#!   no meu caminho o tempo todo: o instrumento do 3º ato listou `DestinoTraceback` como símbolo
+#!   usado só dentro do próprio arquivo, **na mesma tela em que eu li o relatório**. Puxar aquela
+#!   linha foi o que desmontou tudo.
+#? E a lição de segurança é a que fica: **comentário que justifica alargamento de alcance é
+#?   afirmação verificável, não decoração.** Este durou desde que o produto existe.
 
 ### 19.3 · O que cai junto — medido, não estimado
 
@@ -1965,7 +2005,7 @@ nenhum muda de nome, de carga ou de registrador.
 | **o defeito** | `codigos/sistema/servicos/leitura-de-arquivo.ts:38` (`lerParaEditor`) e `codigos/sistema/servicos/escrita-confinada.ts:44` (`gravarConfinado`) **não têm mais chamador de produção**. Medido pelo instrumento do 3º ato depois da fatia 3: a coluna *"chamados só por `tests/`"* foi de **3 para 5**, e os dois novos são exatamente estes. Os **módulos** não ficaram órfãos — 3 dos 4 exports de cada um seguem servindo canal vivo |
 | **o que custa deixar** | **pouco, e é preciso ser honesto sobre isso.** Não é superfície: sem canal, nenhum código de renderer alcança as duas. Não é peso: `tsc` e Vite compilam 20 linhas. O custo é de **leitura e de rede** — 10 asserções em `leitura-de-arquivo.test.ts` e as de `escrita-confinada.test.ts` testam caminho que a produção não percorre, e uma rede que trava conduta inalcançável dá **falsa sensação de cobertura**: ela fica verde para sempre, aconteça o que acontecer com o produto |
 | ⚠️ **e o que custa TIRAR, que é o lado que a A5 já avisou** | `gravarConfinado` é a **peça-vitrine do confinamento** — `recusarEntrada` + `resolverReal` + `dentroDaRaiz`, com os testes de domínio embaixo. Ela é também o **exemplo mais legível** de como os outros três caminhos de escrita confinam, e é referida como tal em `escrita-confinada.ts:49-57` (*"`dir` e `antigo` chegam como `unknown` pelo mesmo motivo que em `gravarConfinado`"*). Apagá-la faria três comentários vivos apontarem para o vazio |
-| **as opções** | **(a) apagar as duas e as suas suítes** — o repositório para de carregar caminho morto; custa a peça-vitrine, os comentários que a citam e ~16 asserções, e fecha a porta de volta do traceback clicável. **(b) deixar as duas, com a marca que a fatia 3 já pôs** — custo zero de código, o aviso está escrito nos dois arquivos, e a A5 pode ser desfeita em duas linhas se a feature voltar. **(c) apagar `lerParaEditor` (a que perdeu a razão) e manter `gravarConfinado` (a que é referência viva dos outros três)** — assimétrico, e a assimetria tem motivo: uma é caso de uso abandonado, a outra é documentação executável do confinamento. **(d) mover as duas para `tests/apoio/` como fixture** — não é opção: seriam cópias do que a produção não tem, e passariam a testar a si mesmas |
+| **as opções** | **(a) apagar as duas e as suas suítes** — o repositório para de carregar caminho morto; custa a peça-vitrine, os comentários que a citam e ~16 asserções, e fecha a porta de volta do traceback clicável. **(b) deixar as duas, com a marca que a fatia 3 já pôs** — custo zero de código, o aviso está escrito nos dois arquivos, e a A5 pode ser desfeita em duas linhas se a tela um dia precisar. **(c) apagar `lerParaEditor` (a que perdeu a razão) e manter `gravarConfinado` (a que é referência viva dos outros três)** — assimétrico, e a assimetria tem motivo: uma é caso de uso sem chamador e sem razão escrita, a outra é documentação executável do confinamento. **(d) mover as duas para `tests/apoio/` como fixture** — não é opção: seriam cópias do que a produção não tem, e passariam a testar a si mesmas |
 | **a minha recomendação** | **(b), e não é por preguiça — é pelo mesmo argumento que a cabeça acabou de aceitar na A14.** A A5(a) já cobrou o preço que importava: a **superfície** saiu. O que sobra é custo de leitura, e ele já está pago pelas três marcas escritas na fatia 3. Se a cabeça quiser o repositório mais enxuto, **(c)** é a segunda: `lerParaEditor` é a que perdeu o dono, e `gravarConfinado` é a que três comentários vivos citam. **(a) eu não recomendo agora** — apagar a peça-vitrine no mesmo dia em que se removeu a superfície é decidir duas coisas com uma medição só |
 | **se ficar para depois** | **fica mais caro devagar, e pouco.** Cada corrida futura relista as duas na coluna de `tests/`, e cada leitor novo dos serviços gasta um minuto entendendo por que existem. O que **não** acontece é apodrecer: sem canal, elas não mudam de risco com o tempo |
 | **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
@@ -2030,4 +2070,126 @@ que ela é. Enquanto não for, vale a prosa e vale o comando colável.
 | §10.3 (A8) | `**EM ABERTO**` | `**APLICADA em 24/08, opção (c)** — o conserto está em §13.2` |
 | §10.7 (A10) | `**EM ABERTO**` | `**APLICADA em 24/08, opção (c)** — o conserto está em §13.6` |
 | §8 (A3) | sem palavra de estado e sem linha de desfecho na seção | ganhou **ponteiro** para a tabela do §8, onde o desfecho dele mora — **ponteiro e não cópia**, que é a lição da A13 |
+
+---
+
+## 20. Fechamento da corrida 8 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+| o que mudou | onde foi procurado, e o que virou |
+|---|---|
+| **38 → 36 canais** | `codigos/sistema/ponte/registra-tudo.ts:13` ✔ · `ponte-arquivo.ts:1` (cabeçalho: "oito canais" → "seis") ✔ · `docs/fluxo.md` em **quatro** pontos (o nó da árvore, a tabela do teto, a soma, e as duas promessas do §4 e do §6) ✔ · a **legenda do PNG** em `gera-fluxo.py` ✔ · o item 7 da porta ✔ |
+| **`arquivo:ler` / `arquivo:gravar` removidos** | busca larga por nome de canal, `api.ler`, `api.gravar`, `.gravar(` em `.ts`/`.html`/`.css`: **zero chamadas vivas**. As menções que restam são as **cinco lápides** que a fatia escreveu de propósito, cada uma com data e razão |
+| **87 → 86 arquivos · 177 → 176 exportados** | `docs/fluxo.md` (o nó do localizador saiu da árvore) ✔ · `gera-fluxo.py` (`infra/ 8` → `infra/ 7`) ✔ · o PNG refeito e **aberto e olhado**: o nó `infra/ 7 · tocam o disco e voltam` aparece com conector e rótulo, sem sobreposição |
+| **a receita duplicada do PNG** | `docs/fluxo.md` §7 virou ponteiro ✔ · o fato órfão (*"o gerador recusa desenho torto"*) mudou de casa para o item 5 do cabeçalho de `gera-fluxo.py` ✔ · o índice de armadilhas do `docs/diario.md` deixou de apontar para a receita errada ✔ · busca larga por `magick.*fluxo.svg`: **uma receita só no repositório** |
+| **0.0.9 → 0.0.10** | `package.json` ✔ · `README:16` (Estado) ✔ · `README:281` (lista honesta) ✔ · entrada de changelog nova ✔ · busca larga por `0.0.9`: sobra **uma** ocorrência, a entrada de changelog da v0.0.9, que é **história e não afirmação viva** |
+| ⚠️ **DOIS FUROS DA VARREDURA DA CORRIDA 7, e são meus** | a corrida 7 declarou *"cinco → seis pernas ✔"* e marcou `gera-fluxo.py + o PNG ✔`. **Falso.** O rótulo do nó (linha 79) foi atualizado e a **legenda** (linha 118) não: o PNG versionado dizia **"portão verde 5/5"**. E o `README:85` dizia *"Sem as **cinco** verdes"* duas telas abaixo do `README:77`, que dizia "as seis pernas". **Os dois corrigidos aqui.** É a *emenda sem varredura* do §15.4 — e o padrão é o mesmo do §15.4·resumo: **achei a primeira ocorrência no arquivo e dei o arquivo por varrido** |
+| **uma justificativa apontando para o que saiu** | `infra/resolucao-de-caminho.ts:32` dizia *"a conduta é a que o handler `arquivo:ler` já tinha"*. Marcada, não apagada: ela explica **de onde veio** a regra, e isso continua verdadeiro |
+
+**Menção que FICA, e o porquê:** `ferramentas/varre-orfaos.py:41` usa
+`ler: (arquivo: string) … invoke("arquivo:ler", …)` como exemplo da armadilha **A3** do próprio
+instrumento (*"parâmetro tipado parece definição"*). É o **registro datado de um defeito medido**
+— trocar o exemplo falsificaria o que o regex de fato viu quando errou 19 canais. Fica, listada.
+
+### Ato 2 — vitrine conferida
+
+| o que o README afirma | conferido | resultado |
+|---|---|---|
+| `npm run teste` → *"145 testes"* | **rodado** | `# tests 145 / # pass 145 / # fail 0` ✔ |
+| `npm run typecheck` | **rodado** | exit 0 ✔ |
+| `npm run portao` → *"as seis pernas"* | **rodado** | **VERDE 6/6** ✔ |
+| `npm run orfaos` | **rodado** | exit 0, corpo de prova OK ✔ |
+| *"Sem as **seis** verdes, a mudança não fecha"* (README:85) | **era "cinco"** | **corrigido nesta corrida** — ver Ato 1 |
+| *"a raiz responde 404; a página, 200 e 7075 bytes"* | `pagina.html` remedida: **7020 B** em disco, e `git diff` contra `6341f9f` em `codigos/interface/` está **vazio** | intacta ✔ (7020 + 55 do `@vite/client` = 7075) |
+| **as três fontes da versão** | `package.json` **0.0.10** · README **0.0.10** · changelog **v0.0.10** | concordam ✔ |
+| **a tag** | `git describe --tags --abbrev=0` → **v0.0.6**, com **73 commits** depois dela | ⚠️ **quatro versões sem tag**: v0.0.7, v0.0.8, v0.0.9 e v0.0.10. Ato de release — da cabeça |
+
+#### ⚠️ E a medição que decidiu a versão, porque o raciocínio ia errar
+
+A cabeça perguntou: *"linha na v0.0.9 ou versão nova?"* Eu ia responder **linha na v0.0.9**, com
+o argumento de que ela não tinha saído. **Fui medir antes de escrever, e o argumento caiu:**
+
+```
+git log --oneline origin/main -1   ->  6341f9f  (o mesmo commit-pai deste despacho)
+git show origin/main:package.json  ->  "version": "0.0.9"
+```
+
+**A v0.0.9 já está publicada.** Então acrescentar uma linha à entrada dela reescreveria a
+descrição de uma versão que **já saiu** — quem clonou a v0.0.9 não tem nada disto. É exatamente
+o defeito que a corrida 7 nomeou ao recusar dobrar o conserto na v0.0.8: *"faria o changelog
+afirmar que ela trouxe um conserto que não trouxe"*. → **v0.0.10.**
+
+> ⚠️ **Limite declarado:** `origin/main` é o ref local do remoto, do último `fetch`. **Não busquei**
+> — `git fetch` sobre `ssh` está na cerca deste despacho. Se alguém empurrou depois, isto envelhece.
+
+### Ato 3 — varredura do que NINGUÉM moveu · pelo instrumento versionado
+
+`npm run orfaos` — corpo de prova (5 colunas + 3 sabotagens de corpus) **OK** antes do relatório.
+
+| medida | corrida 7 | corrida 8 |
+|---|:---:|:---:|
+| arquivos de código · exportados · canais | 87 · 177 · 38 | **86 · 176 · 36** |
+| **símbolos sem chamador em lugar nenhum** | 1 (`acharPython`, sexta corrida) | **0 — pela primeira vez** |
+| chamados só por `tests/`/`ferramentas/` | 3 | **5** — entram `lerParaEditor` e `gravarConfinado`, **previstos por escrito** em §19.3 |
+| usados só dentro do próprio arquivo | 15 | **15 — os mesmos** |
+| canais registrados e não expostos | 0 | **0** |
+| **canais sem chamador na tela** | 4 | **2** — `neovim:parar` e `shell:pasta`, os dois que a **A6** mandou ficar |
+
+#### ⚠️ E foi o Ato 3 que derrubou a premissa da corrida inteira
+
+A coluna *"usados só dentro do próprio arquivo"* listava **`DestinoTraceback`**, em
+`interface/tela-do-terminal.ts` — e eu tinha acabado de escrever, em nove lugares, que o
+traceback clicável estava abandonado. **Puxei a linha em vez de passar por ela**, e a medição
+mostrou o recurso **vivo, ligado e servido por outro canal**. O desmentido inteiro está na §19.2.
+
+> **É a terceira vez que este ato paga o próprio preço no fechamento** — na corrida 2 ele achou
+> a A6, na 6 achou a A13, e aqui derrubou uma afirmação que **eu já tinha commitado em código**.
+> O ato existe para olhar o que ninguém moveu; desta vez o que ninguém tinha movido era **a
+> verdade sobre um recurso**.
+
+### 20.1 · DESFECHOS e pendências vivas ao fim da corrida 8
+
+| # | o que é | desfecho / quem decide |
+|---|---|---|
+| **A13** | a segunda receita do PNG, na planta | **APLICADA (a)** — apagada e apontada. Fechada depois de **duas** corridas sem desfecho |
+| **D4(b)** | `localizador-do-python.ts`, o único órfão do repositório | **APLICADA** — removido. A coluna de órfãos foi a **zero** |
+| **A5(a)** | `arquivo:ler` e `arquivo:gravar` | **APLICADA** — os dois saíram; 38 → 36 canais, conduta preservada por `diff` |
+| **A14** | o lugar da página dito em dois lugares | **RECUSADA COM RAZÃO (b)** — nenhuma linha de código mudou; a P5 e a P6 pegam a deriva |
+| **A6** | `neovim:parar` e `shell:pasta` | **NÃO TOCADOS** — a cabeça decidiu que ficam, e ficam registrados |
+| **A15** | **NOVA** — `lerParaEditor` e `gravarConfinado` sem chamador de produção | **SEM DESFECHO — a cabeça.** Recomendo **(b)**, ou **(c)** se quiser enxugar |
+| **A16** | **NOVA** — nenhuma das seis pernas distingue canal vivo de canal morto | **SEM DESFECHO — a cabeça.** Ver §20.2 |
+| **A17** | **NOVA** — o cheque de título × desfecho é prosa, e prosa depende de releitura | **SEM DESFECHO — a cabeça.** Virar perna é declaração (§12·4a), não é minha |
+| **a tag** | agora são **quatro**: v0.0.7, v0.0.8, v0.0.9, v0.0.10 | a cabeça — ato de release |
+| **o `console` sequestrado pelo `neovim`** | não tocado, **quarta** corrida escrita | a cabeça |
+| **o desvio de planta** | `tests/arquitetura/` continua não existindo | a cabeça |
+| **o que a P6 não cobre** | prova que o endereço **serve** a página, não que ela **renderiza** em dev | declarado, não resolvido |
+
+### 20.2 · ⚠️ A16 — nenhuma das seis pernas distingue canal VIVO de canal MORTO — árvore (§12·3a)
+
+> **De onde veio:** da pergunta que esta corrida tinha de responder para ser honesta — *"como eu
+> sei que removi canais mortos, e não vivos?"* A previsão foi **pré-registrada antes de rodar**.
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | Removi o handler de **`arquivo:criar`** — canal **vivo**, com chamador de tela provado em `codigos/interface/arvore-de-arquivos.ts:166` (`await api.criarArquivo(raiz, op.dir, nome)`) — deixando a porta intacta. **Resultado medido: `PORTÃO VERDE 6/6`.** P1 145/145, P2 exit 0, P3 exit 0, M1–M4 todos no alvo, P5 *"porta+renderer+ipc responderam"*, P6 ok. **O botão "novo arquivo" da árvore ficaria falando com um canal que ninguém atende, e nada no repositório avisa** |
+| **a prova, executada no alvo e revertida** | sabotagem feita e desfeita por `git checkout`; estado conferido depois: `git status` limpo, `tsc` exit 0, **38 canais** de volta. A remoção real da A5 só foi feita **depois** disso |
+| ⚠️ **e o instrumento também não vê** | `npm run orfaos` acusou a contagem cair de **38 para 37**, mas **nenhuma coluna reprovou**: *"canais registrados e NÃO expostos pela porta: 0"* e os mesmos 4 na outra coluna. Ele itera o canal **registrado** e pergunta se a porta o expõe; **porta que expõe canal não registrado é o ponto cego dele** — o sentido inverso não é perguntado |
+| **o que a previsão ERROU, e vale registrar** | previ `tsc` exit **0**; medi exit **2** (`TS6133`, import órfão). O `tsc` pega a remoção **desleixada** — a que esquece o import — e **não** pega a **limpa**. Refeita removendo o import junto, exit 0, e aí a cegueira aparece inteira. **É a armadilha que está no índice do meu próprio diário, e eu a reli hoje e a repeti hoje** |
+| **o que custa deixar** | um canal vivo pode morrer numa refatoração e **atravessar o portão inteiro**. O usuário descobre clicando; o repositório nunca descobre. Hoje o risco é baixo porque o produto tem um autor só e 36 canais — cresce com cada canal novo e com cada mão nova |
+| **as opções** | **(a) perna nova no portão: para cada canal exposto na porta, existe `ipcMain.handle`/`.on` com o mesmo nome — e vice-versa.** O par é derivável dos dois arquivos por regex, e o instrumento **já tem metade** (o sentido registrado→porta). Custa fechar o sentido inverso e declará-la (§12·4a). **(b) fechar só o sentido inverso dentro do `npm run orfaos`**, sem virar perna — o número aparece no fechamento, mas não trava. **(c) uma perna de conduta que CLICA** — automação de UI de verdade; pega isto e muito mais, e é escopo novo grande. **(d) deixar como está e REGISTRAR** — o vão fica escrito e é aceito |
+| **a minha recomendação** | **(a)**, e é a única vez nesta corrida em que recomendo mexer no portão. Razão: as outras árvores de hoje eram custo de **leitura**; esta é conduta que **quebra na mão do usuário** e atravessa seis pernas verdes. E é barata — a metade difícil (achar o par canal↔porta, com as quatro armadilhas de regex já domadas) **já está escrita e provada** em `varre-orfaos.py`, com corpo de prova. **Não a apliquei**: perna nova muda o veredito do portão e é declaração da cabeça (§12·4a), não minha |
+| **se ficar para depois** | **fica mais caro devagar.** O custo cresce com o número de canais e com quem mexe neles. Não apodrece sozinho: apodrece com uso |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
+
+### 20.3 · ⚠️ A17 — o cheque de título × desfecho não roda — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | Fechar uma árvore exige editar **dois** lugares: a linha `DESFECHO` e o **título** da seção. Três títulos (A7, A8, A10) ficaram dizendo `EM ABERTO` sobre desfechos aplicados — **e a corrida 3 já tinha feito essa varredura certo** (`tracker` §11, Ato 1: *"A3 · A4 · A6 saíram de 'em aberto'"*). A prática existia, estava escrita, e **não se repetiu**, porque dependia de alguém lembrar |
+| **o que custa deixar** | quem procura pendência faz `grep "EM ABERTO"` e acha **título**, não tabela. Desfecho sem título varrido é **pendência fantasma** — e o inverso, um dia, será **pendência escondida**: um título mudo sobre uma árvore aberta |
+| **as opções** | **(a) o comando da §19.7 vira perna do portão** — trava, e o tracker deixa de poder contradizer a si mesmo. **(b) entra no `npm run orfaos`**, que já roda no fechamento e já tem corpo de prova — não trava, mas o número aparece na hora certa. **(c) fica a prosa da §19.7 + o comando colável** — custo zero, depende de releitura, que é o que acabou de falhar. **(d) nada** |
+| **a minha recomendação** | **(b).** O `orfaos` já é a ferramenta do 3º ato, já tem corpo de prova, e já é o lugar onde se olha o que ninguém moveu — este cheque é da mesma natureza. **(a) eu não recomendo**: reprovar o portão por causa de um título de markdown pararia código por causa de documento, e o §12·4b manda travar o que a corrida existe para mover. **Não apliquei nenhuma**: as duas mexem em ferramenta e em veredito |
+| **se ficar para depois** | **igual.** Não apodrece; reaparece a cada árvore fechada |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
 

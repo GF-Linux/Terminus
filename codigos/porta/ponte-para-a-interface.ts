@@ -34,17 +34,22 @@ import type {
 //!    com a mesma conta e as mesmas permissões. Confiná-lo seria fingir que o
 //!    Terminus sabe melhor que o dono da máquina o que ele quis rodar — que é a
 //!    frase que a ADR 0020 já tinha escrito, e agora vale por inteiro.
-//! 7. ⚠️ **O TRACEBACK CLICÁVEL FOI ABANDONADO, e por isso esta porta ENCOLHEU** —
-//!    24/08/2026, decisão da cabeça (árvore A5, opção (a), `docs/tracker.md` §8).
-//!    Saíram daqui `ler()` e `gravar()`, e do main saíram os canais `arquivo:ler`
-//!    e `arquivo:gravar`. Eles estavam vivos e registrados desde sempre, **sem
-//!    nenhum chamador na tela**, guardando a capacidade planejada de abrir o
-//!    quadro de um traceback dentro da biblioteca. A feature não nasceu; a
-//!    superfície nascia junto do produto. Pelo item 3 acima, cada item aqui é
-//!    decisão de segurança — e um item que ninguém usa é alcance que só um
-//!    renderer comprometido aproveita. **Não foi faxina: foi a cabeça declarando
-//!    a feature abandonada.** Se ela voltar, isto volta com ela, e como decisão
-//!    nova. Os canais de ESCRITA CONFINADA (`arquivo:criar`, `pasta:criar`,
+//! 7. ⚠️ **ESTA PORTA ENCOLHEU EM 24/08/2026** — decisão da cabeça (árvore A5, opção
+//!    (a), `docs/tracker.md` §8). Saíram daqui `ler()` e `gravar()`, e do main
+//!    saíram os canais `arquivo:ler` e `arquivo:gravar`. Estavam vivos e
+//!    registrados desde que o produto existe, **sem nenhum chamador na tela**.
+//!    ⚠️ **E o motivo que o código dava para eles era falso — medido, não suposto.**
+//!    `servicos/leitura-de-arquivo.ts` justificava a leitura irrestrita pelo
+//!    traceback clicável. O traceback clicável **está vivo e ligado**, e nunca
+//!    passou por aqui: ele vai por `neovim:abrir`, que abre o arquivo no Neovim
+//!    com o cursor na linha (`interface/nucleo-da-casca.ts:64` e `:80`). Ou seja,
+//!    o canal que lia **qualquer arquivo do disco** era justificado por um recurso
+//!    que ele não servia. Pelo item 3 acima, cada item desta porta é decisão de
+//!    segurança — e um item sem uso e sem razão verdadeira é alcance que só um
+//!    renderer comprometido aproveita. **Não foi faxina, e não foi feature
+//!    abandonada: foi um item que nunca teve dono.** Se um dia a tela precisar ler
+//!    ou gravar arquivo direto, isto volta como decisão nova, com a razão escrita
+//!    antes. Os canais de ESCRITA CONFINADA (`arquivo:criar`, `pasta:criar`,
 //!    `caminho:renomear`) não foram tocados: 38 canais viraram 36, e só estes dois.
 const api = {
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>

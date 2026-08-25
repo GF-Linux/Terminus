@@ -29,7 +29,11 @@ export function resolverReal(alvo: string): string {
 //!   nao existe, porque quem grava precisa saber disso na hora. Quem le nao —
 //!   um caminho inexistente segue adiante e o erro chega depois, na leitura,
 //!   com a mensagem do sistema de arquivos, que diz mais.
-//! A conduta e a que o handler `arquivo:ler` ja tinha: existsSync ? realpath : abs.
+//! A conduta e a que o handler `arquivo:ler` tinha ate 24/08/2026: existsSync ? realpath : abs.
+//? ⚠️ AQUELE HANDLER NAO EXISTE MAIS — a A5(a) removeu o canal `arquivo:ler` em 24/08/2026,
+//?   por decisao da cabeca, porque nenhuma tela o chamava. A frase acima fica porque explica
+//?   DE ONDE veio esta regra, e isso continua verdadeiro. O que mudou e' que o unico chamador
+//?   de `resolverParaLeitura` hoje e' `lerParaEditor`, que so `tests/` alcanca (arvore A15).
 export function resolverParaLeitura(alvo: string): string {
   const abs = path.resolve(alvo);
   return existsSync(abs) ? realpathSync(abs) : abs;

@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.9.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.10.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -278,7 +278,7 @@ codigos/design/     css, temas, papel de parede, fontes
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.9 ainda quer dizer isso:
+Lista honesta, porque v0.0.10 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -317,6 +317,39 @@ Lista honesta, porque v0.0.9 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.10 — 24/08/2026
+
+**A porta encolheu, e encolher a porta é conserto.** O `preload` é a única
+passagem entre a tela e o computador: tudo que a interface consegue fazer está
+listado nele, e cada item é decisão de segurança, não conveniência. Dois desses
+itens — `ler()` e `gravar()`, e os canais `arquivo:ler` e `arquivo:gravar` do
+outro lado — estavam vivos desde o primeiro dia **sem que nenhum botão os
+chamasse**.
+
+**E o motivo que o código dava para eles não se sustentou.** Estava escrito que
+`arquivo:ler` lia **qualquer** arquivo do disco de propósito, para servir ao
+salto do traceback: clicar no quadro de um erro e cair no arquivo exato, mesmo
+dentro de uma biblioteca fora da pasta aberta. **Esse recurso funciona, e nunca
+passou por ali.** Ele abre o arquivo no Neovim, com o cursor na linha, por outro
+caminho inteiramente — o mesmo caminho do clique na árvore e do `Ctrl+P`. Ou
+seja: o canal mais amplo do produto era justificado por um recurso que ele não
+servia, e que continua funcionando sem ele.
+
+**Por isso os dois saíram.** Não é faxina, e não é recurso descontinuado: é um
+item de porta que nunca teve dono. Se um dia a tela precisar ler ou gravar
+arquivo direto, ele volta — com a razão escrita antes, e não depois.
+
+**Nada que a pessoa usa mudou.** Nenhum botão, nenhum atalho, nenhum nome de
+canal. Conferido por script antes e depois, com `diff`: **duas remoções, zero
+adições, zero renomeações** — os 36 canais restantes idênticos, um a um. Salvar
+com `Ctrl+S`, criar arquivo, criar pasta e renomear passam pelo **mesmo**
+confinamento de sempre, que não foi tocado.
+
+**E um módulo morto saiu.** `localizador-do-python.ts` era exportado e ninguém o
+importava — seis conferências seguidas apontando o mesmo arquivo. Agora o
+repositório não carrega **nenhum** símbolo exportado sem chamador. Pela primeira
+vez desde que essa conta existe, o número é zero.
 
 ### v0.0.9 — 24/08/2026
 

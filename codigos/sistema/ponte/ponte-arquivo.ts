@@ -33,9 +33,11 @@ export function registrarArquivo(): void {
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listarPasta(dir)));
   ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarProjeto(raiz)));
 
-  //? ⚠️ AQUI MORAVAM `arquivo:ler` E `arquivo:gravar` — saíram em 24/08/2026, por decisão
-  //?   da cabeça, porque o TRACEBACK CLICÁVEL foi declarado abandonado (árvore A5, opção
-  //?   (a)). Eram os dois únicos canais deste registrador sem chamador na tela. `lerParaEditor`
+  //? ⚠️ AQUI MORAVAM `arquivo:ler` E `arquivo:gravar` — saíram em 24/08/2026, por decisão da
+  //?   cabeça (árvore A5, opção (a)). Eram os dois únicos canais deste registrador sem chamador
+  //?   na tela, e o motivo escrito para eles — o traceback clicável — **não se sustentou quando
+  //?   foi medido**: o traceback está vivo e vai por `neovim:abrir`. Ver o bloco `//?` em
+  //?   `servicos/leitura-de-arquivo.ts`, que traz a cadeia inteira. `lerParaEditor`
   //?   e `gravarConfinado` NÃO foram apagados junto: `gravarConfinado` é a peça-vitrine do
   //?   confinamento, e apagá-la por arrasto seria jogar fora a melhor peça por causa da
   //?   superfície da pior. As duas passaram a ser chamadas só por `tests/` — e o que fazer

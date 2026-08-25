@@ -392,7 +392,9 @@ depois da fatia 5 e da fatia 6, e comparados com `diff`. **Idênticos nas duas.*
 
 ⚠️ **RE-DECLARADO DE NOVO em 24/08/2026, e de novo por decisão.** A árvore **A5**, opção (a),
 **removeu** `arquivo:ler` e `arquivo:gravar` — os dois únicos canais deste registrador sem
-chamador na tela — porque a cabeça declarou o **traceback clicável abandonado**. A asserção
+chamador na tela — e o motivo escrito para eles, o traceback clicável, **não se sustentou quando
+foi medido**: o traceback está vivo e vai por `neovim:abrir` (ver F1 e o `//?` em
+`servicos/leitura-de-arquivo.ts`). A asserção
 vigente é: **os 37 da linha de base, conferidos um a um, menos 2 removidos por decisão, mais 1
 criado por decisão — soma 36.** Medido com `diff` contra a lista de partida desta corrida: **duas
 remoções, zero adições, zero renomeações.** Refatoração continua não mexendo em canal; **decisão

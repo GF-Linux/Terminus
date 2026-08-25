@@ -31,20 +31,27 @@ export function listarProjeto(raiz: string): Promise<string[]> {
 }
 
 //* Entrega o conteudo de um arquivo ao editor, com as duas recusas que valem.
-//! LER NAO E CONFINADO A PASTA ABERTA, e era de proposito: o traceback clicavel
-//!   abre o quadro dentro da biblioteca, e o `F12` vai a definicao la tambem.
-//!   Fechar aqui quebraria o salto do traceback.
+//! LER NAO E CONFINADO A PASTA ABERTA. A justificativa escrita aqui ate 24/08/2026 era o
+//!   traceback clicavel: "abre o quadro dentro da biblioteca, e o F12 vai a definicao la
+//!   tambem; fechar aqui quebraria o salto do traceback".
 //! O que se protege e o unico segredo que existe: o `config.json` do Terminus.
-//? ⚠️ A RAZAO ACIMA PERDEU O DONO EM 24/08/2026, e isso precisa estar escrito aqui, nao so
-//?   no tracker. A cabeca declarou o TRACEBACK CLICAVEL ABANDONADO e mandou remover o canal
-//?   `arquivo:ler` (arvore A5, opcao (a)). Entao esta funcao existe, mas NENHUM codigo de
-//?   producao a chama: so `tests/servicos/leitura-de-arquivo.test.ts`, com 10 assercoes.
-//?   Ela nao foi apagada junto porque a cabeca decidiu os CANAIS, nao as funcoes — o que
-//?   fazer com ela e a arvore A15, devolvida na mesma corrida.
-//? ⚠️ E ATENCAO A QUEM FOR RESSUSCITA-LA: a leitura larga so era defensavel enquanto servia
-//?   ao salto do traceback. Reexpo-la sem a feature de volta e' aumentar alcance sem razao —
-//?   e a porta (`porta/ponte-para-a-interface.ts`, item 3 do cabecalho) diz que cada item
-//?   dela e' decisao de seguranca, nao conveniencia.
+//? ⚠️ ⚠️ AQUELA JUSTIFICATIVA NUNCA FOI VERDADE, e isto foi MEDIDO em 24/08/2026 — nao
+//?   deduzido. O traceback clicavel esta VIVO e ligado em producao, e ele NUNCA passou por
+//?   aqui. A cadeia real, conferida arquivo por arquivo:
+//?     `interface/tela-do-terminal.ts:146` liga o quadro pelo registerLinkProvider do xterm
+//?       -> `interface/nucleo-da-casca.ts:64`  aoAbrirQuadro -> abrirArquivo(arquivo, linha)
+//?       -> `interface/nucleo-da-casca.ts:80`  api.neovim.abrir(caminho, linha)
+//?       -> canal `neovim:abrir`, que TEM chamador e continua inteiro.
+//?   O salto do traceback abre o arquivo NO NEOVIM, com o cursor na linha; ele nunca leu
+//?   bytes por `arquivo:ler`. Entao a leitura larga estava justificada por um recurso que
+//?   ela nao servia — e o recurso segue funcionando sem ela.
+//? ⚠️ POR ISSO O CANAL SAIU (arvore A5, opcao (a), decisao da cabeca em 24/08): nao porque a
+//?   feature morreu, mas porque o canal nunca foi o caminho dela. `lerParaEditor` continua
+//?   existindo e NENHUM codigo de producao a chama — so `tests/`, com 10 assercoes. Ela nao
+//?   foi apagada junto porque a cabeca decidiu os CANAIS, nao as funcoes: e a arvore A15.
+//? ⚠️ A QUEM FOR RESSUSCITA-LA: a leitura larga esta hoje SEM justificativa escrita. Reexpo-la
+//?   e aumentar alcance sem razao — e a porta (`porta/ponte-para-a-interface.ts`, item 3) diz
+//?   que cada item dela e decisao de seguranca, nao conveniencia. Escreva a razao primeiro.
 export function lerParaEditor(arquivo: unknown): Promise<string> {
   if (typeof arquivo !== "string" || arquivo.length === 0 || arquivo.includes("\0")) {
     throw new Error("O arquivo não é válido.");

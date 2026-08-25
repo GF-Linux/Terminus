@@ -2,7 +2,7 @@
   "name": "terminus",
   "productName": "Terminus",
   "description": "Uma ponte amigável para o terminal do Linux: casca clicável com o Neovim como motor.",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
   "author": "Gustavo Freitas",
