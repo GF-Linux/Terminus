@@ -145,7 +145,7 @@ Terminus/
 │   │   ├── servicos/                   CASO DE USO — chama infra+motor+persistência na ordem
 │   │   │   ├── abertura-de-projeto.ts  entrar na pasta: abre, aponta o Neovim, registra recente
 │   │   │   ├── criacao-de-projeto.ts   projeto novo: molda a pasta e entra nela
-│   │   │   ├── leitura-de-arquivo.ts   recusa o config.json e o não-texto, depois lê
+│   │   │   ├── leitura-de-arquivo.ts   abre e lista; o `lerParaEditor` ficou sem canal (A5)
 │   │   │   ├── escrita-confinada.ts    resolve + guarda do domínio nos 4: gravar/criar/renomear
 │   │   │   └── exclusao-de-caminho.ts  protege a pasta aberta e escolhe lixeira ou apagar
 │   │   │
@@ -154,7 +154,7 @@ Terminus/
 │   │       ├── registra-tudo.ts        o único ponto de entrada: chama os 8 registradores
 │   │       ├── resposta-segura.ts      embrulha o handler: exceção vira {ok:false, erro}
 │   │       ├── ponte-projeto.ts        6 canais: escolher, entrar, inicial, novo, recentes...
-│   │       ├── ponte-arquivo.ts        8 canais: abrir, listar, arquivos, ler, gravar, criar...
+│   │       ├── ponte-arquivo.ts        6 canais: abrir, listar, arquivos, criar, renomear
 │   │       ├── ponte-exclusao.ts       1 canal: caminho:excluir
 │   │       ├── ponte-como-rodar.ts     1 canal: projeto:como-rodar
 │   │       ├── ponte-aparencia.ts      4 canais: estado, definir, escolher, tirar
@@ -237,13 +237,19 @@ Terminus/
 São seis. Cada um está aqui porque **já quebrou** ou porque é o caminho que a refatoração
 mais arrisca. Achar defeito aqui é seguir a seta, não varrer pasta.
 
-### F1 — Gravar arquivo: o confinamento (o caminho de maior risco)
+### F1 — Escrever na pasta aberta: o confinamento (o caminho de maior risco)
+
+> ⚠️ **Este exemplo trocou de canal em 24/08/2026.** Ele mostrava `arquivo:gravar`, que a
+> **A5(a)** removeu junto com `arquivo:ler`. O caminho desenhado é o mesmo — os quatro modos
+> de escrita passam pelo **mesmo** `confinado()` desde a A3(a) —, então o exemplo passou a
+> usar `arquivo:criar`, que tem chamador na tela. **Fluxo de dado desenhado com canal morto
+> é planta que ensina caminho que não existe.**
 
 ```
 interface/arvore-de-arquivos
-   │ api.arquivo.gravar(caminho, conteudo)
+   │ api.criarArquivo(raiz, dir, nome)
    ▼
-porta/ponte-para-a-interface ── ipcRenderer.invoke("arquivo:gravar") ──▶ sistema/ponte/ponte-arquivo
+porta/ponte-para-a-interface ── ipcRenderer.invoke("arquivo:criar") ──▶ sistema/ponte/ponte-arquivo
                                                                                    │
                                                     servicos/escrita-confinada ◀────┘
                                                        │
@@ -253,7 +259,7 @@ porta/ponte-para-a-interface ── ipcRenderer.invoke("arquivo:gravar") ──�
         recusa "", "\0", "-…"             realpath: texto → caminho real     decide: caí na raiz?
                                                                                        │
                                                                     infra/arquivos-do-projeto ◀┘
-                                                                    grava no disco
+                                                                    cria no disco
 ```
 
 **Onde quebra:** symlink dentro do projeto apontando para fora (por isso o realpath vem
@@ -361,14 +367,14 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 | registrador | canais | módulos de `sistema/` que importa | teto |
 |---|---:|---|:---:|
 | `ponte-projeto.ts` | 7 | `servicos/abertura-de-projeto` · `servicos/criacao-de-projeto` | 2 ✔ |
-| `ponte-arquivo.ts` | 8 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
+| `ponte-arquivo.ts` | 6 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
 | `ponte-exclusao.ts` | 1 | `servicos/exclusao-de-caminho` | 1 ✔ |
 | `ponte-como-rodar.ts` | 1 | `infra/como-rodar-o-projeto` | 1 ✔ |
 | `ponte-aparencia.ts` | 4 | `janela/dialogos-do-sistema` · `motores/configuracao-salva` | 2 ✔ |
 | `ponte-shell.ts` | 7 | `motores/motor-do-shell-pty` | 1 ✔ |
 | `ponte-neovim.ts` | 7 | `motores/motor-neovim-pty` · `motores/controle-neovim-rpc` | 2 ✔ |
 | `ponte-janela.ts` | 3 | — (recebe a janela, não importa módulo) | 0 ✔ |
-| **soma** | **38** | **máximo = 2** (hoje: 7) | |
+| **soma** | **36** | **máximo = 2** (hoje: 7) | |
 
 Os 37 canais de hoje continuam 37 depois: **a lógica muda de lugar, a conduta é preservada**
 (§12·3). Nenhum canal nasce, nenhum morre, nenhum troca de nome.
@@ -383,6 +389,14 @@ acoplamento dele **não mudou**, que é o que o E2 mede.
 
 ✅ **Conferido em campo, duas vezes:** os nomes dos 37 canais foram extraídos por script antes e
 depois da fatia 5 e da fatia 6, e comparados com `diff`. **Idênticos nas duas.**
+
+⚠️ **RE-DECLARADO DE NOVO em 24/08/2026, e de novo por decisão.** A árvore **A5**, opção (a),
+**removeu** `arquivo:ler` e `arquivo:gravar` — os dois únicos canais deste registrador sem
+chamador na tela — porque a cabeça declarou o **traceback clicável abandonado**. A asserção
+vigente é: **os 37 da linha de base, conferidos um a um, menos 2 removidos por decisão, mais 1
+criado por decisão — soma 36.** Medido com `diff` contra a lista de partida desta corrida: **duas
+remoções, zero adições, zero renomeações.** Refatoração continua não mexendo em canal; **decisão
+de produto, sim** — e é por isso que o número é re-declarado com a causa em vez de preservado.
 
 `ponte-arquivo` importa dois serviços e **não** importa `infra/arquivos-do-projeto` direto —
 é o serviço que fala com a infra. Foi isso que derrubou o acoplamento de 7 para 2: a camada de
@@ -423,11 +437,13 @@ handlers. Na planta, cada um ganha **um dono só** — `servicos/abertura-de-pro
 
 Fica escrito para o portão não ser cobrado do que não prometeu:
 
-- **Os 37 canais de IPC**, com os mesmos nomes e as mesmas cargas. A interface não sabe que
+- **Os canais de IPC**, com os mesmos nomes e as mesmas cargas. A interface não sabe que
   houve refatoração.
-  ⚠️ **Emendado em 24/08:** os 37 seguem intactos — nenhum sumiu, nenhum trocou de nome. O que
-  mudou é que a **A7(a)** acrescentou `projeto:fechar`, por decisão registrada, levando a soma
-  a **38**. Refatoração continua não mexendo em canal; **conserto de defeito decidido, sim**.
+  ⚠️ **Emendado DUAS vezes em 24/08, e as duas por decisão da cabeça, não por refatoração:**
+  a **A7(a)** acrescentou `projeto:fechar` (37 → 38) e a **A5(a)** removeu `arquivo:ler` e
+  `arquivo:gravar` (38 → **36**). Dos 37 da linha de base, **35 seguem intactos** — nenhum
+  trocou de nome, nenhum mudou de carga. Refatoração continua não mexendo em canal;
+  **decisão registrada, sim.**
 - **`interface/` e `design/`**, salvo o desfazer dos 2 ciclos (`painel-lateral.ts`).
 - **`compartilhado/tipos.ts`** — a forma dos dados não muda.
 - **A conduta de cada guarda**: o que recusa hoje, recusa depois; o que aceita hoje, aceita

@@ -15,6 +15,13 @@
 //!    cabeça consertou a A9 na entrada, em `entrarNaPasta`: a raiz aberta passou a ser o
 //!    lugar REAL, os dois lados da guarda voltaram a falar do mesmo lugar, e os quatro
 //!    caminhos escrevem. A rede está em `tests/servicos/escrita-em-pasta-por-atalho.test.ts`.
+//! 5. ⚠️ TRES DOS QUATRO TEM CANAL; `gravarConfinado` NAO TEM MAIS. Em 24/08/2026, no mesmo
+//!    dia, a cabeca removeu `arquivo:gravar` da porta e do main (arvore A5, opcao (a)),
+//!    porque o traceback clicavel foi declarado abandonado. A funcao NAO saiu junto, e a
+//!    razao esta escrita na propria arvore: ela e' a PECA-VITRINE do confinamento — realpath
+//!    + guarda do dominio + raizes do dono — e joga-la fora por arrasto seria perder a melhor
+//!    peca por causa da superficie da pior. Hoje so `tests/` a chama. O item 1 acima continua
+//!    verdadeiro sobre as FUNCOES; sobre os CANAIS, sao tres. O que fazer com ela e' a A15.
 
 import * as path from "node:path";
 import { dentroDaRaiz } from "../../dominio/guarda-de-caminho.js";

@@ -31,10 +31,20 @@ export function listarProjeto(raiz: string): Promise<string[]> {
 }
 
 //* Entrega o conteudo de um arquivo ao editor, com as duas recusas que valem.
-//! LER NAO E CONFINADO A PASTA ABERTA, e e de proposito: o traceback clicavel
+//! LER NAO E CONFINADO A PASTA ABERTA, e era de proposito: o traceback clicavel
 //!   abre o quadro dentro da biblioteca, e o `F12` vai a definicao la tambem.
 //!   Fechar aqui quebraria o salto do traceback.
 //! O que se protege e o unico segredo que existe: o `config.json` do Terminus.
+//? ⚠️ A RAZAO ACIMA PERDEU O DONO EM 24/08/2026, e isso precisa estar escrito aqui, nao so
+//?   no tracker. A cabeca declarou o TRACEBACK CLICAVEL ABANDONADO e mandou remover o canal
+//?   `arquivo:ler` (arvore A5, opcao (a)). Entao esta funcao existe, mas NENHUM codigo de
+//?   producao a chama: so `tests/servicos/leitura-de-arquivo.test.ts`, com 10 assercoes.
+//?   Ela nao foi apagada junto porque a cabeca decidiu os CANAIS, nao as funcoes — o que
+//?   fazer com ela e a arvore A15, devolvida na mesma corrida.
+//? ⚠️ E ATENCAO A QUEM FOR RESSUSCITA-LA: a leitura larga so era defensavel enquanto servia
+//?   ao salto do traceback. Reexpo-la sem a feature de volta e' aumentar alcance sem razao —
+//?   e a porta (`porta/ponte-para-a-interface.ts`, item 3 do cabecalho) diz que cada item
+//?   dela e' decisao de seguranca, nao conveniencia.
 export function lerParaEditor(arquivo: unknown): Promise<string> {
   if (typeof arquivo !== "string" || arquivo.length === 0 || arquivo.includes("\0")) {
     throw new Error("O arquivo não é válido.");

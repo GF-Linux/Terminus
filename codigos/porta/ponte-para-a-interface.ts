@@ -34,6 +34,18 @@ import type {
 //!    com a mesma conta e as mesmas permissões. Confiná-lo seria fingir que o
 //!    Terminus sabe melhor que o dono da máquina o que ele quis rodar — que é a
 //!    frase que a ADR 0020 já tinha escrito, e agora vale por inteiro.
+//! 7. ⚠️ **O TRACEBACK CLICÁVEL FOI ABANDONADO, e por isso esta porta ENCOLHEU** —
+//!    24/08/2026, decisão da cabeça (árvore A5, opção (a), `docs/tracker.md` §8).
+//!    Saíram daqui `ler()` e `gravar()`, e do main saíram os canais `arquivo:ler`
+//!    e `arquivo:gravar`. Eles estavam vivos e registrados desde sempre, **sem
+//!    nenhum chamador na tela**, guardando a capacidade planejada de abrir o
+//!    quadro de um traceback dentro da biblioteca. A feature não nasceu; a
+//!    superfície nascia junto do produto. Pelo item 3 acima, cada item aqui é
+//!    decisão de segurança — e um item que ninguém usa é alcance que só um
+//!    renderer comprometido aproveita. **Não foi faxina: foi a cabeça declarando
+//!    a feature abandonada.** Se ela voltar, isto volta com ela, e como decisão
+//!    nova. Os canais de ESCRITA CONFINADA (`arquivo:criar`, `pasta:criar`,
+//!    `caminho:renomear`) não foram tocados: 38 canais viraram 36, e só estes dois.
 const api = {
   escolherProjeto: (): Promise<Resultado<ProjetoAberto | null>> =>
     ipcRenderer.invoke("projeto:escolher"),
@@ -65,17 +77,6 @@ const api = {
   /** Todos os arquivos do projeto, em caminho relativo — alimenta o Ctrl+P. */
   arquivosDoProjeto: (raiz: string): Promise<Resultado<string[]>> =>
     ipcRenderer.invoke("projeto:arquivos", raiz),
-
-  //? CAPACIDADE DORMENTE (A5, 24/08/2026): estes DOIS canais estão vivos e
-  //?   registrados, e **nenhum código da interface os chama hoje**. Não é
-  //?   descuido: são a capacidade planejada do traceback clicável — `ler` não é
-  //?   confinado à pasta aberta de propósito, e o porquê está escrito em
-  //?   `servicos/leitura-de-arquivo.ts`. Ficam até a feature nascer; enquanto
-  //?   ficam, são superfície alcançável por qualquer código do renderer. Dono e
-  //?   prazo são da cabeça — a árvore está no tracker §8, A5.
-  ler: (arquivo: string): Promise<Resultado<string>> => ipcRenderer.invoke("arquivo:ler", arquivo),
-  gravar: (arquivo: string, conteudo: string): Promise<Resultado<void>> =>
-    ipcRenderer.invoke("arquivo:gravar", arquivo, conteudo),
 
   criarArquivo: (raiz: string, dir: string, nome: string): Promise<Resultado<string>> =>
     ipcRenderer.invoke("arquivo:criar", raiz, dir, nome),

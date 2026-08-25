@@ -115,7 +115,7 @@ def curva(x1,y1,x2,y2):
 s=[f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {LARG} {ALT}" width="{LARG}" height="{ALT}" role="img" aria-label="Planta-alvo do Terminus: dominio puro, reino da porta e as cinco camadas de sistema, com o alvo da corrida em numeros">',
    f'<rect width="{LARG}" height="{ALT}" fill="{BG}"/>',
    f'<text x="70" y="58" font-family="{SANS}" font-size="30" font-weight="700" fill="{FG}">Terminus — a planta do prédio</text>',
-   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · portão verde 5/5 · 37 canais da base + 1 declarado (A7)</text>',
+   f'<text x="70" y="86" font-family="{MONO}" font-size="14.5" fill="{ROTULO}">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · portão verde 6/6 · 36 canais: 37 da base − 2 (A5) + 1 (A7)</text>',
    f'<line x1="70" y1="108" x2="{LARG-70}" y2="108" stroke="{LINHA}" stroke-width="1"/>']
 
 for nivel, ypai, yf in arestas:

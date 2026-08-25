@@ -1,15 +1,13 @@
-//* Os oito canais de arquivo e pasta: ler, listar, gravar, criar, renomear.
+//* Os seis canais de arquivo e pasta: abrir, listar, criar e renomear.
 
 import { ipcMain } from "electron";
 import {
   criarArquivoNoProjeto,
   criarPastaNoProjeto,
-  gravarConfinado,
   renomearNoProjeto,
 } from "../servicos/escrita-confinada.js";
 import {
   abrirParaTela,
-  lerParaEditor,
   listarPasta,
   listarProjeto,
 } from "../servicos/leitura-de-arquivo.js";
@@ -17,9 +15,13 @@ import { respostaSegura as seguro } from "./resposta-segura.js";
 
 //* Liga os canais de leitura e escrita de arquivo.
 //! Este registrador não conhece `fs` nem a pasta aberta: ele confere a forma do
-//!   que chegou pelo IPC e entrega ao serviço. Desde 24/08 (A3·a) os QUATRO caminhos de
-//!   escrita — gravar, criar arquivo, criar pasta, renomear — confinam do mesmo jeito, em
-//!   `servicos/escrita-confinada`: realpath + as raízes que o DONO conhece.
+//!   que chegou pelo IPC e entrega ao serviço. Desde 24/08 (A3·a) os caminhos de escrita
+//!   confinam do mesmo jeito, em `servicos/escrita-confinada`: realpath + as raízes que o
+//!   DONO conhece.
+//! ⚠️ ERAM QUATRO — gravar, criar arquivo, criar pasta, renomear — e desde a A5(a), no mesmo
+//!   24/08, este registrador expõe TRÊS: `gravar` deixou de ter canal. A regra de confinamento
+//!   não mudou e `gravarConfinado` continua inteira no serviço; o que saiu foi a porta de
+//!   entrada dela pelo IPC.
 //! ⚠️ `_raiz` É RECEBIDA E IGNORADA, de propósito. A interface continua mandando a raiz do
 //!   projeto nos três canais, e a assinatura do IPC não mudou — mas quem decide onde se
 //!   pode escrever passou a ser o main. O parâmetro fica visível aqui, com o sublinhado,
@@ -31,11 +33,13 @@ export function registrarArquivo(): void {
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listarPasta(dir)));
   ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarProjeto(raiz)));
 
-  ipcMain.handle("arquivo:ler", seguro((_e, arquivo: unknown) => lerParaEditor(arquivo)));
-  ipcMain.handle(
-    "arquivo:gravar",
-    seguro((_e, arquivo: unknown, conteudo: unknown) => gravarConfinado(arquivo, conteudo)),
-  );
+  //? ⚠️ AQUI MORAVAM `arquivo:ler` E `arquivo:gravar` — saíram em 24/08/2026, por decisão
+  //?   da cabeça, porque o TRACEBACK CLICÁVEL foi declarado abandonado (árvore A5, opção
+  //?   (a)). Eram os dois únicos canais deste registrador sem chamador na tela. `lerParaEditor`
+  //?   e `gravarConfinado` NÃO foram apagados junto: `gravarConfinado` é a peça-vitrine do
+  //?   confinamento, e apagá-la por arrasto seria jogar fora a melhor peça por causa da
+  //?   superfície da pior. As duas passaram a ser chamadas só por `tests/` — e o que fazer
+  //?   com elas é a árvore A15, devolvida à cabeça na mesma corrida.
   ipcMain.handle(
     "arquivo:criar",
     seguro((_e, _raiz: string, dir: unknown, nome: unknown) => criarArquivoNoProjeto(dir, nome)),

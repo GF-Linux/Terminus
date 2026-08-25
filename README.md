@@ -82,7 +82,7 @@ O `portao` é o que fecha uma mudança. Ele roda os testes, a verificação de t
 o build, **mede** o acoplamento dos registradores, os ciclos de import, a pureza
 do domínio e a árvore de pastas — e trava em cada um deles. Por fim **sobe o
 aplicativo de verdade**, com `HOME` redirecionado para uma pasta temporária, e
-pergunta à tela por um sinal que só o JavaScript produz. Sem as cinco verdes, a
+pergunta à tela por um sinal que só o JavaScript produz. Sem as seis verdes, a
 mudança não fecha.
 
 ### Instalar o lançador (Linux/KDE)
