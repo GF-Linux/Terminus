@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.8.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.9.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -72,7 +72,7 @@ o Terminus foi testado.
 ### Conferir antes de mexer
 
 ```
-npm run teste       # 139 testes: regra pura, casos de uso, motores e kits (sem Electron)
+npm run teste       # 145 testes: regra pura, casos de uso, motores, kits e a carga da página em dev
 npm run typecheck   # tsc --noEmit
 npm run portao      # as cinco pernas do portão, e o veredito
 npm run orfaos      # exportado e canal SEM chamador — no FECHAMENTO, não a cada mudança
@@ -278,7 +278,7 @@ codigos/design/     css, temas, papel de parede, fontes
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.8 ainda quer dizer isso:
+Lista honesta, porque v0.0.9 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -317,6 +317,30 @@ Lista honesta, porque v0.0.8 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.9 — 24/08/2026
+
+**A janela abria preta no `npm run dev` — e abria desde o primeiro dia.** Quem
+seguiu o "Como instalar e rodar" deste README nunca chegou a ver o Terminus: o
+comando sobe, a janela aparece, e não há nada dentro. E isso atinge **todo
+mundo**, porque o Terminus ainda não está empacotado — `npm run dev` é o único
+jeito de rodá-lo.
+
+**O que estava errado.** Em modo de desenvolvimento a interface é servida por
+HTTP, e a página não mora na raiz desse servidor: mora em
+`interface/pagina.html`. A janela pedia a raiz. Medido: a raiz responde **404 e
+0 bytes**; a página responde **200 e 7075 bytes**.
+
+**Não foi a v0.0.8 que quebrou.** O defeito nasceu com o produto e atravessou
+todas as versões — a v0.0.8 apenas o herdou. Conferido contra a v0.0.7 em cópia
+isolada: o mesmo 404, byte a byte.
+
+**Por que nenhum teste pegava.** O portão constrói o aplicativo e sobe o
+aplicativo **construído**, que sempre funcionou. O comando que este README manda
+um recém-chegado usar era justamente o único que nenhuma perna do portão rodava.
+Agora existe uma que sobe o servidor de desenvolvimento e faz uma requisição à
+página que a janela de verdade mandou carregar, exigindo 200 e corpo não vazio —
+sem abrir tela. **139 → 145 testes.**
 
 ### v0.0.8 — 24/08/2026
 
