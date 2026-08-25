@@ -1,61 +1,63 @@
 # Terminus
 
-**Uma ponte amigável para o terminal do Linux.**
+Uma ponte amigável para o terminal do Linux.
 
-O Neovim é um editor excelente e um péssimo primeiro contato: centenas de
+O Neovim é um editor excelente mas e um péssimo primeiro contato: centenas de
 atalhos, modos que ninguém explica, e nenhuma pista na tela do que fazer. Quem
 está chegando ao Linux desiste antes de descobrir o que a ferramenta faz.
+Além disso, o Vscode é um otimo terminal com excelentes funcionalidades mas que 
+peca em liberdade de customização.
 
-O Terminus põe uma casca clicável em volta dele. A pasta abre numa árvore de
-arquivos, o arquivo abre com um clique, `Ctrl+S` salva, `Ctrl+Z` desfaz, o
-terminal abre num botão. Por baixo é o Neovim de verdade — a sua configuração,
+A ideia do nascimento do Terminus é por uma casca clicável em volta do Neovim.
+A pasta abre numa árvore de arquivos, o arquivo abre com um clique, `Ctrl+S` salva, `Ctrl+Z` 
+desfaz, o terminal abre num botão. Por baixo é o Neovim de verdade — a sua configuração,
 os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
-O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
+O nome Terminus vem de [terminal] e de [fim] - é onde a barreira do terminal termina.
 
-> **Estado: v0.0.10.** Ainda é cedo. Roda a partir do
-> repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
-> tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
-> O que mudou em cada versão está em [Atualizações](#atualizações).
+## Estado: v0.0.10. 
 
----
+1. Versões iniciais do projeto, roda através do comando npm run dev e não tem um executavel
+2. Foi usado de verdade numa máquina só (Fedora 44 / KDE Wayland) - e em um SteamOS 
+3. O que mudou em cada versão está em [Atualizações]
+
 
 ## O que ele faz hoje
 
-| | |
-|---|---|
-| **Editor** | o Neovim, num pseudo-terminal. Sua config, seus plugins, suas cores. |
-| **Árvore de arquivos** | abrir, criar, renomear e excluir com o mouse. Excluir vai para a lixeira. |
-| **Abrir arquivo** | um clique, e o cursor já entra em **modo de escrita**. |
-| **`Ctrl+S`** | grava **sem tirar você do modo de escrita** — veja abaixo por que isso importa. |
-| **`Ctrl+Z` / `Ctrl+Shift+Z`** | desfaz e refaz. |
-| **Terminal** | um **shell de verdade**, em pseudo-terminal: cor, `htop`, `python` interativo, `sudo`, pipe e `&&`. Dockável no rodapé, à direita ou à esquerda; a medida fica lembrada. |
-| **Botão ↗ do terminal** | abre o **Konsole** na pasta em que o terminal está, com o perfil e as abas que você já configurou. |
-| **Plugins** | a lista do `lazy.nvim` na lateral, filtrável; clicar abre a pasta do plugin. |
-| **Aparência** | papel de parede atrás do editor, temas, zoom com `Ctrl +` / `Ctrl -`. |
+1. Editor -> o Neovim, num pseudo-terminal. Sua config, seus plugins, suas cores. 
+2. Árvore de arquivos ->  abrir, criar, renomear e excluir com o mouse. Excluir vai para a lixeira.
+3. Abrir arquivo -> um clique, e o cursor já entra em [modo de escrita] - No neovim é necessário utilizar (i)
+4. Ctrl+S -> grava sem tirar você do modo de escrita
+5. Ctrl+Z - Ctrl+Shift+Z -> desfaz e refaz.
+6. Terminal -> um shell de verdade, em pseudo-terminal: cor, `htop`, `python` interativo, `sudo`, pipe e `&&`. Dockável no rodapé, à direita ou à esquerda; a medida fica lembrada.
+7. Botão ↗ do terminal -> abre o Konsole na pasta em que o terminal está, com o perfil e as abas que você já configurou.
+8. Plugins -> a lista do `lazy.nvim` na lateral, filtrável; clicar abre a pasta do plugin.
+9. Aparência em background -> papel de parede atrás do editor, temas, zoom com `Ctrl +` / `Ctrl -`, perfeitamente customizavel, sem a necessidade de qualquer extensão adicional
 
-### Por que o `Ctrl+S` é o exemplo que explica o projeto
+### Por que o [Ctrl+S] é o exemplo que explica o projeto
 
-O LazyVim mapeia `<C-s>` como `<Esc>:w` — ele grava, mas te **joga para fora do
-modo de escrita**. Para quem vem do VS Code, isso é o editor tropeçando.
+O LazyVim mapeia `<C-s>` como `<Esc>:w` — ele grava, mas te joga para fora do
+modo de escrita. Para quem vem do VSCode, isso é o editor tropeçando.
 
-No Terminus a casca **intercepta** o `Ctrl+S` antes de ele virar tecla e manda o
+No Terminus a casca intercepta o `Ctrl+S` antes de ele virar tecla e manda o
 `write` pelo canal de controle do Neovim (msgpack-RPC). Um ex-comando por RPC não
 mexe no modo: grava e você continua escrevendo. Só sai da escrita quem apertar
 `Esc`.
 
-É a ideia inteira do projeto num atalho: **a casca é dona de um punhado de
-comandos do dia a dia; o resto do teclado é do Neovim, intacto.**
+É a ideia inteira do projeto num atalho: A casca é dona de um punhado de
+comandos do dia a dia; o resto do teclado é do Neovim, intacto.
 
----
 
 ## Como instalar e rodar
 
-Precisa de **Neovim**, **Node** e um compilador C++ (o `node-pty` é módulo
-nativo).
+Precisa de :
+1. Neovim
+2. Node 
+3. Compilador C++ (o `node-pty` é módulo nativo).
 
 ```bash
-# Fedora
+- Fedora
+
 sudo dnf install -y neovim nodejs gcc-c++ make
 
 git clone git@github.com:GF-Linux/Terminus.git terminus
@@ -79,9 +81,9 @@ npm run orfaos      # exportado e canal SEM chamador — no FECHAMENTO, não a c
 ```
 
 O `portao` é o que fecha uma mudança. Ele roda os testes, a verificação de tipo e
-o build, **mede** o acoplamento dos registradores, os ciclos de import, a pureza
-do domínio e a árvore de pastas — e trava em cada um deles. Por fim **sobe o
-aplicativo de verdade**, com `HOME` redirecionado para uma pasta temporária, e
+o build, [mede] o acoplamento dos registradores, os ciclos de import, a pureza
+do domínio e a árvore de pastas — e trava em cada um deles. Por fim sobe o
+aplicativo de verdade, com `HOME` redirecionado para uma pasta temporária, e
 pergunta à tela por um sinal que só o JavaScript produz. Sem as seis verdes, a
 mudança não fecha.
 
@@ -94,13 +96,13 @@ cp media/terminus.desktop ~/.local/share/applications/
 update-desktop-database ~/.local/share/applications
 ```
 
----
-
 ## O que vem embutido
 
-O Terminus não é só a casca. Ele traz **dev kits**: por linguagem, o molde de
-projeto, o gesto de rodar, e uma biblioteca de funções prontas que cresce
+O Terminus não é só a casca. Ele traz [dev kits]: por linguagem
+O objetivo foi unir as principais linguagens de trabalho pessoais em um devkit.
+o molde de projeto, o gesto de rodar, e uma biblioteca de funções prontas que cresce
 conforme o uso real pede.
+A ideia principal é facilitar o fluxo da integração de funções nativas e a integração das mesmas.
 
 A ideia é a mesma do "Python Dev Kit" do VSCode — com uma diferença: aqui as
 funções nascem de necessidade de verdade, não de catálogo. Cada uma existe
@@ -110,14 +112,14 @@ porque alguém estava travado nela.
 
 Lista honesta, porque o kit está começando:
 
-| | vem do Terminus | vem do Neovim (LazyVim + Mason) |
-|---|---|---|
-| funções prontas (`caixa`) | sim, em `kits/` | — |
-| saber a linguagem da pasta | sim, o botão de fluxo | — |
-| criar projeto novo | sim, com o molde de cada linguagem | — |
-| rodar com um gesto | sim, o botão **Rodar** e o `F5` | `Espaço+r` dentro do editor |
-| servidor de linguagem | ainda não | `pyright`, `roslyn`, `clangd` |
-| formatador | ainda não | `ruff`, `csharpier` |
+- vem do Terminus | vem do Neovim (LazyVim + Mason) 
+
+1. funções prontas (`caixa`) | sim, em `kits/` 
+2. saber a linguagem da pasta | sim, o botão de fluxo 
+3. criar projeto novo | sim, com o molde de cada linguagem 
+4. rodar com um gesto | sim, o botão **Rodar** e o `F5` | `Espaço+r` dentro do editor |
+5. servidor de linguagem | ainda não | `pyright`, `roslyn`, `clangd` |
+6. formatador | ainda não | `ruff`, `csharpier` |
 
 Ou seja: hoje o Terminus embute **as funções, o molde e o gesto de rodar**. O
 servidor de linguagem ainda é o `:LazyExtras` que você liga — está em
