@@ -306,7 +306,7 @@ a aresta: saiu `infra/kits-embutidos` (foi para a partida) e entraram três —
 | **A6** | **achada pelo terceiro ato**, e por mais nada: os canais `neovim:parar` e `shell:pasta` estão registrados no main e expostos na porta, e **nenhum código do renderer os chama**. Não aparecem em nenhum laudo, nem na matriz, nem no plano | **(b) aplicada em 24/08/2026, decidida pela cabeça:** os DOIS canais **ficam e ficam REGISTRADOS** — marca `//?` na porta, árvore aqui. A contagem segue **37**, e é de propósito: 37 é a prova de conduta preservada da corrida 1, e não se gasta uma prova para arrumar capacidade dormente já documentada. Ver §10.6 |
 | **A3** | criar/renomear confinam contra a raiz que o CHAMADOR envia, por comparação textual; `gravar` usa realpath + raízes do dono | **(b) aplicada em 24/08/2026, decidida pela cabeça:** conduta fica, comentário passa a dizer a verdade (P4), e o fundo fica registrado aqui. **(a) — uniformizar — APLICADA em 24/08/2026**, na corrida 3, depois que `servicos/` ganhou rede de teste, que era a condição escrita aqui. Ver §10.1 e o commit da A3(a) |
 
-### A3 · o confinamento assimétrico — árvore de decisão (§12·3a)
+### A3 · o confinamento assimétrico — árvore de decisão (§12·3a) · **APLICADA em 24/08, opção (b)** — o desfecho mora na tabela do §8, logo acima
 
 | parte | |
 |---|---|
@@ -528,7 +528,7 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 "a sétima rota é a que alguém esquece" — e aqui esquecer significa escrever no
 `~/.config/terminus/` **de quem roda a suíte**.
 
-### 10.2 · A7 — "Fechar pasta" nunca chega ao main — árvore de decisão (§12·3a) · **EM ABERTO**
+### 10.2 · A7 — "Fechar pasta" nunca chega ao main — árvore de decisão (§12·3a) · **APLICADA em 24/08, opção (a)** — o conserto está em §13.10
 
 > **De onde veio:** apareceu ao desenhar a rede. Para saber se os testes de `servicos/` podiam
 > dividir um processo, precisei responder *"existe como voltar ao estado sem pasta aberta?"* —
@@ -543,7 +543,7 @@ carregar. É o §8·S2 aplicado ao andaime: a trava fica na camada que vê todo 
 | **se ficar para depois** | **igual** — não apodrece e não encarece. O que corre é o mesmo silêncio da A2: a tela dizendo o que o estado não sustenta |
 | **DESFECHO** | **APLICADA em 24/08/2026, opção (a), decidida pela cabeça.** A (d) ficou **absorvida**: a frase deixou de mentir porque o estado passou a sustentá-la, não por reescrita de texto. ⚠️ **O roteiro de repro escrito nesta árvore estava ERRADO** — medido e corrigido em **§13.9**. O conserto está em **§13.10** |
 
-### 10.3 · A8 — o canal de controle do Neovim pendura para sempre — árvore de decisão (§12·3a) · **EM ABERTO**
+### 10.3 · A8 — o canal de controle do Neovim pendura para sempre — árvore de decisão (§12·3a) · **APLICADA em 24/08, opção (c)** — o conserto está em §13.2
 
 > **De onde veio:** o `node --test` reprovou a suíte de `escrita-confinada` com uma rejeição
 > não tratada que eu não tinha causado. Fui atrás de por que a MINHA rede estava vermelha e
@@ -630,7 +630,7 @@ renderer pode **matar o editor** (`neovim:parar`) e **ler a pasta corrente do sh
 (`shell:pasta`). Hoje ninguém chama; um renderer comprometido chama. É a mesma gravidade da
 A5 — pequena, e real — e agora está escrita nos dois lugares onde alguém vai olhar.
 
-### 10.7 · A10 — o NOME não passa por peneira nenhuma — árvore de decisão (§12·3a) · **EM ABERTO**
+### 10.7 · A10 — o NOME não passa por peneira nenhuma — árvore de decisão (§12·3a) · **APLICADA em 24/08, opção (c)** — o conserto está em §13.6
 
 > **De onde veio:** apareceu duas vezes no mesmo dia. Primeiro como **falso vermelho** meu — o
 > RED da A3(a) saiu `"Cannot read properties of undefined (reading 'trim')"` em vez da recusa
@@ -1969,4 +1969,65 @@ nenhum muda de nome, de carga ou de registrador.
 | **a minha recomendação** | **(b), e não é por preguiça — é pelo mesmo argumento que a cabeça acabou de aceitar na A14.** A A5(a) já cobrou o preço que importava: a **superfície** saiu. O que sobra é custo de leitura, e ele já está pago pelas três marcas escritas na fatia 3. Se a cabeça quiser o repositório mais enxuto, **(c)** é a segunda: `lerParaEditor` é a que perdeu o dono, e `gravarConfinado` é a que três comentários vivos citam. **(a) eu não recomendo agora** — apagar a peça-vitrine no mesmo dia em que se removeu a superfície é decidir duas coisas com uma medição só |
 | **se ficar para depois** | **fica mais caro devagar, e pouco.** Cada corrida futura relista as duas na coluna de `tests/`, e cada leitor novo dos serviços gasta um minuto entendendo por que existem. O que **não** acontece é apodrecer: sem canal, elas não mudam de risco com o tempo |
 | **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
+
+### 19.7 · ⚠️ A sujeira do próprio tracker — e o achado é melhor que o defeito
+
+A cabeça apontou: **os títulos de A7, A8 e A10 diziam "EM ABERTO" com `DESFECHO: APLICADA` logo
+abaixo.** Nas palavras dela: *"é emenda sem varredura dentro do documento que registra emendas
+sem varredura"*. Mandou consertar **e varrer o documento inteiro** atrás de mais.
+
+**Varri, e o comando está aqui para ser repetido** — largo primeiro, estreito depois (§15.4):
+
+```bash
+python3 - <<'PY'
+linhas = open('docs/tracker.md', encoding='utf-8').read().split('\n')
+for i, l in enumerate(linhas):
+    if l.startswith('| **DESFECHO'):
+        tit = next(linhas[j] for j in range(i-1, -1, -1) if linhas[j].startswith('#'))
+        est = 'EM ABERTO' if l.upper().startswith('| **DESFECHO** | **EM ABERTO') else 'fechado'
+        titdiz = 'EM ABERTO' if 'EM ABERTO' in tit.upper() else 'fechado/mudo'
+        if est == 'fechado' and titdiz == 'EM ABERTO':
+            print('CONTRADIZ ->', tit[:90])
+PY
+```
+
+#### O resultado, com o número
+
+| o que procurei | o que achei |
+|---|---|
+| títulos que contradizem o próprio desfecho | **3, e são exatamente os três que a cabeça nomeou.** Nenhum quarto |
+| linhas de `DESFECHO` no documento | **16** — 15 fechadas, 1 em aberto (a **A15**, aberta hoje) |
+| árvores **sem** linha de desfecho | **2**: a **A3** (o desfecho dela mora na tabela do §8, não na seção) e a **A14** (é a de hoje) |
+
+#### ⚠️ E aqui está o achado, que não é o defeito
+
+Procurando a causa, achei **§11, Ato 1, linha 662**, escrita na corrida 3:
+
+> *"**A3 · A4 · A6** saíram de 'em aberto' | cabeçalhos das três árvores, a tabela de desfechos
+> do §8 e as seções §10.5/§10.6"*
+
+**A corrida 3 varreu os cabeçalhos, e varreu certo.** Quem não varreu foram as corridas **4 e 5**,
+que fecharam A7, A8 e A10. Ou seja: **a prática existia, estava escrita, e mesmo assim não se
+repetiu** — porque dependia de alguém lembrar dela na hora certa.
+
+#### Como evitar, e é uma linha
+
+> **Fechar um desfecho é editar DOIS lugares: a linha `DESFECHO` e o TÍTULO da seção.** O título
+> é o que aparece no índice e na busca; quem lê `grep "EM ABERTO"` procurando pendência acha o
+> título, nunca a tabela. **Desfecho sem título varrido é pendência fantasma.**
+
+⚠️ **E a lição honesta é a outra:** esta linha acima é prosa, e prosa depende de alguém reler —
+foi exatamente o que falhou. O remédio de verdade é o comando acima virar **perna** ou entrar no
+`npm run orfaos`. **Não fiz isso por conta própria**: criar perna nova muda o veredito do portão
+e é declaração (§12·4a), e mais ferramenta é escopo — **fica devolvido à cabeça** como a decisão
+que ela é. Enquanto não for, vale a prosa e vale o comando colável.
+
+#### O que consertei
+
+| onde | de | para |
+|---|---|---|
+| §10.2 (A7) | `**EM ABERTO**` | `**APLICADA em 24/08, opção (a)** — o conserto está em §13.10` |
+| §10.3 (A8) | `**EM ABERTO**` | `**APLICADA em 24/08, opção (c)** — o conserto está em §13.2` |
+| §10.7 (A10) | `**EM ABERTO**` | `**APLICADA em 24/08, opção (c)** — o conserto está em §13.6` |
+| §8 (A3) | sem palavra de estado e sem linha de desfecho na seção | ganhou **ponteiro** para a tabela do §8, onde o desfecho dele mora — **ponteiro e não cópia**, que é a lição da A13 |
 
