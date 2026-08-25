@@ -13,7 +13,7 @@ os seus plugins, o seu Copilot —, e nada disso é reimplementado.
 
 O nome vem de **terminal** e de **fim**: é onde a barreira do terminal termina.
 
-> **Estado: v0.0.7.** Ainda é cedo. Roda a partir do
+> **Estado: v0.0.8.** Ainda é cedo. Roda a partir do
 > repositório, foi usada de verdade numa máquina só (Fedora 44 / KDE Wayland) e
 > tem arestas — a lista honesta está em [Ainda não existe](#ainda-não-existe).
 > O que mudou em cada versão está em [Atualizações](#atualizações).
@@ -278,7 +278,7 @@ codigos/design/     css, temas, papel de parede, fontes
 
 ## Ainda não existe
 
-Lista honesta, porque v0.0.7 ainda quer dizer isso:
+Lista honesta, porque v0.0.8 ainda quer dizer isso:
 
 - **Os kits ainda não instalam o servidor de linguagem.** Hoje eles trazem as
   funções, o molde e o gesto de rodar; o `pyright`/`roslyn` você liga pelo
@@ -317,6 +317,48 @@ Lista honesta, porque v0.0.7 ainda quer dizer isso:
 ---
 
 ## Atualizações
+
+### v0.0.8 — 24/08/2026
+
+**A obra por dentro.** Nenhum botão mudou de lugar e nenhum canal mudou de nome —
+os 37 canais entre a casca e o sistema são **idênticos** aos da v0.0.7, conferidos
+um a um. O que mudou foi o que sustenta tudo isso.
+
+**O monólito acabou.** `janela-principal.ts` tinha **707 linhas e cinco papéis**:
+a partida, o ciclo da janela, a guarda de caminho, um caso de uso e os 37
+handlers. Hoje o maior arquivo do processo principal tem **296 linhas**, e o
+código está em camadas com nome: `dominio/` decide sem tocar disco, `porta/` é a
+única passagem, e `sistema/` se divide em janela, motores, infra, serviços e
+ponte. **28 → 58 arquivos**; **os dois ciclos de import viraram zero**.
+
+**Passou a existir rede de teste — não havia nenhuma.** De **0 para 139 testes**,
+em 22 arquivos, rodando em 0,9 s sem subir o Electron. E um portão de cinco
+pernas (`npm run portao`) que roda os testes, o tipo e o build, **mede** o
+acoplamento, os ciclos, a pureza do domínio e a árvore de pastas — travando em
+cada um —, e por fim sobe o aplicativo de verdade para provar que ele responde.
+
+**Oito consertos que a pessoa sente:**
+
+- **`Ctrl+S` funciona em pasta aberta por atalho.** Antes, abrir a pasta por um
+  link simbólico fazia o Terminus recusar **toda** escrita, com uma frase que
+  contradizia a tela.
+- **O botão ↗ parou de mentir.** Sem `konsole` na máquina ele anunciava
+  *"Konsole aberto em…"* e não abria nada; o erro era engolido.
+- **Ctrl+S, Ctrl+Z, F12 e o painel de plugins param de pendurar em silêncio.**
+  Sem o socket do Neovim, o canal de controle travava **para sempre**, e o aviso
+  que existia para esse caso era inalcançável. Agora ele aparece.
+- **"Fechar pasta" fecha de verdade.** Antes limpava só a tela: o sistema
+  continuava achando a pasta aberta, e a recusa de exclusão dizia isso.
+- **Criar e renomear confinam como gravar** — o mesmo rigor nos quatro caminhos.
+- **Nome inválido devolve recusa legível**, não um erro interno da linguagem.
+- **Symlink de kit é reconhecido pelo destino**, não por "é symlink" — link seu
+  com nome parecido deixa de ser sobrescrito.
+- **Saiu uma função órfã que sabia ler uma chave de API** do banco de outro
+  programa, e que nenhum código chamava.
+
+**O que ficou por fazer está escrito**, em vez de escondido: as decisões que
+dependem de rumo viraram árvores em `docs/tracker.md`, com o custo de cada opção
+medido. E `docs/diario.md` guarda as falhas do caminho — inclusive as minhas.
 
 ### v0.0.7 — 19/08/2026
 
