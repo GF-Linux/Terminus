@@ -24,7 +24,7 @@
 | `\b` não casa `$` · o namespace não é o método · parâmetro tipado parece definição · nome de método é genérico | idem, casos **A1–A4** — cada um já produziu um número errado num relatório |
 | tirar comentário de **bloco antes de linha** come o arquivo: o sigilo da casa `//*` contém `/*` | idem, caso **ORD** |
 | **rejeição não tratada dentro de gancho reprova o arquivo** no `node --test` — e a leitura errada disso custou 5 suítes na forma esquisita | `tests/apoio/rejeicoes-nao-tratadas.ts`, cabeçalho, com a tabela das 5 medições **e** a leitura errada ao lado |
-| o PNG sai **1,5625× menor sem `-density 150`**, com exit 0 e sem aviso | `ferramentas/gera-fluxo.py`, cabeçalho — ⚠️ e `docs/fluxo.md:431` tem a receita **errada**: é a árvore **A13**, em aberto |
+| o PNG sai **1,5625× menor sem `-density 150`**, com exit 0 e sem aviso | `ferramentas/gera-fluxo.py`, cabeçalho — e agora é a **única** receita do repositório: a segunda, errada, saiu do `fluxo.md` em 24/08 (**A13(a)**, decidida pela cabeça) |
 | `pkill -f <padrão>` **mata o próprio comando**; `grep` num `ps` casa a própria linha | sem guarda executável — mate por PID, e conte órfãos excluindo o próprio PID |
 | **sabotagem que quebra a compilação é ruído**: refaça com `tsc` exit 0 antes de acreditar no vermelho | sem guarda executável — é disciplina, e já reprovou uma sabotagem minha |
 | ⚠️ **a linha acima JÁ FOI REPETIDA (24/08, corrida 7)**: reverti a chamada e deixei o import órfão — `TS6133`, e eu quase acreditei no vermelho. Reverter conserto quase sempre deixa import órfão | sem guarda executável — leia o `tsc` ANTES de olhar o teste |

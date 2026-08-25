@@ -439,17 +439,14 @@ Fica escrito para o portão não ser cobrado do que não prometeu:
 
 ## 7. Como refazer o `fluxo.png`
 
-```bash
-python3 ferramentas/gera-fluxo.py && magick -background none docs/fluxo.svg -strip docs/fluxo.png
-```
+**A receita mora em UM lugar só: o cabeçalho de `ferramentas/gera-fluxo.py`.** Os dois passos, o
+porquê de cada bandeira e os três erros já cometidos ao escrevê-la estão lá, ao lado do código
+que os executa.
+
+> ⚠️ **Aqui havia uma SEGUNDA receita, e ela era a errada** — sem `-density 150`, o que devolve um
+> PNG **1820×1155** no lugar de **2843×1804** (150/96 = 1,5625 em cada lado), com exit 0 e sem
+> aviso nenhum. Apagada em 24/08/2026 pela árvore **A13(a)** (`tracker.md` §16.1). O defeito não
+> era a receita estar errada: era ela estar **duplicada** — corrigir a cópia teria consertado o
+> sintoma e deixado a doença, e a doença já cobrou uma vez.
 
 O `.png` é **derivado**; a árvore vive no gerador, e este `.md` é a fonte da verdade (§11).
-
-**Duas coisas medidas nesta corrida, que valem para quem mexer depois:**
-
-- **O gerador RECUSA desenho torto.** A descrição de um nó com filhos não pode invadir a coluna
-  dos filhos; se invadir, ele imprime `DESENHO RECUSADO` e sai com erro em vez de gerar um PNG
-  com texto sobreposto. A trava pegou uma sobreposição real antes de ela ser publicada.
-- **`-strip` não é enfeite.** Sem ele o PNG muda de bytes a cada geração — **0 pixels diferentes,
-  medido com `magick compare -metric AE`**, só o carimbo de data que o ImageMagick embute. Com
-  `-strip` o md5 é estável, e o `git diff` só acusa a imagem quando o desenho mudou de verdade.

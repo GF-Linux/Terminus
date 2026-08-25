@@ -23,7 +23,15 @@
 #!    sai a 1820x1155 — 150/96 = 1,5625 vezes menor em cada lado. O comando nao avisa, o
 #!    arquivo existe, e so quem ABRE a imagem percebe. O tamanho certo e 2843x1804.
 #! 4. `-strip` tira os metadados, para o PNG de duas geracoes do mesmo SVG ter o MESMO md5 —
-#!    e e isso que torna a regeracao conferivel por diff em vez de por confianca.
+#!    e e isso que torna a regeracao conferivel por diff em vez de por confianca. Medido com
+#!    `magick compare -metric AE`: sem `-strip` os bytes mudam a cada geracao e os PIXELS
+#!    DIFERENTES sao ZERO — o que muda e so o carimbo de data que o ImageMagick embute.
+#! 5. O GERADOR RECUSA DESENHO TORTO, e a trava esta no fim deste arquivo. A descricao de um no
+#!    COM FILHOS nao pode invadir a coluna dos filhos; se invadir, ele imprime `DESENHO RECUSADO`
+#!    e sai com erro em vez de gerar um PNG com texto sobreposto. Ja pegou uma sobreposicao real
+#!    antes de ela ser publicada. Este paragrafo veio de `docs/fluxo.md` em 24/08/2026 (arvore
+#!    A13): era o UNICO fato daquele bloco que nao morava em lugar nenhum aqui, e deixa-lo
+#!    morrer junto com a receita duplicada seria trocar um defeito por outro.
 #! As cores saem do PROPRIO tema do Terminus (codigos/design/estilo-da-casca.css).
 #! O rotulo de no COM FILHOS leva a descricao na LINHA DE BAIXO; o de folha, ao
 #!   lado. Levar tudo ao lado atravessava a coluna dos filhos — medido e visto.
