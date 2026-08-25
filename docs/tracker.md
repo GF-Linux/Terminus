@@ -2253,8 +2253,21 @@ Nenhum arquivo deste repositório carrega caminho absoluto com o nome antigo (`g
 é seguro**. As duas menções a `~/projetos/terminus` que restam (`diario.md:75`, `tracker.md:30`)
 são registro datado da comparação com a linha de base, e ficam.
 
-> ⚠️ **O que eu NÃO consigo garantir, e fica dito:** só conferi **git** — árvore, commits, tags. Se
-> a pasta antiga tiver arquivo **não versionado** (`.env`, nota solta, `node_modules` com patch à
-> mão), ele não aparece em nenhuma medição que eu fiz, e some com o `rm`. Um
-> `git -C ~/projetos/terminus status --porcelain` antes de apagar responde isso em um segundo.
+#### E o não-versionado também foi conferido — porque git sozinho não responderia
+
+Ia deixar isto como limite declarado (*"se houver arquivo não versionado lá, ele some com o `rm`
+e eu não o vejo"*). **Rodei em vez de declarar**, tudo em leitura:
+
+| pergunta | comando | resposta |
+|---|---|---|
+| há arquivo não versionado lá? | `git -C ~/projetos/terminus status --porcelain` | **1**: `?? media/Fundno-JaredV3.png` |
+| ele existe aqui? | `md5sum` nos dois | **`2a1a0acf78975fa155ad00b027b3c18f` nos dois** — e aqui ele está **rastreado** |
+| há commit não empurrado lá? | `git log @{u}..HEAD` | **nenhum** |
+| há branch além de `main`? | `git branch -a` | **não** |
+
+**Conclusão medida: apagar `~/projetos/terminus` não perde NADA** — nem versionado, nem solto.
+
+> ⚠️ **O limite que sobra, e é honesto dizer:** conferi `media/`, git, tags e branches. Não abri
+> `node_modules` nem procurei patch aplicado à mão dentro dele. Se houver, some — e é o tipo de
+> coisa que não deveria existir de qualquer forma.
 
