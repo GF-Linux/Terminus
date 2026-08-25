@@ -318,6 +318,15 @@ Lista honesta, porque v0.0.10 ainda quer dizer isso:
 
 ## Atualizações
 
+
+
+### Todo
+
+**Integrar um fluxo com o GITHUB facilitado - 
+- 1. Criando atalhos dos principais comandos
+- 2. Sugestao de comandos em casos de problemas como local e remoto estao desinscronizados
+
+
 ### v0.0.10 — 24/08/2026
 
 **A porta encolheu, e encolher a porta é conserto.** O `preload` é a única
