@@ -27,6 +27,11 @@
 | o PNG sai **1,5625× menor sem `-density 150`**, com exit 0 e sem aviso | `ferramentas/gera-fluxo.py`, cabeçalho — ⚠️ e `docs/fluxo.md:431` tem a receita **errada**: é a árvore **A13**, em aberto |
 | `pkill -f <padrão>` **mata o próprio comando**; `grep` num `ps` casa a própria linha | sem guarda executável — mate por PID, e conte órfãos excluindo o próprio PID |
 | **sabotagem que quebra a compilação é ruído**: refaça com `tsc` exit 0 antes de acreditar no vermelho | sem guarda executável — é disciplina, e já reprovou uma sabotagem minha |
+| ⚠️ **a linha acima JÁ FOI REPETIDA (24/08, corrida 7)**: reverti a chamada e deixei o import órfão — `TS6133`, e eu quase acreditei no vermelho. Reverter conserto quase sempre deixa import órfão | sem guarda executável — leia o `tsc` ANTES de olhar o teste |
+| **`fetch().text().length` conta unidade UTF-16, NÃO byte** — com acento, o número sai MENOR que o arquivo em disco e não bate com ninguém | sem guarda executável — meça corpo HTTP com `Buffer.from(await r.arrayBuffer()).length` |
+| **matar os filhos de uma árvore Electron faz ela RESPAWNAR**: o pai vivo repõe gpu, network e renderer. Três ciclos de `kill` não deram conta | sem guarda executável — suba a cadeia de `ppid` até o topo e mate a RAIZ primeiro |
+| **`electron .` é a linha de comando de TODA árvore Electron** — a minha e a de outra pessoa são idênticas no `ps`. Confundi-las é matar o programa de quem está usando a máquina | sem guarda executável — distinga por `/proc/<pid>/cwd` e pelo `--user-data-dir` dos FILHOS |
+| **`electron-vite dev` derruba o servidor junto com o Electron** (`ps.on("close", process.exit)`) — então `npm run dev` não serve de arnês de medição | sem guarda executável — meça com `resolveConfig` + `vite.createServer`, que é o par que ele usa por dentro |
 
 **E a regra que gerou todas as outras:** *ler o registro não impede repetir o erro; validar
 contra uma resposta conhecida, sim.* Toda vez que uma dessas foi pega, foi por medição — nunca
@@ -889,3 +894,120 @@ que eu tenho para a regra de validar onde se sabe a resposta.
 6. **O que eu NÃO consigo cobrir e fica dito:** o portão continua sem enxergar a última camada
    de qualquer conserto que termine no renderer (é a A12, e a decisão foi registrar). Hoje o ato
    3 pega — e agora pega **por uma ferramenta que existe no repositório**, que era o buraco real.
+
+---
+
+## 2026-08-24 · Despacho 8 — a janela preta do `npm run dev`. Defeito de campo, não de portão.
+
+A cabeça abriu o programa e viu o que seis corridas de portão verde não viram. Ela chegou com o
+mecanismo já medido e uma ordem que eu levo a sério: *"confira, não confie"*. Confiro — e
+confirmei tudo, inclusive um número que a minha primeira sonda errou.
+
+### O placar
+
+| medida | chegada | partida |
+|---|:---:|:---:|
+| testes (P1) | 139 | **145** — previstos 145, +4 unidade +2 funcionais |
+| pernas do portão | 5 | **6** — a P6 · conduta em dev |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | **idênticos, previstos por escrito antes** |
+| versão | 0.0.8 | **0.0.9** |
+| exportados · arquivos | 175 · 85 | **177 · 87** — os +2 são o domínio novo, nenhum órfão |
+| sabotagens | — | **4, e as 4 morderam** (a 1ª teve de ser refeita) |
+| árvores | — | **A14 nova · A13 segue sem desfecho** |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. Minha primeira sonda mediu 7003 bytes, e o número é que me salvou.** A cabeça tinha medido
+**7075**; eu ia registrar 7003 como se fosse a minha medição independente. `fetch().text().length`
+conta **unidade UTF-16, não byte**, e a página tem acento — por isso o "corpo servido" saiu
+*menor* que os 7020 do arquivo em disco, o que é impossível quando o Vite **injeta** uma linha.
+Refeito com `Buffer.from(await r.arrayBuffer())`: **7075**, e 7020 + 55 do
+`<script src="/@vite/client">` fecha a conta. **O que pegou não foi releitura — foi um número
+absurdo pedindo segunda fonte (§7·D1).** Se a página fosse toda ASCII, os dois números bateriam
+e o instrumento errado teria passado.
+
+**2. Previ que a P5 falharia nesta máquina, e ela passou.** O despacho avisava que subir Electron
+aqui morre com `GPU process isn't usable`. Escrevi a previsão, rodei o portão e ele deu **5/5**,
+P5 inclusive. Fui medir por que: a P5 passa `--no-sandbox`, e o `startElectron` do electron-vite
+só o passa se `NO_SANDBOX=1`. **O aviso do despacho não se reproduziu** — e como não se
+reproduziu, pude fazer a prova de campo que valia mais que o teste: subi o `npm run dev` de
+verdade com `REMOTE_DEBUGGING_PORT` e perguntei à tela.
+
+**3. DEIXEI PROCESSOS VIVOS, e quase matei o programa da cabeça.** Rodei `npm run dev` numa
+sonda, o `kill -TERM -$PID` do grupo não pegou (o npm sai e o filho fica noutro grupo), e o `ps`
+mostrou **duas** árvores Electron. As duas com a mesma linha de comando: `electron .`. Uma era
+minha; a outra tinha `--user-data-dir=/home/Jared/.config/Terminus` — a **real**. Minha guarda
+recusou matar a que não tinha marca minha, e foi o `/proc/<pid>/cwd` que desempatou: a outra
+vinha de `scratchpad/base-dev (deleted)`, a sonda **da própria cabeça**, das 22:12.
+> **Não a matei, e não é escrúpulo — é o §13.3b:** só removo o que eu criei, nesta execução.
+> Fica listada no tracker para a cabeça decidir. E fica escrito que o `ps` **não** distingue
+> árvore Electron pela linha de comando: quem distingue é o `cwd` e o `--user-data-dir` dos filhos.
+
+**4. Matei os filhos e eles voltaram. Três vezes.** Cada `kill` derrubava gpu, network e renderer,
+e o **pai vivo** repunha os três. Só parou quando subi a cadeia de `ppid` até a raiz e matei
+**ela**. É a mesma família de erro do despacho 1 (matar o pai não mata a árvore) — agora pelo
+avesso: **matar a árvore não mata o pai.**
+
+**5. A sabotagem nº 1 nasceu ruído, e a armadilha estava escrita no índice deste arquivo.**
+Reverti `loadURL(paginaNoServidorDeDev(...))` para `loadURL(servidorDeDev)` e o `tsc` reprovou com
+`TS6133` — import órfão. O índice do topo diz, com todas as letras: *"sabotagem que quebra a
+compilação é ruído"*. **Eu o li hoje e o repeti hoje.** Refeita removendo o import junto, `tsc`
+exit 0, e só então o vermelho valeu. Acrescentei a linha ao índice dizendo que ela **já foi
+repetida** — porque reverter conserto quase sempre deixa import órfão, e essa é a hora exata em
+que a armadilha aparece.
+
+**6. Declarei ANTES que a P6 não teria comando próprio — e a minha própria varredura me
+derrubou.** O argumento era bom: o defeito sobreviveu por morar num comando que ninguém rodava,
+então dar comando próprio repetiria o erro. Só que, com a P6 escondida dentro da P1, o portão
+seguia imprimindo **"5/5 pernas"** e o veredito **nunca nomeava dev**. Isso é o mesmo defeito um
+nível acima. Emendei durante a fatia, com a razão escrita — e ela continua rodando dentro do
+`npm run teste` também, que era a parte certa da declaração.
+
+### O que ACHEI, e não estava em laudo nenhum
+
+**A perna que eu quase escrevi estaria cega — e isso é medição, não opinião.** O caminho fácil
+era testar a função de domínio: sobe servidor, chama `paginaNoServidorDeDev`, faz `GET`. Passaria.
+Mas a **sabotagem nº 1** mostrou o preço: revertida a ligação, os **4 testes de unidade ficaram
+verdes** e só o funcional morreu. Uma perna assim declararia o conserto pronto **com a janela
+ainda preta**. Por isso a P6 chama a `criarJanela()` de verdade, com o `electron` dublado, e faz
+`GET` no que **ela** mandou carregar. O defeito era uma **ligação** errada, não uma conta errada.
+
+**E a P5 fica VERDE com o defeito de volta.** Na sabotagem nº 4, portão inteiro: **VERMELHO 4/6**,
+P6 morta — e **P5 viva**. A perna que sobe o app *construído* não enxerga, por construção, um
+defeito do caminho de *dev*. O vão que a cabeça nomeou está agora medido em números.
+
+**O `electron-vite` não oferece o caminho por configuração — e isso decidiu a forma do conserto.**
+`dist/chunks/lib-t2ExBjL5.mjs:67` monta `${protocol}//${host}:${port}`: **origem pura**. Não há
+knob. Então o conserto é no código, e não na config — e eu só sei disso porque **abri o pacote**
+em vez de supor.
+
+**O `npm run dev` não serve de arnês.** `startElectron` termina com `ps.on("close", process.exit)`:
+o Electron cair derruba o servidor junto. O arnês certo é o par que o próprio electron-vite usa
+por dentro — `resolveConfig` + `vite.createServer` —, e ele custa **274 ms**, contra os 6,5 s da P1.
+
+### O que decidi, e é meu para decidir
+
+- **A P6 captura do `loadURL`, não pergunta ao domínio.** Justificada por sabotagem, acima.
+- **O `BrowserWindow` do duble RECORDA, não simula.** Não navega e **não dispara evento nenhum**,
+  e o limite está escrito nele: duble rico demais deixa teste passar contra faz-de-conta.
+- **`nativeImage.isEmpty()` responde `false`** porque `media/icon.png` existe de verdade — e
+  porque `true` faria a produção chamar `console.warn`, sujando a saída que a P1 exige limpa.
+- **v0.0.9, e não uma linha na v0.0.8.** O README:65 manda `npm run dev` como **único** jeito de
+  rodar e o README:286 diz que não há pacote: a janela preta era **o aplicativo não abrindo para
+  todo mundo**. E dobrar o conserto na entrada da v0.0.8 faria o changelog afirmar que ela trouxe
+  um conserto que não trouxe. **A entrada da v0.0.8 fica intocada**, inclusive o "0 para 139".
+- **A A14 fica devolvida com recomendação (b)** — a duplicação é de duas linhas e a deriva é pega
+  por duas pernas independentes, provado em cópia isolada. A (a) trocaria risco **medido** por
+  acoplamento em terreno (esbuild) que eu **não medi**.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A14**, nova — o lugar da página dito em dois lugares. Recomendo (b), ou (b)+(c).
+2. **A13**, segunda corrida sem desfecho — a receita errada do PNG em `fluxo.md:431`.
+3. **A tag: agora são TRÊS** — v0.0.7, v0.0.8 e v0.0.9. Ato de release, da cabeça.
+4. ⚠️ **O Electron da CABEÇA, PID 465725**, vivo desde 22:12 escrevendo no `~/.config/Terminus`
+   real. Não é meu; não o matei.
+5. **O que a P6 não cobre, e fica dito:** ela prova que o endereço **serve** a página, não que a
+   página **renderiza** em dev. Renderização em dev segue sem rede.
+6. As antigas: `acharPython` (sexta corrida), o `console` sequestrado pelo `neovim`,
+   `tests/arquitetura/` que nunca nasceu.
