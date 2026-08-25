@@ -27,6 +27,9 @@ export interface ControleDoDuble {
   empacotado: boolean;
   /** Tudo que o duble recebeu, na ordem em que recebeu. É a prova da ORDEM. */
   chamadas: string[];
+  /** O que a janela mandou carregar por último — `null` se ninguém mandou nada.
+   *  `url` é o regime de `dev` (`loadURL`); `arquivo` é o do build (`loadFile`). */
+  carregado: { tipo: "url" | "arquivo"; valor: string } | null;
 }
 
 export const controle: ControleDoDuble = {
@@ -35,6 +38,7 @@ export const controle: ControleDoDuble = {
   respostaDaCaixa: 1,
   empacotado: false,
   chamadas: [],
+  carregado: null,
 };
 
 //* Devolve o duble ao estado de fábrica. Chamado no `beforeEach` de cada suíte.
@@ -47,6 +51,7 @@ export function reiniciarDuble(): void {
   controle.respostaDaCaixa = 1;
   controle.empacotado = false;
   controle.chamadas = [];
+  controle.carregado = null;
 }
 
 export const app = {
@@ -92,11 +97,65 @@ export const shell = {
   },
 };
 
-export class BrowserWindow {}
+//! O conteúdo da tela é mudo de propósito: `ligarZoom` e `ligarAtalhosNeovim`
+//!   penduram ouvintes aqui, e um duble que os DISPARASSE estaria simulando o
+//!   Chromium — que é o que ninguém consegue fazer honestamente fora dele.
+class ConteudoDaTela {
+  on(): void {}
+  send(): void {}
+  setWindowOpenHandler(): void {}
+  setZoomFactor(): void {}
+  getZoomFactor(): number {
+    return 1;
+  }
+}
+
+/** A janela que RECORDA em vez de desenhar. */
+//! POR QUE ELA EXISTE, e ela nasceu para UMA pergunta (24/08): qual endereço a
+//!   `criarJanela()` manda carregar. Perguntar isso à função de domínio direto
+//!   não serve — passaria mesmo que `janela-principal.ts` nunca a chamasse, e o
+//!   defeito que a fez nascer é exatamente uma LIGAÇÃO errada, não uma conta errada.
+//! ⚠️ O LIMITE, no espírito do item 4 do cabeçalho: ela não desenha, não navega e
+//!   **não dispara evento nenhum**. Quem registrar `once("ready-to-show")` aqui
+//!   nunca é chamado de volta. Duble rico demais deixa teste passar contra
+//!   faz-de-conta — este é raso porque a pergunta dele é rasa.
+export class BrowserWindow {
+  readonly webContents = new ConteudoDaTela();
+
+  constructor(_opcoes?: unknown) {
+    controle.chamadas.push("new BrowserWindow");
+  }
+
+  setIcon(): void {}
+  once(): void {}
+  on(): void {}
+  show(): void {}
+  isMaximized(): boolean {
+    return false;
+  }
+
+  //! `loadURL` e `loadFile` são os DOIS regimes de carga do produto, e o duble
+  //!   guarda qual deles foi usado — não só o valor. Trocar um pelo outro é um
+  //!   defeito possível, e um registro que só guardasse a string não o veria.
+  loadURL(endereco: string): Promise<void> {
+    controle.carregado = { tipo: "url", valor: endereco };
+    controle.chamadas.push(`janela.loadURL:${endereco}`);
+    return Promise.resolve();
+  }
+
+  loadFile(caminho: string): Promise<void> {
+    controle.carregado = { tipo: "arquivo", valor: caminho };
+    controle.chamadas.push(`janela.loadFile:${caminho}`);
+    return Promise.resolve();
+  }
+}
 
 export const nativeImage = {
-  createFromPath(): Record<string, never> {
-    return {};
+  //! `isEmpty()` responde `false` porque `media/icon.png` EXISTE de verdade — é a
+  //!   simulação verdadeira. E responder `true` faria a produção chamar
+  //!   `console.warn`, sujando a saída que a P1 exige limpa.
+  createFromPath(): { isEmpty: () => boolean } {
+    return { isEmpty: (): boolean => false };
   },
 };
 

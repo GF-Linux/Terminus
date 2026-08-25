@@ -3,6 +3,7 @@
 import { app, BrowserWindow, nativeImage, shell } from "electron";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { paginaNoServidorDeDev, paginaNoDisco } from "../../dominio/endereco-da-pagina.js";
 import { pararShell } from "../motores/motor-do-shell-pty.js";
 import { pararNeovim } from "../motores/motor-neovim-pty.js";
 import { resetarControle } from "../motores/controle-neovim-rpc.js";
@@ -86,9 +87,14 @@ export function criarJanela(): void {
   janela.on("maximize", avisarEstado);
   janela.on("unmaximize", avisarEstado);
 
-  if (process.env["ELECTRON_RENDERER_URL"]) {
-    void janela.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+  //! OS DOIS REGIMES SAEM DO MESMO FATO (24/08): onde a página mora dentro do
+  //!   renderer. O ramo de dev não o dizia e carregava a RAIZ do servidor — e a
+  //!   raiz é `codigos/`, que não tem `index.html`: 404, e a janela abria preta.
+  //!   `ELECTRON_RENDERER_URL` é origem pura, sem caminho; quem compõe somos nós.
+  const servidorDeDev = process.env["ELECTRON_RENDERER_URL"];
+  if (servidorDeDev) {
+    void janela.loadURL(paginaNoServidorDeDev(servidorDeDev));
   } else {
-    void janela.loadFile(path.join(__dirname_, "..", "renderer", "interface", "pagina.html"));
+    void janela.loadFile(paginaNoDisco(__dirname_));
   }
 }
