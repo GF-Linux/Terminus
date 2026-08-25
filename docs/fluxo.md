@@ -138,7 +138,6 @@ Terminus/
 │   │   │   ├── molde-de-projeto.ts     cria a pasta nova já pronta para a linguagem escolhida
 │   │   │   ├── como-rodar-o-projeto.ts detecta no disco qual linha roda este projeto
 │   │   │   ├── kits-embutidos.ts       liga os kits do Terminus por symlink no config do Neovim
-│   │   │   ├── localizador-do-python.ts acha o interpretador que este projeto usa
 │   │   │   ├── resolucao-de-caminho.ts realpath: transforma texto em caminho real do disco
 │   │   │   ├── alcance-da-lixeira.ts   statSync .dev: a lixeira do sistema alcança este caminho?
 │   │   │   └── argumentos-da-partida.ts lê process.argv e devolve a pasta pedida na linha

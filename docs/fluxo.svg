@@ -72,7 +72,7 @@
 <text x="642.96" y="480" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">4 · conduzem algo VIVO: pty, rpc, config</text>
 <circle cx="549" cy="505" r="3.2" fill="#d7d9ea"/>
 <text x="560" y="510" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">infra/</text>
-<text x="626.22" y="510" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">8 · tocam o disco e voltam: fs, realpath, argv</text>
+<text x="626.22" y="510" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">7 · tocam o disco e voltam: fs, realpath, argv</text>
 <circle cx="549" cy="535" r="3.2" fill="#7fd6b5"/>
 <text x="560" y="540" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">servicos/</text>
 <text x="651.33" y="540" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · caso de uso: chamam na ordem certa</text>

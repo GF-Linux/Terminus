@@ -63,7 +63,7 @@ raizes = [
    no("sistema/", "main · o reino do processo principal", ACENTO, [
       no("janela/",   "6 · cria, vive, zoom, atalhos, diálogos, partida", FG),
       no("motores/",  "4 · conduzem algo VIVO: pty, rpc, config", FG),
-      no("infra/",    "8 · tocam o disco e voltam: fs, realpath, argv", FG),
+      no("infra/",    "7 · tocam o disco e voltam: fs, realpath, argv", FG),
       no("servicos/", "5 · caso de uso: chamam na ordem certa", NOVO),
       no("ponte/",    "8 registradores · teto 2 módulos cada", NOVO)]),
    no("interface/", "renderer · a casca, 16 arquivos", FG, [
