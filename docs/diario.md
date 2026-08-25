@@ -27,11 +27,17 @@
 | o PNG sai **1,5625× menor sem `-density 150`**, com exit 0 e sem aviso | `ferramentas/gera-fluxo.py`, cabeçalho — e agora é a **única** receita do repositório: a segunda, errada, saiu do `fluxo.md` em 24/08 (**A13(a)**, decidida pela cabeça) |
 | `pkill -f <padrão>` **mata o próprio comando**; `grep` num `ps` casa a própria linha | sem guarda executável — mate por PID, e conte órfãos excluindo o próprio PID |
 | **sabotagem que quebra a compilação é ruído**: refaça com `tsc` exit 0 antes de acreditar no vermelho | sem guarda executável — é disciplina, e já reprovou uma sabotagem minha |
-| ⚠️ **a linha acima JÁ FOI REPETIDA (24/08, corrida 7)**: reverti a chamada e deixei o import órfão — `TS6133`, e eu quase acreditei no vermelho. Reverter conserto quase sempre deixa import órfão | sem guarda executável — leia o `tsc` ANTES de olhar o teste |
+| ⚠️ **a linha acima JÁ FOI REPETIDA DUAS VEZES** (corrida 7 e corrida **8**): reverti/removi e deixei o import órfão — `TS6133`, e nas duas eu quase acreditei no vermelho. Remover chamador quase sempre deixa import órfão. ⚠️ **E há um segundo dano:** na corrida 8 isso quase escondeu o achado — o `tsc` pega a remoção DESLEIXADA e é cego para a LIMPA, e a diferença entre as duas era o achado inteiro | sem guarda executável — leia o `tsc` ANTES de olhar o teste, e refaça a sabotagem SEM o import órfão antes de concluir qualquer coisa |
 | **`fetch().text().length` conta unidade UTF-16, NÃO byte** — com acento, o número sai MENOR que o arquivo em disco e não bate com ninguém | sem guarda executável — meça corpo HTTP com `Buffer.from(await r.arrayBuffer()).length` |
 | **matar os filhos de uma árvore Electron faz ela RESPAWNAR**: o pai vivo repõe gpu, network e renderer. Três ciclos de `kill` não deram conta | sem guarda executável — suba a cadeia de `ppid` até o topo e mate a RAIZ primeiro |
 | **`electron .` é a linha de comando de TODA árvore Electron** — a minha e a de outra pessoa são idênticas no `ps`. Confundi-las é matar o programa de quem está usando a máquina | sem guarda executável — distinga por `/proc/<pid>/cwd` e pelo `--user-data-dir` dos FILHOS |
 | **`electron-vite dev` derruba o servidor junto com o Electron** (`ps.on("close", process.exit)`) — então `npm run dev` não serve de arnês de medição | sem guarda executável — meça com `resolveConfig` + `vite.createServer`, que é o par que ele usa por dentro |
+
+| ⚠️⚠️ **COMENTÁRIO QUE JUSTIFICA ALARGAMENTO DE ALCANCE É AFIRMAÇÃO VERIFICÁVEL, NÃO DECORAÇÃO.** `leitura-de-arquivo.ts` dizia que a leitura irrestrita existia "para o traceback clicável". Durou desde que o produto existe, e é **falsa**: o traceback vai por `neovim:abrir`. Eu **repeti a frase em nove lugares** antes de conferir | sem guarda executável — **antes de citar uma feature como razão, `grep -rn <a feature> codigos/`**. Custa dois segundos e desmontou tudo |
+| **o portão dá VERDE 6/6 com um canal VIVO destruído.** Removido o handler de `arquivo:criar` (que tem chamador de tela), as seis pernas passaram e o `orfaos` não reprovou: ele pergunta *registrado → porta*, e nunca *porta → registrado* | sem guarda executável — é a árvore **A16**, devolvida. Enquanto não houver, **canal só se remove com busca larga pelo nome do método na porta E na tela** |
+| **título de seção não acompanha a linha de desfecho** — três árvores diziam "EM ABERTO" já aplicadas, e a corrida 3 já tinha varrido isso certo uma vez | sem guarda executável — é a **A17**. O comando colável está em `docs/tracker.md` §19.7 |
+| **número de linha em árvore de decisão ENVELHECE** — a A13 apontava `fluxo.md:431` e o alvo estava em `:443`, porque o arquivo cresceu no meio | sem guarda executável — cite **o título da seção** junto do número; o título não deriva |
+| **a resposta muda quando se olha o remoto** — ia responder "linha na v0.0.9" e `git show origin/main:package.json` mostrou que a v0.0.9 **já estava publicada** | sem guarda executável — antes de decidir versão, `git log origin/main -1` e `git show origin/main:package.json` |
 
 **E a regra que gerou todas as outras:** *ler o registro não impede repetir o erro; validar
 contra uma resposta conhecida, sim.* Toda vez que uma dessas foi pega, foi por medição — nunca
@@ -1011,3 +1017,121 @@ por dentro — `resolveConfig` + `vite.createServer` —, e ele custa **274 ms**
    página **renderiza** em dev. Renderização em dev segue sem rede.
 6. As antigas: `acharPython` (sexta corrida), o `console` sequestrado pelo `neovim`,
    `tests/arquitetura/` que nunca nasceu.
+
+---
+
+## 2026-08-24 · Despacho 9 — quatro árvores fechadas antes do push. E eu escrevi uma mentira em nove lugares.
+
+A cabeça decidiu A14, A13, D4 e A5 de uma vez e mandou consertar a sujeira do próprio tracker.
+Executei as quatro. A parte que importa deste registro não é essa: é que **obedeci a uma razão
+sem conferi-la, escrevi-a em nove lugares, e foi o terceiro ato do fechamento — o que olha o que
+ninguém moveu — que a derrubou, com o código já commitado.**
+
+### O placar
+
+| medida | chegada | partida |
+|---|:---:|:---:|
+| testes | 145 | **145** — nenhum `test()` nasceu ou morreu, previsto por escrito |
+| pernas do portão | 6/6 verde | **6/6 verde**, rodado 5 vezes na corrida |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13/13 | **idênticos, previstos ANTES de cada fatia** |
+| canais | 38 | **36** — re-declarado com a causa (§19.1) antes da fatia 1 |
+| arquivos de código · exportados | 87 · 177 | **86 · 176** |
+| **símbolos sem chamador em lugar nenhum** | 1 (`acharPython`, **sexta** corrida) | **0 — a primeira vez neste projeto** |
+| canais sem chamador na tela | 4 | **2** — os dois que a A6 mandou ficar |
+| versão | 0.0.9 | **0.0.10**, e a medição é que decidiu isso |
+| sabotagens | — | **3, e as 3 morderam** (uma teve de ser refeita) |
+| árvores | — | **A13, D4(b), A5(a) aplicadas · A14 recusada-com-razão · A15, A16, A17 novas** |
+
+### O que TENTEI e falhou — e é o que mais importa
+
+**1. ESCREVI UMA AFIRMAÇÃO FALSA EM NOVE LUGARES, E COMMITEI.** O despacho mandava, com todas
+as letras: *"Remover `arquivo:ler` declara o traceback clicável ABANDONADO — escreva-a como
+decisão, com essa palavra."* A árvore A5 dizia o mesmo. E o próprio código dizia, em
+`leitura-de-arquivo.ts`, que a leitura irrestrita existia *"de propósito: o traceback clicável
+abre o quadro dentro da biblioteca"*. Três fontes concordando. **Escrevi em cinco arquivos de
+código, no README, na planta e em dois pontos do tracker — sem nunca perguntar se o recurso
+existia.**
+
+Ele existe. Está vivo, ligado em produção, e **nunca passou por `arquivo:ler`**:
+
+```
+interface/tela-do-terminal.ts:146  ligarTraceback -> registerLinkProvider do xterm
+interface/nucleo-da-casca.ts:64    aoAbrirQuadro -> abrirArquivo(arquivo, linha)
+interface/nucleo-da-casca.ts:80    api.neovim.abrir(caminho, linha)  ->  canal `neovim:abrir`
+```
+
+O salto do traceback abre o arquivo **no Neovim**, com o cursor na linha. Nunca leu bytes por
+IPC. Ou seja: **o canal mais amplo do produto era justificado por um recurso que ele não
+servia** — e isso deixa a decisão da cabeça **mais** apoiada, não menos. Desfiz a frase nos nove
+lugares e escrevi o desmentido ao lado, em vez de apagar.
+
+> **O que me pegou não foi releitura, foi o Ato 3.** O instrumento listou `DestinoTraceback` na
+> coluna "usado só dentro do próprio arquivo", **na mesma tela em que eu li o relatório**. Puxei
+> a linha em vez de passar por ela. Um `grep -rn traceback codigos/` custa dois segundos e estava
+> no meu caminho o tempo todo.
+
+**2. Previ `tsc` exit 0 numa sabotagem e medi exit 2 — pela armadilha que eu tinha lido hoje.**
+Removi o handler de um canal vivo deixando o import; `TS6133`. É a **terceira** vez neste
+projeto. E desta vez ela quase custou o achado: refeita **sem** o import órfão, o `tsc` dá exit 0
+— e a diferença entre as duas remoções **era o achado inteiro**. O `tsc` pega a remoção
+desleixada e é cego para a limpa.
+
+**3. Ia responder a pergunta da versão errado, e a medição virou a resposta do avesso.** A cabeça
+perguntou *"linha na v0.0.9 ou versão nova?"*. Meu argumento era "linha, porque a v0.0.9 não
+saiu". Fui medir: `git show origin/main:package.json` → **`"version": "0.0.9"`**. Ela **já está
+publicada**. Acrescentar linha reescreveria uma versão que já saiu — o defeito que a corrida 7
+nomeou. → **v0.0.10**.
+
+**4. Achei DOIS furos da minha própria varredura de ontem, e os dois são do mesmo número.** A
+corrida 7 declarou *"cinco → seis pernas · `gera-fluxo.py` + o PNG ✔"*. Falso: o rótulo do nó
+(linha 79) foi trocado e a **legenda** (linha 118) não — **o PNG versionado dizia "portão verde
+5/5"**. E `README:85` dizia *"Sem as cinco verdes"* oito linhas abaixo do `README:77`, que dizia
+"as seis pernas". **Achei a primeira ocorrência no arquivo e dei o arquivo por varrido** — que é,
+literalmente, o padrão que o §15.4 mede.
+
+**5. A sabotagem do canal vivo passou pelo portão inteiro.** Previ e confirmei: `PORTÃO VERDE
+6/6` com `arquivo:criar` destruído — um canal com chamador provado na tela. O `orfaos` também não
+reprova: ele pergunta *registrado → porta*, nunca *porta → registrado*. Virou a árvore **A16**.
+
+### O que ACHEI, e não estava em laudo nenhum
+
+**A varredura do tracker mudou o diagnóstico.** A cabeça mandou consertar os três títulos e
+varrer atrás de mais. Achei os três (nenhum quarto) — e achei, na §11, que **a corrida 3 já tinha
+feito essa varredura, e certo**: *"A3 · A4 · A6 saíram de 'em aberto' | cabeçalhos das três
+árvores"*. Então não é que ninguém sabia: **a prática existia, estava escrita, e dependia de
+alguém lembrar.** Isso não é defeito de conhecimento, é defeito de mecanismo — virou a **A17**.
+
+**A A3 não tinha linha de desfecho na própria seção.** O desfecho dela mora na tabela do §8. Não
+copiei — pus **ponteiro**, que é a lição que a A13 acabou de ensinar no mesmo dia.
+
+**O `-strip` estava documentado em dois lugares e o `DESENHO RECUSADO` em nenhum.** Ao apagar o
+bloco duplicado da planta (A13), quase levei junto o único registro de que o gerador recusa
+desenho torto. Ele mudou de casa para o cabeçalho de `gera-fluxo.py`, ao lado do código que o faz.
+
+### O que decidi, e é meu para decidir
+
+- **Não apaguei `lerParaEditor` nem `gravarConfinado`.** A cabeça decidiu **canais**; funções são
+  decisão nova. Devolvi como **A15**, com o arrasto **previsto por escrito antes** da fatia.
+- **Não criei perna nova para a A16, nem cheque novo para a A17** — perna muda o veredito do
+  portão e é declaração da cabeça (§12·4a). Devolvi as duas com recomendação e com o preço.
+- **Escrevi o desmentido em vez de apagar a frase errada.** O §19.2 mostra a versão errada, a
+  medição que a derrubou e o que muda. Apagar seria mais limpo e menos honesto.
+- **v0.0.10, e a razão é a medição do remoto**, não preferência. Declarei o limite: não fiz
+  `fetch` (ssh está na cerca), então `origin/main` é do último fetch.
+- **Contei os nove lugares um a um pelo `git diff`** antes de escrever "nove" — errar a conta
+  dentro de um desmentido seria o mesmo defeito de novo.
+- **A sabotagem foi feita no alvo e revertida por `git checkout`**, com `git status` limpo
+  conferido depois, e **antes** de qualquer remoção real.
+
+### O que ficou aberto para o próximo despacho
+
+1. **A15** — `lerParaEditor` e `gravarConfinado` sem chamador de produção. Recomendo (b), ou (c).
+2. **A16** — o portão é cego a canal vivo removido. **É o mais sério que devolvi hoje**, porque
+   quebra na mão de quem usa. Recomendo (a): perna nova, e metade dela já está escrita.
+3. **A17** — o cheque de título × desfecho é prosa. Recomendo (b): entra no `npm run orfaos`.
+4. **As tags: agora são QUATRO** — v0.0.7, v0.0.8, v0.0.9, v0.0.10. Ato de release, da cabeça.
+5. **O `console` sequestrado pelo pacote `neovim`** — quarta corrida escrita, não tocado.
+6. `tests/arquitetura/` continua não existindo (desvio de planta do despacho 1).
+7. **O que eu NÃO consigo cobrir e fica dito:** a P6 prova que o endereço **serve** a página, não
+   que ela **renderiza** em dev. E, depois da A16, fica dito também que **canal vivo removido
+   atravessa o portão** — até a A16 ser decidida, remover canal exige busca larga à mão.
