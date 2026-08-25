@@ -1836,3 +1836,119 @@ Refeita removendo o import junto.
 | **o `console` sequestrado pelo `neovim`** | não tocado, terceira corrida escrita | a cabeça |
 | ⚠️ **um Electron da CABEÇA ficou vivo na máquina** | PID **465725**, iniciado 22:12, `cwd` em `scratchpad/base-dev (deleted)` — sobra da sonda que a cabeça rodou para medir o defeito. Escreve no `~/.config/Terminus` **real** (sem `HOME` redirecionado). **Não é meu e não o matei** (§13.3b: só removo o que eu criei, nesta execução) | a cabeça |
 | **o que a P6 NÃO cobre** | ela prova que o endereço **serve** a página; não prova que a página **renderiza** em dev. Renderização em dev segue sem rede | declarado, não resolvido |
+
+---
+
+## 19. Corrida 8 — 24/08/2026: as pendências fechadas antes do push
+
+> **O que esta corrida é:** a cabeça decidiu **quatro** árvores de uma vez (A14, A13, D4, A5) e
+> mandou consertar a sujeira do próprio tracker. Nenhuma delas é refatoração: são **remoções** e
+> **desfechos**. O produto já está publicado; esta é a corrida que sai para o mundo.
+
+### 19.1 · ⚠️ DECLARADO ANTES DA FATIA 1 (§12·4a) — os números que MUDAM, e a causa de cada um
+
+**A contagem de canais muda, e ela é a prova de conduta preservada desde a corrida 1.** É o
+mesmo tratamento que o 37→38 recebeu na §13.8: número re-declarado **com a causa escrita**, não
+número preservado em cima de um defeito.
+
+| | antes | a partir desta corrida |
+|---|---|---|
+| **a asserção de conduta** | *"os **37** da linha de base, idênticos por `diff`, **mais 1** declarado — total **38**"* | *"os **37** da linha de base, conferidos um a um, **menos 2 removidos por decisão**, **mais 1** criado por decisão — total **36**"* |
+| **quais saíram** | — | **`arquivo:ler`** e **`arquivo:gravar`** |
+| **quem decidiu** | — | **a cabeça**, em 24/08/2026, fechando a árvore **A5** pela opção **(a)** |
+
+**Medido antes de mexer** — `ipcMain.(handle|on)` em `codigos/sistema/`, nomes únicos: **38**.
+Os 38 estão listados na §19.4. Depois da fatia 3 têm de ser **36**, e os dois que faltarem têm
+de ser exatamente esses dois.
+
+#### Os números do instrumento do 3º ato — previstos por escrito, antes de rodar
+
+| medida | hoje (medido) | previsto ao fim | por quê |
+|---|:---:|:---:|---|
+| arquivos de código | 87 | **86** | sai `localizador-do-python.ts` (D4) |
+| símbolos exportados | 177 | **176** | sai `acharPython`; os canais não são exports |
+| canais | 38 | **36** | saem `arquivo:ler` e `arquivo:gravar` |
+| **sem chamador em lugar NENHUM** | **1** (`acharPython`) | **0** | é o D4, e ele é o único da lista |
+| **chamados só por `tests/`** | 3 | **5** | entram `lerParaEditor` e `gravarConfinado` — **é o arrasto da A5, e está previsto, não descoberto depois** |
+| **canais sem chamador na tela** | 4 | **2** | ficam `neovim:parar` e `shell:pasta`, que a **A6** mandou ficar |
+| usados só dentro do próprio arquivo | 15 | **15** | nada nesta corrida mexe em escopo de arquivo |
+
+#### A catraca NÃO muda — e a razão de cada um dos quatro
+
+`docs/catraca.json` continua **M1 ≤ 2 · M2 ≤ 0 · M3 ≤ 0 · M4 ≥ 13**, e isto é previsão escrita
+antes de rodar:
+
+- **M1 = 2.** `ponte-arquivo.ts` importa `servicos/escrita-confinada` e `servicos/leitura-de-arquivo`.
+  Depois da fatia 3 ele **continua importando os dois** — `criarArquivoNoProjeto`/`criarPastaNoProjeto`/
+  `renomearNoProjeto` vêm do primeiro, `abrirParaTela`/`listarPasta`/`listarProjeto` do segundo.
+  Tirar handler não tira import de módulo enquanto sobrar um irmão no mesmo módulo.
+- **M2 = 0.** Nenhum import nasce. Dois somem de dentro de chaves (`gravarConfinado`, `lerParaEditor`),
+  e apagar arquivo folha não fecha ciclo nenhum.
+- **M3 = 0.** `localizador-do-python.ts` mora em `sistema/infra/`; `dominio/` não é tocado.
+- **M4 = 13/13.** `codigos/sistema/infra` sobrevive com **7** arquivos (medido: eram 8). O nó
+  exigido é a **pasta**, não a contagem dela — `portao.mjs:148-153`.
+
+#### E a contagem de testes: **145 → 145**
+
+Nenhum `test()` nasce ou morre. Medido antes: **nada** em `tests/` cita `arquivo:ler`,
+`arquivo:gravar`, `api.ler`, `api.gravar` ou `acharPython` — busca larga em `tests/` e `codigos/`.
+As 10 asserções de `leitura-de-arquivo.test.ts` e as de `escrita-confinada.test.ts` chamam as
+**funções**, não os canais, e as funções ficam.
+
+### 19.2 · ⚠️ O que a A5(a) DECLARA, e a palavra tem de estar escrita
+
+**Remover `arquivo:ler` declara o traceback clicável ABANDONADO.** Não é faxina.
+
+O porquê do ler-largo está escrito em `codigos/sistema/servicos/leitura-de-arquivo.ts:34-36`:
+*"LER NAO E CONFINADO A PASTA ABERTA, e e de proposito: o traceback clicavel abre o quadro
+dentro da biblioteca, e o `F12` vai a definicao la tambem. Fechar aqui quebraria o salto do
+traceback."* A capacidade existia **para uma feature que não nasceu**. A árvore A5 escreveu, em
+24/08: *"se o traceback clicável foi abandonado, `arquivo:ler` vira candidato a sair"*. A cabeça
+tomou essa decisão em 24/08/2026, e é ela que autoriza a remoção.
+
+**Fica escrito com a palavra, para quem ler daqui a um ano não achar que foi faxina distraída:
+o traceback clicável está ABANDONADO como capacidade exposta.** O que sobra dele é a função de
+domínio e a rede em volta — e o que fazer com ela é a árvore **A15**, devolvida nesta corrida.
+
+### 19.3 · O que cai junto — medido, não estimado
+
+| peça | o que acontece com ela | por quê |
+|---|---|---|
+| `servicos/leitura-de-arquivo.ts` (o módulo) | **FICA** | tem 4 exports; **3 continuam com chamador de produção** (`abrirParaTela`, `listarPasta`, `listarProjeto` servem `projeto:abrir`, `projeto:listar`, `projeto:arquivos`). O módulo não fica órfão — **só a função `lerParaEditor` fica** |
+| `lerParaEditor` | **fica, e passa a ser chamada só por `tests/`** | é o arrasto previsto. Removê-la é decisão nova → árvore **A15** |
+| `servicos/escrita-confinada.ts` (o módulo) | **FICA** | 3 dos 4 exports seguem servindo `arquivo:criar`, `pasta:criar`, `caminho:renomear` |
+| `gravarConfinado` | **fica, e passa a ser chamada só por `tests/`** | a própria A5 avisou: *"removê-la por arrasto seria jogar fora a melhor peça por causa da superfície da pior"*. É a peça-vitrine do confinamento |
+| `confinado` | **fica, chamada pelos outros três** | já estava na coluna "só `tests/`" por ser chamada interna; os três serviços a usam |
+| `infra/resolucao-de-caminho.ts` | **FICA inteiro** | `resolverReal` serve `confinado`; `resolverParaLeitura` serve `lerParaEditor` |
+
+### 19.4 · Os 38 canais de partida, para o `diff` da conduta preservada
+
+Extraídos por `ipcMain.(handle|on)` em `codigos/sistema/`, nomes únicos, **antes de qualquer
+mudança desta corrida**. Ao fim, a lista tem de ser esta **menos exatamente dois**.
+
+```
+aparencia:definir   aparencia:escolher  aparencia:estado    aparencia:tirar
+arquivo:criar       arquivo:gravar ←    arquivo:ler ←       caminho:excluir
+caminho:renomear    janela:alternar-maximo  janela:fechar   janela:minimizar
+neovim:abrir        neovim:cd           neovim:enviar       neovim:iniciar
+neovim:parar        neovim:plugins      neovim:redimensionar  pasta:criar
+projeto:abrir       projeto:arquivos    projeto:como-rodar  projeto:entrar
+projeto:escolher    projeto:esquecer    projeto:fechar      projeto:inicial
+projeto:listar      projeto:novo        projeto:recentes    shell:enviar
+shell:iniciar       shell:ir-para       shell:konsole       shell:linha
+shell:pasta         shell:redimensionar
+```
+
+`←` marca os dois que a **A5(a)** remove. Os **36** restantes ficam **idênticos, um a um** —
+nenhum muda de nome, de carga ou de registrador.
+
+### 19.5 · A ordem das fatias, e o que cada uma fecha
+
+| fatia | o que faz | árvore |
+|---|---|---|
+| **1** | apaga a segunda receita do PNG em `docs/fluxo.md` e aponta para o cabeçalho de `gera-fluxo.py` | **A13(a)** |
+| **2** | remove `codigos/sistema/infra/localizador-do-python.ts` | **D4(b)** |
+| **3** | remove `arquivo:ler` e `arquivo:gravar` da porta e do main | **A5(a)** |
+| **4** | conserta os títulos que contradizem os próprios desfechos, e varre o tracker inteiro | a sujeira do tracker |
+| **5** | desfechos (A14 recusada-com-razão) + o fechamento com os três atos | §12 passo 6 |
+
