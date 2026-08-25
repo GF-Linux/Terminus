@@ -2211,3 +2211,50 @@ erro e a correção vale mais que um histórico limpo que finge que a primeira v
 por isso o desmentido mora na §19.2, no README, na planta e em cinco arquivos de código. Se a
 cabeça preferir o histórico reescrito antes do push, é decisão dela e é uma ordem, não um pedido.
 
+### 20.5 · ⚠️ A linha de base mudou de HASH e não de conteúdo — medido antes de a pasta antiga ser apagada
+
+A cabeça avisou, com o push já feito, que ia **apagar `~/projetos/terminus`** e renomear este
+repositório para `terminus`. Fui medir o que isso quebra, e achei uma coisa que valia a checagem.
+
+**`ada7bfa` — a linha de base que este projeto cita 18 vezes — não existe neste repositório.**
+
+```bash
+git cat-file -t ada7bfa            ->  fatal: Not a valid object name
+git rev-list --all | grep ^ada7bfa ->  0
+```
+
+Ele é do **repositório antigo**, cuja história foi **reescrita**: `comm -12` entre as duas listas
+de commits devolve **7 commits em comum**, e este repo tem 130 commits desde 26/07.
+
+**Mas o conteúdo está inteiro aqui, e a prova é a árvore:**
+
+| | |
+|---|---|
+| `ada7bfa` (repo antigo) `^{tree}` | `47ff4c0fcd11f33dff55f25380556fcbd0a3fae2` |
+| **`0ace461`** (ESTE repo) `^{tree}` | `47ff4c0fcd11f33dff55f25380556fcbd0a3fae2` |
+| mesma mensagem de commit | *"v0.0.7: o terminal ganha PTY, e o Konsole entra pela porta certa"* |
+| tags nos dois | `v0.0.3 v0.0.4 v0.0.5 v0.0.6` — idênticas |
+
+**E provada também por execução, contra a resposta conhecida da §15.3:**
+`--ref 0ace461` devolve **30 arquivos · 125 exportados · 37 canais · 4 órfãos**
+(`acharPython`, `lerDoTwinny`, `neovimRodando`, `shellEstaVivo`) — o mesmo que a corrida 6 mediu.
+
+#### O que consertei, e o que deixei
+
+| | |
+|---|---|
+| **consertado** | `ferramentas/varre-orfaos.py`, cabeçalho: ensinava `--ref ada7bfa`, que **falhava**. Agora ensina `0ace461`, com a equivalência escrita e **rodada antes de commitada**. Era a mesma doença da A13 — receita no repositório que não roda — e desta vez atingia a **validação contra resposta conhecida**, que é o argumento mais forte do instrumento |
+| **consertado** | o índice de armadilhas do `docs/diario.md` ganhou a linha, porque é o que se lê com a janela vazia |
+| **deixado, de propósito** | as **18 citações** a `ada7bfa` em `fluxo.md` (2), `diario.md` (5) e `tracker.md` (10+). São **registro datado**: naquele dia a base **se chamava** `ada7bfa`. Trocar o identificador apagaria o fato de que a história foi reescrita. Ficam, e agora há um lugar que explica |
+
+**Conclusão para a cabeça: apagar `~/projetos/terminus` não perde nada que eu consiga medir.**
+Nenhum arquivo deste repositório carrega caminho absoluto com o nome antigo (`grep -rn
+"Terminus-agente-v0500"` fora de `node_modules`/`out`/`.git` → **zero**), então o **rename também
+é seguro**. As duas menções a `~/projetos/terminus` que restam (`diario.md:75`, `tracker.md:30`)
+são registro datado da comparação com a linha de base, e ficam.
+
+> ⚠️ **O que eu NÃO consigo garantir, e fica dito:** só conferi **git** — árvore, commits, tags. Se
+> a pasta antiga tiver arquivo **não versionado** (`.env`, nota solta, `node_modules` com patch à
+> mão), ele não aparece em nenhuma medição que eu fiz, e some com o `rm`. Um
+> `git -C ~/projetos/terminus status --porcelain` antes de apagar responde isso em um segundo.
+

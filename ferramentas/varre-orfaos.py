@@ -12,7 +12,18 @@
 #!
 #!      npm run orfaos                        # a arvore de trabalho de hoje
 #!      python3 ferramentas/varre-orfaos.py   # identico, sem passar pelo npm
-#!      python3 ferramentas/varre-orfaos.py --ref ada7bfa    # uma arvore antiga, por git
+#!      python3 ferramentas/varre-orfaos.py --ref 0ace461    # uma arvore antiga, por git
+#!
+#! ⚠️ A LINHA DE BASE MUDOU DE HASH, E NAO MUDOU DE CONTEUDO — medido 24/08/2026.
+#!    Os documentos deste projeto citam a base como `ada7bfa` 18 vezes. Esse hash NAO
+#!    resolve neste repositorio (`git cat-file -t ada7bfa` -> "Not a valid object name"):
+#!    ele e' do repositorio antigo, cuja historia foi REESCRITA — so 7 commits em comum.
+#!    Aqui a mesma base se chama `0ace461`, e a equivalencia foi PROVADA pela arvore:
+#!      ada7bfa^{tree} == 0ace461^{tree} == 47ff4c0fcd11f33dff55f25380556fcbd0a3fae2
+#!    E foi provada tambem por execucao: `--ref 0ace461` devolve 30 arquivos, 125
+#!    exportados, 37 canais e os 4 orfaos conhecidos (acharPython, lerDoTwinny,
+#!    neovimRodando, shellEstaVivo) — a mesma resposta conhecida da §15.3 do tracker.
+#!    USE `0ace461`. As citacoes a `ada7bfa` nos docs ficam como registro datado.
 #!      python3 ferramentas/varre-orfaos.py --raiz /caminho  # outra copia do projeto
 #!
 #! 3. ⚠️ ELE NAO E' PERNA DE PORTAO, E ISSO E' DECISAO, NAO ESQUECIMENTO. Orfao transitorio

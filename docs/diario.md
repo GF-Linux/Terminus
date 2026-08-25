@@ -39,6 +39,8 @@
 | **número de linha em árvore de decisão ENVELHECE** — a A13 apontava `fluxo.md:431` e o alvo estava em `:443`, porque o arquivo cresceu no meio | sem guarda executável — cite **o título da seção** junto do número; o título não deriva |
 | **a resposta muda quando se olha o remoto** — ia responder "linha na v0.0.9" e `git show origin/main:package.json` mostrou que a v0.0.9 **já estava publicada** | sem guarda executável — antes de decidir versão, `git log origin/main -1` e `git show origin/main:package.json` |
 
+| ⚠️ **`ada7bfa` NAO RESOLVE NESTE REPOSITORIO** — é o hash da linha de base **no repo antigo**, cuja história foi reescrita (só **7 commits em comum**). Os docs o citam **18 vezes**, e o cabeçalho do instrumento ensinava `--ref ada7bfa`, que **falhava** | `ferramentas/varre-orfaos.py`, cabeçalho — aqui a base é **`0ace461`**, e a equivalência está **provada por árvore** (`ada7bfa^{tree}` == `0ace461^{tree}` == `47ff4c0f…`) **e por execução** (30 arq · 125 exp · 37 canais · os 4 órfãos conhecidos) |
+
 **E a regra que gerou todas as outras:** *ler o registro não impede repetir o erro; validar
 contra uma resposta conhecida, sim.* Toda vez que uma dessas foi pega, foi por medição — nunca
 por releitura.
