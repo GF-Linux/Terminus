@@ -1749,3 +1749,90 @@ npm run teste          # ela roda aqui tambem, junto da P1 (de proposito — ~0,
 **`tests/funcionais/` nasce aqui, e isso encosta no desvio de planta do despacho 1** — mas não o
 fecha: a planta pedia `funcionais/` para **a conduta**, que hoje é a P5. Nasce a pasta, com um
 morador; o desvio segue de pé e segue sendo da cabeça.
+
+### 17.3 · As SABOTAGENS — quatro, e as quatro morderam
+
+Nenhuma vale sem `tsc` exit 0: sabotagem que quebra a compilação é ruído, não vermelho.
+⚠️ **A primeira tentativa FOI ruído** — reverti a chamada e deixei o import órfão, e o `tsc`
+reprovou com `TS6133`. É armadilha que já está escrita no índice do diário, e eu a repeti.
+Refeita removendo o import junto.
+
+| # | o que sabotei | `tsc` | os 4 de unidade | os 2 funcionais |
+|---|---|:---:|---|---|
+| 1 | **o conserto**: `loadURL` volta a receber a origem pura | 0 | **4 verdes** ⚠️ | **1 MORTO** — 404 |
+| 2 | o domínio devolve a base sem compor | 0 | **3 MORTOS** | **1 MORTO** |
+| 3 | o regime do build perde a pasta `interface/` | 0 | **1 MORTO** | **1 MORTO** |
+| 4 | a nº 1 outra vez, mas medindo o **portão inteiro** | 0 | — | **PORTÃO VERMELHO 4/6** |
+
+> **A linha 1 é a que justifica o desenho da perna, e ela é medição e não argumento:** revertida
+> a ligação, os quatro testes de unidade do domínio ficaram **VERDES**. Uma perna que perguntasse
+> o endereço à função de domínio teria declarado o conserto pronto **com o aplicativo ainda
+> preto**. Só a perna que captura do `loadURL` da `criarJanela()` de verdade morre.
+
+> **E a linha 4 mostra o buraco estrutural em números:** com o conserto revertido, a **P5 ficou
+> VERDE** na mesma corrida em que a P6 morreu. A perna que sobe o app **construído** não
+> consegue, por construção, ver um defeito do caminho de `dev`. Era exatamente esse o vão.
+
+### 17.4 · ⚠️ A14 — o lugar da página é dito em DOIS lugares — árvore de decisão (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | *"a página mora em `interface/pagina.html`"* é **um fato dito duas vezes**: `electron.vite.config.ts:22` (entrada do Vite) e `codigos/dominio/endereco-da-pagina.ts:24` (a constante). Nada no código liga os dois. **Provado em cópia isolada** (`git archive HEAD`, fora do alvo): renomeei a página para `tela.html` e atualizei **só a config** — a P6 morreu com `http://localhost:5173/interface/pagina.html respondeu 404` |
+| **o que custa deixar** | **menos do que parece, e isso é medido.** A deriva não passa: quem mexer num lado sem o outro leva vermelho da **P6** (regime de dev) ou da **P5** (regime de build, que não carrega o arquivo e não responde). O custo real é de **leitura** — quem for mover a página não tem como saber, olhando um dos arquivos, que existe o outro |
+| **as opções** | **(a) a config importa a constante do domínio** — uma fonte só. Custo: acopla a configuração de build ao código do aplicativo, e o `electron.vite.config.ts` é carregado por esbuild, onde a resolução `.js`→`.ts` do projeto **não vale** — teria de ser medido antes, e não foi. **(b) deixar como está, com a rede cobrindo** — a P6 e a P5 já pegam a deriva, e isso está medido acima. **(c) um comentário em cada lado apontando para o outro** — barato, resolve o custo de leitura, não resolve nada além disso |
+| **a minha recomendação** | **(b)**, e se a cabeça quiser barato, **(b) + (c)**. A duplicação é de **duas linhas**, a deriva é **pega por duas pernas independentes**, e a (a) troca um risco coberto por um acoplamento novo em terreno (esbuild) que eu **não medi**. Trocar risco medido por risco não medido é o mau negócio |
+| **se ficar para depois** | **igual.** Não encarece: o custo é constante e a rede não envelhece |
+
+---
+
+## 18. Fechamento da corrida 7 — 24/08/2026 · os TRÊS atos do §12 passo 6
+
+### Ato 1 — varredura do que a corrida MOVEU
+
+| o que mudou | onde foi procurado e o que virou |
+|---|---|
+| **139 → 145 testes** | `README:75` ✔ · `docs/fluxo.md` (total e o ramo `dominio/`, 26→30) ✔ · demais ocorrências são **registro datado** de corridas passadas e ficam |
+| **0.0.8 → 0.0.9** | `package.json` ✔ · `README:16` (Estado) ✔ · `README:281` (lista honesta) ✔ · as menções restantes são a entrada de changelog da v0.0.8, **história e não afirmação viva** |
+| **cinco → seis pernas** | `README:77` ✔ · `docs/fluxo.md:220` ✔ · `ferramentas/gera-fluxo.py` + o PNG ✔ · `portao.mjs:1` perdeu **o número** em vez de ganhar "seis" (a data é 23/08; trocar o número mantendo a data falsificaria) ✔ · `tracker:115` fica com o **ponteiro** embaixo |
+| **nomes novos** | `paginaNoServidorDeDev`, `paginaNoDisco`, `tests/funcionais/`, `teste:dev` — entram na planta (`.md` **e** `.png`) e no `package.json` |
+| **o PNG** | refeito pela receita do cabeçalho de `gera-fluxo.py`. SVG 1820×1215 → PNG **2843×1898**, contra os 2844×1898 que 150/96 prevê. E foi **aberto e olhado**: os dois nós novos aparecem com conector, rótulo e descrição, sem sobreposição |
+
+### Ato 2 — vitrine conferida
+
+| o que o README afirma | conferido | resultado |
+|---|---|---|
+| `npm run teste` → *"145 testes"* | **rodado** | `# tests 145 / # pass 145 / # fail 0` ✔ |
+| `npm run typecheck` | **rodado** | exit 0 ✔ |
+| `npm run portao` → *"as seis pernas"* | **rodado** | **VERDE 6/6** ✔ |
+| `npm run orfaos` | **rodado** | exit 0, corpo de prova OK ✔ |
+| *"a raiz responde 404 e 0 bytes; a página responde 200 e 7075"* | **remedido** | idêntico ✔ |
+| **as três fontes da versão** | `package.json` 0.0.9 · README 0.0.9 · changelog v0.0.9 · **tag mais nova `v0.0.6`** | ⚠️ **as tags seguem atrás, e agora são TRÊS** (v0.0.7, v0.0.8, v0.0.9). Ato de release — da cabeça |
+
+### Ato 3 — varredura do que NINGUÉM moveu · pelo instrumento versionado
+
+`npm run orfaos` — corpo de prova (5 colunas + 3 sabotagens de corpus) **OK** antes do relatório.
+
+| medida | corrida 6 | corrida 7 |
+|---|:---:|:---:|
+| arquivos de código · exportados · canais | 85 · 175 · 38 | **87 · 177 · 38** |
+| símbolos sem chamador em lugar nenhum | 1 (`acharPython`) | **1 — o mesmo**, sexta corrida |
+| chamados só por `tests/`/`ferramentas/` | 3 | **3 — os mesmos** |
+| usados só dentro do próprio arquivo | 15 | **15 — os mesmos** |
+| canais sem chamador na tela | 4 | **4 — os mesmos** |
+
+**Os +2 exportados são exatamente os dois do domínio novo, e nenhum deles caiu na coluna de
+órfão** — ou seja, a produção chama os dois. Nenhum item novo nasceu nesta corrida.
+
+### 18.1 · DESFECHOS e pendências vivas ao fim da corrida 7
+
+| # | o que é | desfecho / quem decide |
+|---|---|---|
+| **o defeito da janela preta** | achado em campo pela cabeça | **APLICADO** em 24/08 — conserto + perna P6, portão 6/6, conferido no `npm run dev` real por CDP |
+| **A14** | **NOVA** — o lugar da página é dito em dois lugares. Recomendo **(b)**, ou (b)+(c) | **SEM DESFECHO — a cabeça** |
+| **A13** | herdada da corrida 6 — `docs/fluxo.md:431` ensina a receita do PNG **sem `-density 150`**. **Não a usei** (usei a do cabeçalho de `gera-fluxo.py`) e **não a consertei** | **SEM DESFECHO, segunda corrida — a cabeça** |
+| **a versão sem tag** | agora são **três**: v0.0.7, v0.0.8 e v0.0.9. Bump no repo segue a convenção da casa; criar tag é ato de release | a cabeça |
+| **A5, D4(b)** | as antigas. `acharPython` é **sexta** corrida como único órfão | a cabeça |
+| **o desvio de planta** | `tests/funcionais/` **nasceu** nesta corrida; `tests/arquitetura/` continua não existindo, e conduta de tela continua sendo a P5 | a cabeça |
+| **o `console` sequestrado pelo `neovim`** | não tocado, terceira corrida escrita | a cabeça |
+| ⚠️ **um Electron da CABEÇA ficou vivo na máquina** | PID **465725**, iniciado 22:12, `cwd` em `scratchpad/base-dev (deleted)` — sobra da sonda que a cabeça rodou para medir o defeito. Escreve no `~/.config/Terminus` **real** (sem `HOME` redirecionado). **Não é meu e não o matei** (§13.3b: só removo o que eu criei, nesta execução) | a cabeça |
+| **o que a P6 NÃO cobre** | ela prova que o endereço **serve** a página; não prova que a página **renderiza** em dev. Renderização em dev segue sem rede | declarado, não resolvido |
