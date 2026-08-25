@@ -48,7 +48,8 @@ raizes = [
       no("entrada-recusada",         "recusa vazio, \\0 e o que começa com ‑", NOVO),
       no("protecao-da-pasta-aberta", "é a pasta aberta, ou está acima dela?", NOVO),
       no("escolha-da-pasta-inicial", "argumento ganha da memória", NOVO),
-      no("fluxo-conhecido",          "cpp | python | csharp", NOVO)]),
+      no("fluxo-conhecido",          "cpp | python | csharp", NOVO),
+      no("endereco-da-pagina",       "onde a página mora, nos DOIS regimes de carga", NOVO)]),
    no("porta/", "preload · a ÚNICA passagem renderer↔main", ACENTO, [
       no("ponte-para-a-interface", "contextBridge: publica window.terminus", FG)]),
    no("sistema/", "main · o reino do processo principal", ACENTO, [
@@ -60,12 +61,13 @@ raizes = [
    no("interface/", "renderer · a casca, 16 arquivos", FG, [
       no("painel-lateral", "desfaz os 2 ciclos de import", NOVO)]),
    no("design/", "css, temas, papel de parede, fontes", FG)]),
- no("tests/", "139 testes (§6·R5)", NOVO, [
+ no("tests/", "145 testes (§6·R5)", NOVO, [
    no("apoio/",    "o andaime: duble do electron, gancho, casa temporária", NOVO),
-   no("dominio/",  "26 · a regra pura, sem Electron, em milissegundos", NOVO),
+   no("dominio/",  "30 · a regra pura, sem Electron, em milissegundos", NOVO),
    no("servicos/", "76 · o caso de uso: a ORDEM e a DECISÃO", NOVO),
    no("motores/",  "32 · A8 consertada: o canal de controle DESISTE e diz", NOVO),
-   no("infra/",    "5 · os 4 casos de ligação da A4(b)", NOVO)]),
+   no("infra/",    "5 · os 4 casos de ligação da A4(b)", NOVO),
+   no("funcionais/", "2 · a perna P6: GET na URL que a janela MANDOU carregar", NOVO)]),
  no("ferramentas/", "portao.mjs (5 pernas + M1-M4) · gera-fluxo.py · varre-orfaos.py", NOVO),
  no("docs/", "fluxo.md (esta planta) · tracker.md · diario.md", NOVO),
  no("kits/", "dev-kits embutidos", FG),

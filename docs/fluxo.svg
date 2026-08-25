@@ -1,37 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1155" width="1820" height="1155" role="img" aria-label="Planta-alvo do Terminus: dominio puro, reino da porta e as cinco camadas de sistema, com o alvo da corrida em numeros">
-<rect width="1820" height="1155" fill="#0c0e16"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1820 1215" width="1820" height="1215" role="img" aria-label="Planta-alvo do Terminus: dominio puro, reino da porta e as cinco camadas de sistema, com o alvo da corrida em numeros">
+<rect width="1820" height="1215" fill="#0c0e16"/>
 <text x="70" y="58" font-family="Cantarell, Noto Sans, sans-serif" font-size="30" font-weight="700" fill="#d7d9ea">Terminus — a planta do prédio</text>
 <text x="70" y="86" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="14.5" fill="#8f95d6">PADRÃO §1.3 + emendas E1–E4 · construída em 23/08 · portão verde 5/5 · 37 canais da base + 1 declarado (A7)</text>
 <line x1="70" y1="108" x2="1750" y2="108" stroke="#2a3046" stroke-width="1"/>
-<path d="M 425.0 235.0 C 491.55 235.0, 479.45 175, 546 175" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 235.0 C 491.55 235.0, 479.45 205, 546 205" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 235.0 C 491.55 235.0, 479.45 235, 546 235" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 235.0 C 491.55 235.0, 479.45 265, 546 265" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 235.0 C 491.55 235.0, 479.45 295, 546 295" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 355.0 C 491.55 355.0, 479.45 355, 546 355" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 475.0 C 491.55 475.0, 479.45 415, 546 415" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 475.0 C 491.55 475.0, 479.45 445, 546 445" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 475.0 C 491.55 475.0, 479.45 475, 546 475" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 475.0 C 491.55 475.0, 479.45 505, 546 505" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 475.0 C 491.55 475.0, 479.45 535, 546 535" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 425.0 595.0 C 491.55 595.0, 479.45 595, 546 595" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 145, 236 145" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 235.0, 236 235.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 355.0, 236 355.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 475.0, 236 475.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 595.0, 236 595.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 400.0 C 222.05 400.0, 218.95 655, 236 655" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 775.0 C 222.05 775.0, 218.95 715, 236 715" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 775.0 C 222.05 775.0, 218.95 745, 236 745" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 775.0 C 222.05 775.0, 218.95 775, 236 775" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 775.0 C 222.05 775.0, 218.95 805, 236 805" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 205.0 775.0 C 222.05 775.0, 218.95 835, 236 835" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 40 400.0 L 40 955" stroke="#2a3046" stroke-width="1.6" fill="none"/>
-<path d="M 40 400.0 C 49.9 400.0, 48.1 400.0, 58 400.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 40 775.0 C 49.9 775.0, 48.1 775.0, 58 775.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 40 895 C 49.9 895, 48.1 895, 58 895" fill="none" stroke="#2a3046" stroke-width="1.6"/>
-<path d="M 40 925 C 49.9 925, 48.1 925, 58 925" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 175, 546 175" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 205, 546 205" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 235, 546 235" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 265, 546 265" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 295, 546 295" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 250.0 C 491.55 250.0, 479.45 325, 546 325" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 385.0 C 491.55 385.0, 479.45 385, 546 385" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 505.0 C 491.55 505.0, 479.45 445, 546 445" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 505.0 C 491.55 505.0, 479.45 475, 546 475" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 505.0 C 491.55 505.0, 479.45 505, 546 505" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 505.0 C 491.55 505.0, 479.45 535, 546 535" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 505.0 C 491.55 505.0, 479.45 565, 546 565" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 425.0 625.0 C 491.55 625.0, 479.45 625, 546 625" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 145, 236 145" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 250.0, 236 250.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 385.0, 236 385.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 505.0, 236 505.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 625.0, 236 625.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 415.0 C 222.05 415.0, 218.95 685, 236 685" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 745, 236 745" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 775, 236 775" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 805, 236 805" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 835, 236 835" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 865, 236 865" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 205.0 820.0 C 222.05 820.0, 218.95 895, 236 895" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 40 415.0 L 40 1015" stroke="#2a3046" stroke-width="1.6" fill="none"/>
+<path d="M 40 415.0 C 49.9 415.0, 48.1 415.0, 58 415.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 40 820.0 C 49.9 820.0, 48.1 820.0, 58 820.0" fill="none" stroke="#2a3046" stroke-width="1.6"/>
 <path d="M 40 955 C 49.9 955, 48.1 955, 58 955" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 40 985 C 49.9 985, 48.1 985, 58 985" fill="none" stroke="#2a3046" stroke-width="1.6"/>
+<path d="M 40 1015 C 49.9 1015, 48.1 1015, 58 1015" fill="none" stroke="#2a3046" stroke-width="1.6"/>
 <circle cx="239" cy="145" r="3.2" fill="#d7d9ea"/>
 <text x="250" y="150" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#d7d9ea">compartilhado/</text>
 <text x="396.2" y="150" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">tipos.ts — a forma que os 3 reinos falam</text>
@@ -50,88 +52,94 @@
 <circle cx="549" cy="295" r="3.2" fill="#7fd6b5"/>
 <text x="560" y="300" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">fluxo-conhecido</text>
 <text x="701.55" y="300" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">cpp | python | csharp</text>
-<circle cx="239" cy="235.0" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="240.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">dominio/</text>
-<text x="250" y="259.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">regra pura · sem fs, sem electron</text>
-<circle cx="549" cy="355" r="3.2" fill="#d7d9ea"/>
-<text x="560" y="360" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">ponte-para-a-interface</text>
-<text x="760.14" y="360" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">contextBridge: publica window.terminus</text>
-<circle cx="239" cy="355.0" r="3.2" fill="#b9bef2"/>
-<text x="250" y="360.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#b9bef2">porta/</text>
-<text x="250" y="379.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">preload · a ÚNICA passagem renderer↔main</text>
-<circle cx="549" cy="415" r="3.2" fill="#d7d9ea"/>
-<text x="560" y="420" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">janela/</text>
-<text x="634.59" y="420" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">6 · cria, vive, zoom, atalhos, diálogos, partida</text>
+<circle cx="549" cy="325" r="3.2" fill="#7fd6b5"/>
+<text x="560" y="330" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">endereco-da-pagina</text>
+<text x="726.66" y="330" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">onde a página mora, nos DOIS regimes de carga</text>
+<circle cx="239" cy="250.0" r="3.2" fill="#7fd6b5"/>
+<text x="250" y="255.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">dominio/</text>
+<text x="250" y="274.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">regra pura · sem fs, sem electron</text>
+<circle cx="549" cy="385" r="3.2" fill="#d7d9ea"/>
+<text x="560" y="390" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">ponte-para-a-interface</text>
+<text x="760.14" y="390" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">contextBridge: publica window.terminus</text>
+<circle cx="239" cy="385.0" r="3.2" fill="#b9bef2"/>
+<text x="250" y="390.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#b9bef2">porta/</text>
+<text x="250" y="409.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">preload · a ÚNICA passagem renderer↔main</text>
 <circle cx="549" cy="445" r="3.2" fill="#d7d9ea"/>
-<text x="560" y="450" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">motores/</text>
-<text x="642.96" y="450" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">4 · conduzem algo VIVO: pty, rpc, config</text>
+<text x="560" y="450" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">janela/</text>
+<text x="634.59" y="450" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">6 · cria, vive, zoom, atalhos, diálogos, partida</text>
 <circle cx="549" cy="475" r="3.2" fill="#d7d9ea"/>
-<text x="560" y="480" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">infra/</text>
-<text x="626.22" y="480" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">8 · tocam o disco e voltam: fs, realpath, argv</text>
-<circle cx="549" cy="505" r="3.2" fill="#7fd6b5"/>
-<text x="560" y="510" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">servicos/</text>
-<text x="651.33" y="510" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · caso de uso: chamam na ordem certa</text>
+<text x="560" y="480" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">motores/</text>
+<text x="642.96" y="480" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">4 · conduzem algo VIVO: pty, rpc, config</text>
+<circle cx="549" cy="505" r="3.2" fill="#d7d9ea"/>
+<text x="560" y="510" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#d7d9ea">infra/</text>
+<text x="626.22" y="510" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">8 · tocam o disco e voltam: fs, realpath, argv</text>
 <circle cx="549" cy="535" r="3.2" fill="#7fd6b5"/>
-<text x="560" y="540" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">ponte/</text>
-<text x="626.22" y="540" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">8 registradores · teto 2 módulos cada</text>
-<circle cx="239" cy="475.0" r="3.2" fill="#b9bef2"/>
-<text x="250" y="480.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#b9bef2">sistema/</text>
-<text x="250" y="499.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">main · o reino do processo principal</text>
-<circle cx="549" cy="595" r="3.2" fill="#7fd6b5"/>
-<text x="560" y="600" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">painel-lateral</text>
-<text x="693.18" y="600" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">desfaz os 2 ciclos de import</text>
-<circle cx="239" cy="595.0" r="3.2" fill="#d7d9ea"/>
-<text x="250" y="600.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#d7d9ea">interface/</text>
-<text x="250" y="619.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">renderer · a casca, 16 arquivos</text>
-<circle cx="239" cy="655" r="3.2" fill="#d7d9ea"/>
-<text x="250" y="660" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#d7d9ea">design/</text>
-<text x="331.1" y="660" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">css, temas, papel de parede, fontes</text>
-<circle cx="59" cy="400.0" r="3.2" fill="#8f95d6"/>
-<text x="70" y="405.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#8f95d6">codigos/</text>
-<circle cx="239" cy="715" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="720" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">apoio/</text>
-<text x="321.8" y="720" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">o andaime: duble do electron, gancho, casa temporária</text>
+<text x="560" y="540" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">servicos/</text>
+<text x="651.33" y="540" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · caso de uso: chamam na ordem certa</text>
+<circle cx="549" cy="565" r="3.2" fill="#7fd6b5"/>
+<text x="560" y="570" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">ponte/</text>
+<text x="626.22" y="570" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">8 registradores · teto 2 módulos cada</text>
+<circle cx="239" cy="505.0" r="3.2" fill="#b9bef2"/>
+<text x="250" y="510.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#b9bef2">sistema/</text>
+<text x="250" y="529.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">main · o reino do processo principal</text>
+<circle cx="549" cy="625" r="3.2" fill="#7fd6b5"/>
+<text x="560" y="630" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13.5" font-weight="400" fill="#7fd6b5">painel-lateral</text>
+<text x="693.18" y="630" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">desfaz os 2 ciclos de import</text>
+<circle cx="239" cy="625.0" r="3.2" fill="#d7d9ea"/>
+<text x="250" y="630.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#d7d9ea">interface/</text>
+<text x="250" y="649.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">renderer · a casca, 16 arquivos</text>
+<circle cx="239" cy="685" r="3.2" fill="#d7d9ea"/>
+<text x="250" y="690" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#d7d9ea">design/</text>
+<text x="331.1" y="690" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">css, temas, papel de parede, fontes</text>
+<circle cx="59" cy="415.0" r="3.2" fill="#8f95d6"/>
+<text x="70" y="420.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#8f95d6">codigos/</text>
 <circle cx="239" cy="745" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="750" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">dominio/</text>
-<text x="340.4" y="750" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">26 · a regra pura, sem Electron, em milissegundos</text>
+<text x="250" y="750" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">apoio/</text>
+<text x="321.8" y="750" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">o andaime: duble do electron, gancho, casa temporária</text>
 <circle cx="239" cy="775" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="780" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">servicos/</text>
-<text x="349.7" y="780" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">76 · o caso de uso: a ORDEM e a DECISÃO</text>
+<text x="250" y="780" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">dominio/</text>
+<text x="340.4" y="780" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">30 · a regra pura, sem Electron, em milissegundos</text>
 <circle cx="239" cy="805" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="810" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">motores/</text>
-<text x="340.4" y="810" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">32 · A8 consertada: o canal de controle DESISTE e diz</text>
+<text x="250" y="810" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">servicos/</text>
+<text x="349.7" y="810" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">76 · o caso de uso: a ORDEM e a DECISÃO</text>
 <circle cx="239" cy="835" r="3.2" fill="#7fd6b5"/>
-<text x="250" y="840" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">infra/</text>
-<text x="321.8" y="840" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · os 4 casos de ligação da A4(b)</text>
-<circle cx="59" cy="775.0" r="3.2" fill="#7fd6b5"/>
-<text x="70" y="780.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">tests/</text>
-<text x="70" y="799.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">139 testes (§6·R5)</text>
-<circle cx="59" cy="895" r="3.2" fill="#7fd6b5"/>
-<text x="70" y="900" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">ferramentas/</text>
-<text x="212.48000000000002" y="900" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">portao.mjs (5 pernas + M1-M4) · gera-fluxo.py · varre-orfaos.py</text>
-<circle cx="59" cy="925" r="3.2" fill="#7fd6b5"/>
-<text x="70" y="930" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">docs/</text>
-<text x="138.7" y="930" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">fluxo.md (esta planta) · tracker.md · diario.md</text>
-<circle cx="59" cy="955" r="3.2" fill="#d7d9ea"/>
-<text x="70" y="960" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#d7d9ea">kits/</text>
-<text x="138.7" y="960" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">dev-kits embutidos</text>
-<rect x="70" y="1025" width="1680" height="78" rx="8" fill="#171a26" stroke="#2a3046"/>
-<text x="94" y="1048" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#8f95d6">O ALVO DA CORRIDA — MEDIDO E ATINGIDO em 23/08 (§12·4b)</text>
-<text x="94" y="1072" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M1  acoplamento máximo do registrador</text>
-<text x="94" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">8</text>
-<text x="115.4" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
-<text x="142.4" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">2</text>
-<text x="524" y="1072" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M2  ciclos de import</text>
-<text x="524" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">2</text>
-<text x="545.4" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
-<text x="572.4" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">0</text>
-<text x="954" y="1072" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M3  imports proibidos em dominio/</text>
-<text x="954" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">n/a</text>
-<text x="994.2" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
-<text x="1021.2" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">0</text>
-<text x="1384" y="1072" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M4  conformidade com a árvore §1.3</text>
-<text x="1384" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">5/13</text>
-<text x="1433.6" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
-<text x="1460.6" y="1093" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">13/13</text>
-<text x="70" y="1133" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#565b74">verde — o que a corrida entregou   ·   vermelho — o número de partida   ·   a fonte da verdade é docs/fluxo.md; este PNG é derivado dele</text>
+<text x="250" y="840" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">motores/</text>
+<text x="340.4" y="840" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">32 · A8 consertada: o canal de controle DESISTE e diz</text>
+<circle cx="239" cy="865" r="3.2" fill="#7fd6b5"/>
+<text x="250" y="870" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">infra/</text>
+<text x="321.8" y="870" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">5 · os 4 casos de ligação da A4(b)</text>
+<circle cx="239" cy="895" r="3.2" fill="#7fd6b5"/>
+<text x="250" y="900" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="600" fill="#7fd6b5">funcionais/</text>
+<text x="368.3" y="900" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">2 · a perna P6: GET na URL que a janela MANDOU carregar</text>
+<circle cx="59" cy="820.0" r="3.2" fill="#7fd6b5"/>
+<text x="70" y="825.0" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">tests/</text>
+<text x="70" y="844.0" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">145 testes (§6·R5)</text>
+<circle cx="59" cy="955" r="3.2" fill="#7fd6b5"/>
+<text x="70" y="960" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">ferramentas/</text>
+<text x="212.48000000000002" y="960" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">portao.mjs (5 pernas + M1-M4) · gera-fluxo.py · varre-orfaos.py</text>
+<circle cx="59" cy="985" r="3.2" fill="#7fd6b5"/>
+<text x="70" y="990" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#7fd6b5">docs/</text>
+<text x="138.7" y="990" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">fluxo.md (esta planta) · tracker.md · diario.md</text>
+<circle cx="59" cy="1015" r="3.2" fill="#d7d9ea"/>
+<text x="70" y="1020" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="17" font-weight="700" fill="#d7d9ea">kits/</text>
+<text x="138.7" y="1020" font-family="Cantarell, Noto Sans, sans-serif" font-size="13" fill="#7c819b">dev-kits embutidos</text>
+<rect x="70" y="1085" width="1680" height="78" rx="8" fill="#171a26" stroke="#2a3046"/>
+<text x="94" y="1108" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="13" font-weight="700" fill="#8f95d6">O ALVO DA CORRIDA — MEDIDO E ATINGIDO em 23/08 (§12·4b)</text>
+<text x="94" y="1132" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M1  acoplamento máximo do registrador</text>
+<text x="94" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">8</text>
+<text x="115.4" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
+<text x="142.4" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">2</text>
+<text x="524" y="1132" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M2  ciclos de import</text>
+<text x="524" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">2</text>
+<text x="545.4" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
+<text x="572.4" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">0</text>
+<text x="954" y="1132" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M3  imports proibidos em dominio/</text>
+<text x="954" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">n/a</text>
+<text x="994.2" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
+<text x="1021.2" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">0</text>
+<text x="1384" y="1132" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#6d7290">M4  conformidade com a árvore §1.3</text>
+<text x="1384" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#e0857a">5/13</text>
+<text x="1433.6" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" fill="#565b74">→</text>
+<text x="1460.6" y="1153" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="15" font-weight="700" fill="#7fd6b5">13/13</text>
+<text x="70" y="1193" font-family="Cantarell, Noto Sans, sans-serif" font-size="12.5" fill="#565b74">verde — o que a corrida entregou   ·   vermelho — o número de partida   ·   a fonte da verdade é docs/fluxo.md; este PNG é derivado dele</text>
 </svg>

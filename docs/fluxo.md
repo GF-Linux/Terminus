@@ -30,6 +30,13 @@
 > continua sendo M1–M4 no portão, e conduta de tela continua sendo só a P5. `npm run teste`
 > ainda não pega quebra de arquitetura.
 >
+> ✅ **A corrida 7 (24/08) fez `tests/funcionais/` NASCER — e ele fecha METADE de meia coisa.**
+> A pasta existe e tem um morador: a perna **P6**, que sobe o servidor de `dev` e faz `GET` na
+> página que a janela de verdade mandou carregar. Mas a planta pedia `funcionais/` para **a
+> conduta**, e conduta de tela continua sendo a **P5**, que mora no portão. Então: a pasta
+> deixou de ser vão, `arquitetura/` continua não existindo, e **o desvio segue de pé** — e
+> segue sendo da cabeça.
+>
 > ⚠️ **Uma correção de medida, feita depois da aprovação:** onde estava escrito `M1 = 7`, o certo
 > é **8**. O E2 diz *"quantos módulos de `sistema/` o registrador **importa**"*, e isso é
 > contagem de arquivo. O 7 era o alcance do CORPO de `registrarPonte`, que deixa de fora
@@ -105,7 +112,8 @@ Terminus/
 │   │   ├── entrada-recusada.ts         recusa string vazia, com \0, ou que comece com "-"
 │   │   ├── protecao-da-pasta-aberta.ts decide: o alvo é a pasta aberta, ou está acima dela?
 │   │   ├── escolha-da-pasta-inicial.ts decide qual pasta abrir: argumento ganha da memória
-│   │   └── fluxo-conhecido.ts          decide se um rótulo é fluxo válido (cpp|python|csharp)
+│   │   ├── fluxo-conhecido.ts          decide se um rótulo é fluxo válido (cpp|python|csharp)
+│   │   └── endereco-da-pagina.ts       decide onde a página do renderer mora, nos DOIS regimes
 │   │
 │   ├── porta/          (preload)       O REINO DA PORTA — a ÚNICA passagem renderer↔main
 │   │   └── ponte-para-a-interface.ts   contextBridge: publica window.terminus e mais nada
@@ -176,19 +184,20 @@ Terminus/
 │   │
 │   └── design/                         css, temas, papel de parede, fontes embutidas
 │
-├── tests/                              ESPELHA codigos/ (§6·R5) — 139 testes
+├── tests/                              ESPELHA codigos/ (§6·R5) — 145 testes
 │   ├── apoio/                          o andaime: nao e teste, e o que deixa testar
 │   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME+TMPDIR temp
 │   │   ├── electron-duble.ts               as 6 portas do main + o registro de ORDEM
 │   │   ├── casa-de-teste.ts                fixtures em disco dentro da casa temporaria
 │   │   ├── neovim-falso.ts                 servidor msgpack-RPC de verdade, p/ o canal de controle
 │   │   └── rejeicoes-nao-tratadas.ts       captura toda rejeicao nao tratada; a suite exige ZERO
-│   ├── dominio/                        unidade: a regra pura, sem subir Electron   26
+│   ├── dominio/                        unidade: a regra pura, sem subir Electron   30
 │   │   ├── guarda-de-caminho.test.ts       6 testes
 │   │   ├── entrada-recusada.test.ts        6
 │   │   ├── protecao-da-pasta-aberta.test.ts 6
 │   │   ├── escolha-da-pasta-inicial.test.ts 4
-│   │   └── fluxo-conhecido.test.ts          4
+│   │   ├── fluxo-conhecido.test.ts          4
+│   │   └── endereco-da-pagina.test.ts       4  os 2 regimes de carga da página
 │   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             76
 │   │   ├── escrita-confinada.test.ts       25  as 3 etapas do confinado + A3(a) + A10
 │   │   ├── leitura-de-arquivo.test.ts      10  as 2 recusas e a NAO-recusa proposital
@@ -202,8 +211,10 @@ Terminus/
 │   │   ├── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
 │   │   ├── controle-neovim-rpc.test.ts      6  A8: sem Neovim, DESISTE e diz a frase
 │   │   └── controle-neovim-rpc-mudo.test.ts 4  A8: socket que aceita e nao fala
-│   └── infra/                          I/O concreto que nao e motor                  5
-│       └── kits-embutidos.test.ts           5  os 4 casos de ligacao da A4(b)
+│   ├── infra/                          I/O concreto que nao e motor                  5
+│   │   └── kits-embutidos.test.ts           5  os 4 casos de ligacao da A4(b)
+│   └── funcionais/                     a perna P6: sobe servidor de dev, sem tela      2
+│       └── carga-da-pagina-em-dev.test.ts   2  GET na URL que a janela MANDOU carregar
 │
 ├── ferramentas/
 │   ├── portao.mjs                      roda as 5 pernas do portão e dá o veredito (§12·4)
