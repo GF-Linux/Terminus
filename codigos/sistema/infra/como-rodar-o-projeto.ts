@@ -32,20 +32,71 @@ async function temPasta(raiz: string, nome: string): Promise<boolean> {
   }
 }
 
+//! Os PROGRAMAS de uma solução: as subpastas da raiz que têm um projeto com
+//! `<OutputType>Exe</OutputType>`. A biblioteca (`comum/` do molde) fica de fora
+//! sozinha — ela não declara OutputType, porque o padrão do SDK é Library. É
+//! olhar o que o projeto DIZ que é, e não uma lista de nomes combinados.
+async function programasDaSolucao(raiz: string): Promise<string[]> {
+  const itens = await fs.readdir(raiz, { withFileTypes: true });
+  const programas: string[] = [];
+  for (const e of itens) {
+    if (!e.isDirectory() || e.name.startsWith(".")) continue;
+    let dentro: string[];
+    try {
+      dentro = await fs.readdir(path.join(raiz, e.name));
+    } catch {
+      continue;
+    }
+    const proj = dentro.find((a) => /\.(cs|fs)proj$/i.test(a));
+    if (!proj) continue;
+    const texto = await fs.readFile(path.join(raiz, e.name, proj), "utf8");
+    if (/<OutputType>\s*(Win)?Exe\s*<\/OutputType>/i.test(texto)) programas.push(e.name);
+  }
+  return programas.sort();
+}
+
 //? C#
 //!
-//! O `dotnet` responde a duas perguntas diferentes, e passar a errada dá erro nas
-//! duas direções:
-//!   - com projeto: `dotnet run` roda O PROJETO, e passar o arquivo dá erro;
-//!   - sem projeto: o .NET 10 roda O ARQUIVO, e não passar nada dá o MSB1003.
+//! O `dotnet` responde a três perguntas diferentes, e passar a errada dá erro em
+//! todas as direções:
+//!   - projeto NA RAIZ: `dotnet run` roda O PROJETO, e passar o arquivo dá erro;
+//!   - SOLUÇÃO na raiz (o molde de 25/08): `dotnet run` sozinho dá erro — ele
+//!     exige um projeto, e a solução existe justamente para ter vários. A linha
+//!     é `dotnet run --project <pasta>`, e a pasta sai de quem é executável;
+//!   - sem projeto nenhum: o .NET 10 roda O ARQUIVO, e não passar nada dá o
+//!     MSB1003.
 //! Por isso a escolha é olhando o disco.
-async function csharp(arquivos: string[]): Promise<ComoRodar> {
-  const projeto = arquivos.find((a) => /\.(cs|fs)proj$/i.test(a) || /\.sln$/i.test(a));
+async function csharp(raiz: string, arquivos: string[]): Promise<ComoRodar> {
+  const projeto = arquivos.find((a) => /\.(cs|fs)proj$/i.test(a));
   if (projeto) {
     return {
       linha: "dotnet run",
       porque: `${projeto} é o projeto desta pasta — o dotnet compila e roda ele inteiro.`,
     };
+  }
+
+  //! `.slnx?`: o .NET 10 gera .slnx, mas solução antiga vinda de fora é .sln.
+  const solucao = arquivos.find((a) => /\.slnx?$/i.test(a));
+  if (solucao) {
+    const programas = await programasDaSolucao(raiz);
+    if (programas.length === 1) {
+      return {
+        linha: `dotnet run --project ${programas[0]}`,
+        porque: `${solucao} agrupa a solução, e ${programas[0]}/ é o único programa executável dela.`,
+      };
+    }
+    if (programas.length === 0) {
+      throw new Error(
+        `${solucao} ainda não tem programa executável — as pastas daqui são bibliotecas. ` +
+          `Crie um com: dotnet new console -o programa1 && dotnet sln add programa1`,
+      );
+    }
+    //! Vários programas é o USO ESPERADO da solução, não defeito — então a frase
+    //! entrega a linha pronta, com as pastas pelo nome, em vez de mandar caçar.
+    throw new Error(
+      `A solução tem ${programas.length} programas: ${programas.join(", ")}. ` +
+        `Rode um de cada vez com: dotnet run --project <pasta>`,
+    );
   }
 
   const cs = arquivos.filter((a) => /\.cs$/i.test(a));
@@ -147,7 +198,7 @@ export async function comoRodar(raiz: string, fluxo: Fluxo): Promise<ComoRodar> 
 
   //! Aviso antes da regra: uma pasta com `obj/` mas sem projeto é resto de uma
   //! compilação anterior, e confunde quem olha achando que já tem projeto.
-  if (fluxo === "csharp" && !arquivos.some((a) => /\.(cs|fs)proj$|\.sln$/i.test(a))) {
+  if (fluxo === "csharp" && !arquivos.some((a) => /\.(cs|fs)proj$|\.slnx?$/i.test(a))) {
     if (await temPasta(raiz, "obj")) {
       throw new Error(
         "Existe uma pasta obj/ aqui, mas nenhum .csproj — é sobra de uma compilação " +
@@ -156,7 +207,7 @@ export async function comoRodar(raiz: string, fluxo: Fluxo): Promise<ComoRodar> 
     }
   }
 
-  if (fluxo === "csharp") return csharp(arquivos);
+  if (fluxo === "csharp") return csharp(raiz, arquivos);
   if (fluxo === "python") return python(arquivos);
   return cpp(raiz, arquivos);
 }

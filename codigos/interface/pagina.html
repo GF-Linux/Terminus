@@ -3,7 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self'">
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; script-src 'self'; worker-src 'self' blob:; connect-src 'self' data:">
+<!-- ⚠️ `connect-src 'self' data:` ENTROU EM 26/08, e não é relaxamento de fachada.
+     MEDIDO: o console dizia *"Refused to connect to 'data:application/json;base64,…'
+     because it violates the document's Content Security Policy"* — e o que estava sendo
+     recusado eram os MANIFESTOS das extensões de linguagem (Python Language Basics, C#
+     Language Basics), que o empacotador inlina como `data:` dentro do próprio pacote.
+     Sem eles o registro de linguagem nasce incompleto, e o sintoma é um servidor de
+     linguagem de pé e mudo.
+     O QUE ISTO ABRE, dito por inteiro: `data:` é conteúdo que já está DENTRO da página —
+     não sai da máquina, não tem servidor do outro lado, não pode exfiltrar. O que
+     continua barrado é o que importa: `connect-src` **não** ganhou `https:` nem `*`, e a
+     tela segue sem poder falar com a rede. Quem sai da máquina é o `main`, e só ele.
+     `worker-src 'self' blob:` pela mesma razão medida: o empacotador cria worker por
+     blob em alguns caminhos, e sem isto ele falha em silêncio. -->
 <title>Terminus</title>
 <link rel="stylesheet" href="../design/fontes.css">
 <link rel="stylesheet" href="../design/estilo-da-casca.css">
@@ -37,14 +50,17 @@
   <!-- Menu do fluxo. Separado do #menu da árvore de propósito: aquele carrega
        o caminho clicado em data-alvo, e este não tem alvo nenhum. -->
   <div class="menu oculto" id="menuFluxo"></div>
+  <div class="menu oculto" id="menuGithub"></div>
 
   <div class="main">
 
-    <!-- Explorer / Plugins do Neovim / Configurações (ADR 0025) -->
+    <!-- Explorer / Extensões / Configurações. O terceiro ícone era "Plugins do
+         Neovim", saiu com o motor em 26/08 e VOLTOU no mesmo dia com outro
+         conteúdo: as extensões que a pessoa já usa no VSCode, lidas do disco. -->
     <nav class="act" id="act" aria-label="Barra de atividades">
       <button data-p="explorer" aria-selected="true" title="Explorer">
         <svg viewBox="0 0 24 24"><path d="M4 6h5.5l1.8 2H20v11H4z"/></svg></button>
-      <button data-p="extensions" aria-selected="false" title="Plugins do Neovim">
+      <button data-p="extensions" aria-selected="false" title="Extensões do VSCode">
         <svg viewBox="0 0 24 24"><path d="M4 4h6.5v6.5H4zM13.5 13.5H20V20h-6.5zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4z"/></svg></button>
       <button class="sp" data-p="config" aria-selected="false" title="Configurações">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.8"/><path d="M12 3.4v2.3M12 18.3v2.3M3.4 12h2.3M18.3 12h2.3M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></svg></button>
@@ -68,13 +84,15 @@
     <div class="stage" id="stage">
       <!-- Papel de parede: só atrás da área de escrita, nunca atrás da casca. -->
       <div class="fundoTela oculto" id="fundoTela"></div>
-      <div class="vazio" id="vazio">
-        <span class="marcaGrande" aria-hidden="true">
-          <img id="imgMarcaGrande" alt="">
-        </span>
-        <p>Nenhuma pasta aberta.</p>
-        <p class="dim">Abra uma pasta no Explorer para começar.</p>
-      </div>
+
+      <!-- As abas. Nascem ocultas e aparecem com o primeiro arquivo aberto: o
+           Monaco edita um modelo por vez e não sabe que existem outros — abas
+           são do workbench, e o workbench não vem no pacote. -->
+      <div class="abas oculto" id="abas"></div>
+      <!-- A tela inicial é desenhada por `interface/tela-inicial.ts`, com as cores do
+           `kits/editor/tema.lua`. Ela nasce vazia aqui de propósito: as cores vêm do kit,
+           e repeti-las no HTML criaria a segunda lista que este projeto evita. -->
+      <div class="vazio" id="vazio"></div>
 
     </div>
 
@@ -108,12 +126,15 @@
 
   </div>
 
-  <!-- A barra de estado ficou com o essencial (ADR 0025): o terminal continua
-       clicável, e à direita a marca do dono. O que saiu — ambiente do laboratório,
-       codificação, versão do Python e "Ln, Col" — ou pertencia ao produto
-       anterior, ou é o Neovim quem passa a dizer, na statusline dele. -->
+  <!-- Barra inferior: terminal, atalhos Git e a marca do dono. -->
   <div class="sbar">
     <button id="btPainel" title="Terminal (Ctrl+`)">Terminal</button>
+    <button id="btGithub" title="Atalhos Git">GitHub</button>
+    <!-- O Copilot: estado, não botão. `pronto: false` é o caso mais comum de
+         todos (servidor ainda subindo, sessão expirada, binário ausente), e sem
+         este indicador a sugestão simplesmente nunca apareceria, sem dizer por
+         quê. O `title` carrega a frase inteira do que falta. -->
+    <span class="copiloto" id="copiloto" title="">Copilot</span>
     <span class="r">
       <a id="linkGithub" class="gh" href="#" title="Abrir o GitHub no navegador">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38

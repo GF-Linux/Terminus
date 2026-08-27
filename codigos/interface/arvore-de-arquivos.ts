@@ -5,6 +5,7 @@ import type { NoArquivo, ProjetoAberto } from "../compartilhado/tipos.js";
 import {
   $, abrirArquivo, abrirPainel, api, avisar, esc, estado, expandidas, ou, terminal,
 } from "./nucleo-da-casca.js";
+import { largarTudo } from "./estado-do-editor.js";
 import { Paleta, type ItemPaleta } from "./busca-rapida-de-arquivo.js";
 import { ACOES_EXPLORER, painelLateral } from "./barra-lateral.js";
 
@@ -438,6 +439,11 @@ export async function fecharProjeto(): Promise<void> {
   const nome = estado.projeto?.nome;
   estado.projeto = null;
   expandidas.clear();
+  //! ⚠️ AS ABAS TAMBÉM VÃO (26/08). Sem isto, fechar a pasta deixaria abertos arquivos de um
+  //!   projeto que já não está aberto — e o Ctrl+S deles apontaria para fora da raiz
+  //!   confinada, sendo recusado pelo main com uma frase que a tela não saberia explicar.
+  //!   O `largarTudo` descarta os modelos (senão eles vazam) e avisa o Copilot de cada um.
+  largarTudo();
   estado.pastaAlvo = null;
   desenharArvore();
   if (nome) terminal.nota(`pasta fechada: ${nome} (nada foi apagado)`);

@@ -1,3 +1,4 @@
+import { closeSync, openSync, readSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { NoArquivo, ProjetoAberto } from "../../compartilhado/tipos.js";
@@ -71,14 +72,69 @@ export async function listarTudo(raiz: string): Promise<string[]> {
   return achados;
 }
 
-/** Extensões que o editor abre como texto. O resto precisa de visualizador
- *  próprio. */
-const TEXTO = new Set([".py", ".txt", ".md", ".fasta", ".fa", ".fastq", ".csv", ".tsv", ".json", ".xml", ".cfg", ".toml", ".yaml", ".yml"]);
+/** Extensões que o editor NÃO abre: são binárias, e mostrar isso seria lixo. */
+//? ⚠️ ESTA REGRA INVERTEU EM 26/08/2026, POR DEFEITO DE CAMPO
+//!
+//! Aqui havia uma LISTA BRANCA de 14 extensões — `.py`, `.txt`, `.md`, `.fasta`, `.fa`,
+//! `.fastq`, `.csv`, `.tsv`, `.json`, `.xml`, `.cfg`, `.toml`, `.yaml`, `.yml` — herdada
+//! da Bancada, o projeto de bioinformática que o Terminus substituiu.
+//! Ela **nunca doeu** porque o canal que a usava (`arquivo:ler`) **não tinha chamador**:
+//! quem abria arquivo era o Neovim, que lia o disco por conta própria. Quando o editor
+//! virou o Monaco e o canal ressuscitou, ela virou o portão de TUDO — e só conhecia a
+//! bancada. Relato da cabeça: *"Arquivo Csharp não é lido"*. Medido, eram **dez de
+//! catorze**: `.cs`, `.ts`, `.cpp`, `.lua`, `.html`, `.css`, `.sh`, `.csproj`,
+//! `Dockerfile` e `.gitignore`.
+//! Pior: ela **contradizia o próprio domínio**. O `dominio/linguagem-do-arquivo.ts` sabe
+//! que `.cs` é csharp e que `Dockerfile` é dockerfile — e a infra recusava os dois.
+//!
+//! **A regra certa é a inversa: texto é o PADRÃO.** Um editor de código não pode ter uma
+//! lista de linguagens que ele aceita; a lista envelhece a cada linguagem nova, e o modo
+//! de falhar é sempre o mesmo — recusar em silêncio o arquivo de quem está trabalhando.
+const BINARIO = new Set([
+  // imagem
+  ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".avif", ".tif", ".tiff",
+  // áudio e vídeo
+  ".mp3", ".ogg", ".wav", ".flac", ".mp4", ".mkv", ".webm", ".mov", ".avi",
+  // pacote e arquivo comprimido
+  ".zip", ".gz", ".bz2", ".xz", ".zst", ".7z", ".rar", ".tar", ".jar", ".nupkg",
+  // executável e biblioteca
+  ".exe", ".dll", ".so", ".dylib", ".o", ".a", ".bin", ".wasm", ".pyc", ".class",
+  // fonte e documento fechado
+  ".ttf", ".otf", ".woff", ".woff2", ".eot", ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+  // banco e imagem de disco
+  ".db", ".sqlite", ".sqlite3", ".iso", ".img",
+]);
 
-//* Diz se o arquivo é de texto, pela extensão.
-//! Binário é RECUSADO na leitura: abrir um `.png` no editor mostraria lixo.
+/** Quantos bytes olhar para decidir se o conteúdo é binário. */
+//! 8 KB é o que o `git` usa para a mesma pergunta. Ler o arquivo inteiro para responder
+//!   "posso abrir?" transformaria a pergunta barata na cara.
+const AMOSTRA = 8192;
+
+//* Diz se o arquivo é de texto: pela extensão E pelo conteúdo.
+//! ⚠️ AS DUAS CONFERÊNCIAS, E NÃO UMA. A extensão pega o caso comum de graça (não abre
+//!   o `.png` nem o lê); o CONTEÚDO pega o caso que a extensão não pode pegar — um
+//!   binário com nome de texto, que existe e é justamente o que estraga a tela.
+//! O sinal é o byte **zero**: texto não tem `\0`, binário quase sempre tem nos
+//!   primeiros bytes (cabeçalho ELF, PNG, ZIP). Bytes altos NÃO servem de sinal — este
+//!   projeto é todo escrito em português, e acento em UTF-8 é byte alto.
+//! Devolve `false` em vez de estourar quando o caminho não existe: quem chama isto está
+//!   decidindo se pede a leitura, e a frase de "o arquivo sumiu" é do leitor, não daqui.
 export function ehTexto(arquivo: string): boolean {
-  return TEXTO.has(path.extname(arquivo).toLowerCase());
+  if (BINARIO.has(path.extname(arquivo).toLowerCase())) return false;
+
+  let descritor: number | undefined;
+  try {
+    descritor = openSync(arquivo, "r");
+    const amostra = Buffer.alloc(AMOSTRA);
+    const lidos = readSync(descritor, amostra, 0, AMOSTRA, 0);
+    //! Arquivo vazio ABRE: nada delata, e recusá-lo impediria o gesto mais comum de
+    //!   todos — criar arquivo pela árvore e abri-lo em seguida.
+    return amostra.subarray(0, lidos).indexOf(0) === -1;
+  } catch {
+    return false;
+  } finally {
+    if (descritor !== undefined) closeSync(descritor);
+  }
 }
 
 /** Teto do que o editor aceita abrir. Script de laboratório não chega perto

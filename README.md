@@ -2,16 +2,21 @@
 
 Uma ponte amigável para o terminal do Linux.
 
-O Neovim é um editor excelente mas e um péssimo primeiro contato: centenas de
-atalhos, modos que ninguém explica, e nenhuma pista na tela do que fazer. Quem
-está chegando ao Linux desiste antes de descobrir o que a ferramenta faz.
-Além disso, o Vscode é um otimo terminal com excelentes funcionalidades mas que 
-peca em liberdade de customização.
+O VSCode é um ótimo editor com excelentes funcionalidades, mas peca em liberdade
+de customização. O Neovim é o contrário: customizável até o osso, e um péssimo
+primeiro contato — centenas de atalhos, modos que ninguém explica, e nenhuma
+pista na tela do que fazer.
 
-A ideia do nascimento do Terminus é por uma casca clicável em volta do Neovim.
-A pasta abre numa árvore de arquivos, o arquivo abre com um clique, `Ctrl+S` salva, `Ctrl+Z` 
-desfaz, o terminal abre num botão. Por baixo é o Neovim de verdade — a sua configuração,
-os seus plugins, o seu Copilot —, e nada disso é reimplementado.
+O Terminus é uma casca clicável em volta do **motor de edição do VSCode**. A pasta
+abre numa árvore de arquivos, o arquivo abre com um clique, `Ctrl+S` salva,
+`Ctrl+Z` desfaz, o terminal abre num botão. Por baixo é o `monaco-editor` — que
+**não é "parecido com" o VSCode: é o `vs/editor` dele**, o mesmo código,
+publicado no npm pela própria Microsoft. Nada de editor foi reimplementado aqui.
+
+> **26/08/2026 — o motor mudou.** Até a v0.0.10 o editor era o Neovim embutido
+> por pseudo-terminal. Aquilo funcionava, e a razão de sair não foi defeito: era
+> conduta modal onde se queria a conduta do VSCode. Os **kits de Neovim continuam
+> instalados** — o Terminus deixou de *embutir* o Neovim, e não de *servi-lo*.
 
 O nome Terminus vem de [terminal] e de [fim] - é onde a barreira do terminal termina.
 
@@ -24,41 +29,42 @@ O nome Terminus vem de [terminal] e de [fim] - é onde a barreira do terminal te
 
 ## O que ele faz hoje
 
-1. Editor -> o Neovim, num pseudo-terminal. Sua config, seus plugins, suas cores. 
+1. Editor -> o **Monaco**, o núcleo do VSCode. Abas, busca (`Ctrl+F`), multi-cursor, dobra de código, sticky scroll, colorização de pares, snippets, renomear, e a mesma conduta de teclado que você já tem no VSCode. 
 2. Árvore de arquivos ->  abrir, criar, renomear e excluir com o mouse. Excluir vai para a lixeira.
-3. Abrir arquivo -> um clique, e o cursor já entra em [modo de escrita] - No neovim é necessário utilizar (i)
-4. Ctrl+S -> grava sem tirar você do modo de escrita
-5. Ctrl+Z - Ctrl+Shift+Z -> desfaz e refaz.
+3. Abrir arquivo -> um clique, e você já está escrevendo. Sem modo, sem `i`.
+4. Ctrl+S -> grava. Ctrl+W fecha a aba. Ctrl+Z e Ctrl+Shift+Z desfazem e refazem.
+5. Sugestão inline -> o **Copilot**, pelo `copilot-language-server` oficial. O Terminus não empacota o servidor (são 114 MB): ele **procura** onde ele já esteja e diz o que falta se não achar.
 6. Terminal -> um shell de verdade, em pseudo-terminal: cor, `htop`, `python` interativo, `sudo`, pipe e `&&`. Dockável no rodapé, à direita ou à esquerda; a medida fica lembrada.
 7. Botão ↗ do terminal -> abre o Konsole na pasta em que o terminal está, com o perfil e as abas que você já configurou.
-8. Plugins -> a lista do `lazy.nvim` na lateral, filtrável; clicar abre a pasta do plugin.
 9. Aparência em background -> papel de parede atrás do editor, temas, zoom com `Ctrl +` / `Ctrl -`, perfeitamente customizavel, sem a necessidade de qualquer extensão adicional
 
 ### Por que o [Ctrl+S] é o exemplo que explica o projeto
 
-O LazyVim mapeia `<C-s>` como `<Esc>:w` — ele grava, mas te joga para fora do
-modo de escrita. Para quem vem do VSCode, isso é o editor tropeçando.
+Durante um tempo, este era o parágrafo mais difícil do projeto. Com o Neovim por
+baixo, o LazyVim mapeava `<C-s>` como `<Esc>:w` — gravava, mas te jogava para
+fora do modo de escrita —, e a casca precisava de **um canal msgpack-RPC próprio,
+um socket e trinta linhas de código** só para o `Ctrl+S` fazer o que todo mundo
+espera dele.
 
-No Terminus a casca intercepta o `Ctrl+S` antes de ele virar tecla e manda o
-`write` pelo canal de controle do Neovim (msgpack-RPC). Um ex-comando por RPC não
-mexe no modo: grava e você continua escrevendo. Só sai da escrita quem apertar
-`Esc`.
+Hoje o `Ctrl+S` grava. Ponto. Não há modo para sair, o atalho é o nativo do
+editor, e o que sobrou de código nosso é a única coisa que o Monaco não pode
+saber: **que existe disco**.
 
-É a ideia inteira do projeto num atalho: A casca é dona de um punhado de
-comandos do dia a dia; o resto do teclado é do Neovim, intacto.
+É a ideia inteira do projeto num atalho — e a medida do que a troca de motor
+comprou: **o problema não foi resolvido, ele deixou de existir.**
 
 
 ## Como instalar e rodar
 
 Precisa de :
-1. Neovim
-2. Node 
-3. Compilador C++ (o `node-pty` é módulo nativo).
+1. Node
+2. Compilador C++ (o `node-pty` é módulo nativo — o terminal usa pseudo-terminal).
+3. Neovim — **opcional**, e só para os kits (§ Kits). O editor não depende dele.
 
 ```bash
 - Fedora
 
-sudo dnf install -y neovim nodejs gcc-c++ make
+sudo dnf install -y nodejs gcc-c++ make   # neovim só se for usar os kits
 
 git clone git@github.com:GF-Linux/Terminus.git terminus
 cd terminus
@@ -67,9 +73,24 @@ npx electron-rebuild -f -w node-pty   # compila o node-pty para o ABI do Electro
 npm run dev
 ```
 
-Sem configuração de Neovim? Ele abre igual, com o Neovim padrão. O
-[LazyVim](https://www.lazyvim.org/) é um bom ponto de partida, e é contra ele que
-o Terminus foi testado.
+Sem Neovim instalado? O Terminus abre igual — o editor é o Monaco, e ele não
+depende de nada de fora. O que exige Neovim são os **kits** (§ Kits), que o
+Terminus liga na sua configuração pessoal para o `nvim` de terminal.
+
+### Sugestão inline (Copilot) — opcional
+
+O Terminus **não empacota** o `copilot-language-server`: ele tem 114 MB
+desempacotados, contra 2,8 MB do fonte inteiro deste aplicativo. Em vez disso ele
+procura, nesta ordem, e **diz onde procurou** quando não acha:
+
+1. `$COPILOT_LANGUAGE_SERVER`, se você exportou;
+2. o que vem com o [`copilot.lua`](https://github.com/zbirenbaum/copilot.lua) do
+   LazyVim, em `~/.local/share/nvim/lazy/copilot.lua/copilot/js/`;
+3. `node_modules/@github/copilot-language-server/`, se você o instalar.
+
+A autenticação **não é problema do Terminus**: o servidor adota sozinho a sessão
+já persistida em `~/.config/github-copilot`. Não há tela de login aqui, e não
+deve haver — quem cuida de credencial do GitHub é o GitHub.
 
 ### Conferir antes de mexer
 
@@ -112,7 +133,7 @@ porque alguém estava travado nela.
 
 Lista honesta, porque o kit está começando:
 
-- vem do Terminus | vem do Neovim (LazyVim + Mason) 
+- vem do Terminus | vem do seu Neovim de terminal (LazyVim + Mason) 
 
 1. funções prontas (`caixa`) | sim, em `kits/` 
 2. saber a linguagem da pasta | sim, o botão de fluxo 
@@ -127,6 +148,26 @@ servidor de linguagem ainda é o `:LazyExtras` que você liga — está em
 
 Python, C# e C++ têm molde de projeto pelo botão de fluxo. Lua tem as funções
 prontas, mas ainda não tem molde.
+
+O molde de C# é uma **solução**, não um console solto — porque console solto
+aguenta um programa só, e o segundo `Program.cs` na mesma pasta quebra a
+compilação. A pasta nasce assim:
+
+```
+meu-estudo/
+  meu-estudo.slnx          a solução, gerada pelo dotnet da sua máquina
+  Directory.Build.props    manda toda compilação para saida/
+  .gitignore               uma linha: saida/
+  comum/                   a biblioteca — o código que os programas dividem
+  programa1/               o primeiro programa, já referenciando comum/
+  saida/                   bin e obj de todos os projetos, num lugar só
+```
+
+O botão **Rodar** entende a solução: com um programa, a linha é
+`dotnet run --project programa1`; o segundo nasce com
+`dotnet new console -o programa2 && dotnet sln add programa2`, sem tocar no
+primeiro — e com vários, o Rodar lista as pastas e entrega essa mesma linha
+para você escolher.
 
 ### As funções prontas
 
@@ -162,10 +203,29 @@ hora**, ao contrário de uma função pronta, que fica inerte até você digitar
 | `caixa-de-comentario` | desenha moldura em comentário | `Espaço+cb…` |
 | `rodar-e-setas` | `Espaço+r` roda o arquivo aberto, por linguagem | — |
 | `csharp-um-servidor-so` | evita dois servidores de C# no mesmo arquivo | — |
+| `correcao-de-erros-com-copilot` | revisa um erro por vez em diff; `Tab` aplica e segue para o próximo | `Espaço+af` |
 | `tema` | recolore o Neovim na paleta da casca, **só dentro do Terminus** | — |
 
 Não entra nada além disso. O painel de comandos, a árvore, o teclado e o resto
 continuam sendo os do seu LazyVim.
+
+> ⚠️ **Os kits são do Neovim, e continuam sendo — inclusive depois de 26/08/2026,
+> quando o editor do Terminus deixou de ser o Neovim.** O Terminus continua
+> ligando-os na sua configuração pessoal; quem os usa é o `nvim` que você abre no
+> terminal. **Eles não valem dentro do editor do Terminus**, e o
+> `correcao-de-erros-com-copilot` é o exemplo mais claro: ele depende do
+> `CopilotChat.nvim`, e o Copilot do editor é sugestão inline, que é outra coisa.
+
+### Corrigir erros em cascata
+
+Com o cursor no erro, pressione `Espaço+af`. O CopilotChat recebe somente o
+trecho em volta daquele diagnóstico e mostra uma proposta em diff. No chat,
+pressione `Tab` para aplicar a proposta; o Terminus abre a revisão do próximo
+erro do mesmo arquivo. Nada é salvo ou aplicado automaticamente, e o Copilot
+não recebe ferramentas, instruções do projeto ou outros arquivos.
+
+Esse recurso requer `curl` 8 ou superior e o **Copilot Chat in the IDE**
+habilitado na conta GitHub.
 
 **Elas não são cópias.** Moram em `kits/` neste repositório, e o Terminus as
 liga na abertura — atualizar o Terminus atualiza as funções. O que ele escreve
@@ -235,20 +295,33 @@ return {
 
 ## Como é feito
 
-**Electron** para a casca, **xterm.js** para as telas, **node-pty** para os
-pseudo-terminais, e o **Neovim** como motor.
+**Electron** para a casca, **monaco-editor** para o editor, **xterm.js** para o
+terminal, **node-pty** para o pseudo-terminal.
 
-São **dois** PTYs, com o mesmo desenho: um roda o Neovim (o editor), o outro roda
-o seu shell (o terminal). Nos dois, a casca só transporta bytes — teclado sobe,
-ANSI desce, e ela não interpreta o que passa. O Neovim tem ainda um segundo
-canal:
+Antes eram **dois** PTYs — um rodava o Neovim, o outro o seu shell. **Hoje é um
+só**, o do terminal. O editor deixou de ser um processo: ele é o `vs/editor` do
+VSCode rodando dentro da própria janela, e "onde ele está" não é mais uma
+pergunta que exista.
 
-- **o PTY**, por onde passam as teclas e os bytes que ele desenha;
-- **o socket de controle** (`nvim --listen`, msgpack-RPC), por onde a casca pede
-  as coisas do dia a dia sem mexer no que você está fazendo.
+Três caminhos saem da casca, e só três:
 
-A separação é o projeto: a casca **não** reimplementa edição, realce,
-autocomplete nem LSP. Isso é do Neovim e do ecossistema dele.
+- **o PTY do shell**, por onde passam as teclas e os bytes que o terminal desenha;
+- **a porta** (`codigos/porta/ponte-para-a-interface.ts`), por onde a tela lê e
+  grava arquivo — o editor precisa do texto para existir, e precisa devolvê-lo no
+  `Ctrl+S`;
+- **o Copilot**, por LSP no processo principal. ⚠️ **É o único caminho deste
+  produto que sai da máquina**, e por isso ele tem entrada própria na porta em vez
+  de se esconder dentro de outra: quem lê a lista tem de ver, numa olhada, o que
+  atravessa a fronteira.
+
+A separação continua sendo o projeto: a casca **não** reimplementa edição, realce,
+busca, dobra nem autocomplete. Isso é do Monaco — que é o mesmo código do VSCode,
+não uma imitação dele.
+
+**O que o Monaco não traz, e é honesto dizer:** ele é o *editor* do VSCode, não o
+*workbench*. Depuração, mercado de extensões e paleta de comandos do workbench
+não vêm no pacote. Explorer, terminal, `Ctrl+P` e barra de estado a casca **já
+tinha**; as abas foram escritas aqui.
 
 Segurança da casca: `contextIsolation` ligado, `nodeIntegration` desligado. A
 interface não tem `require`, `fs` nem `child_process` — toda a superfície está em

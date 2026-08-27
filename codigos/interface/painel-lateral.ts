@@ -3,10 +3,10 @@
 import { $ } from "./nucleo-da-casca.js";
 import { aoTrocarPainel } from "./barra-lateral.js";
 import { desenharArvore } from "./arvore-de-arquivos.js";
-import { desenharPlugins } from "./painel-de-plugins.js";
+import { desenharExtensoes } from "./painel-de-extensoes.js";
 import { desenharConfiguracoes } from "./tela-de-configuracoes.js";
 
-//* Troca qual painel a lateral mostra: Explorer, Plugins ou Configuracoes.
+//* Troca qual painel a lateral mostra: Explorer, Extensoes ou Configuracoes.
 //! POR QUE ESTE MODULO EXISTE: o despacho morava em `barra-lateral.ts`, que por
 //!   isso importava os tres paineis — e dois deles importavam a barra de volta.
 //!   Dois ciclos de import, sobreviventes a duas refatoracoes anteriores deste
@@ -17,7 +17,7 @@ export function definirLateral(painel: string): void {
   $("sideT").textContent =
     {
       explorer: "Explorer",
-      extensions: "Plugins",
+      extensions: "Extensões",
       config: "Configurações",
     }[painel] ?? painel;
 
@@ -29,11 +29,13 @@ export function definirLateral(painel: string): void {
     //!   quem sabe se ha pasta aberta — e e chamada de novo quando ela abre.
     desenharArvore();
   } else if (painel === "extensions") {
-    //! O antigo "Extensions" (que so sabia dizer que nao havia marketplace) virou
-    //!   o navegador de plugins do Neovim (ADR 0025): o motor tem plugin demais
-    //!   para se descobrir de cor, e `:Lazy` e uma tela dentro do editor. Aqui a
-    //!   lista fica na lateral, filtravel e clicavel, como numa IDE.
-    void desenharPlugins();
+    //? ✅ O TERCEIRO PAINEL VOLTOU em 26/08/2026, e nao e o mesmo.
+    //! O antigo listava os plugins do lazy.nvim, perguntando ao Neovim vivo — e morreu com o
+    //!   motor. Este parte de um dado que ja existe no disco: as extensoes que a pessoa usa
+    //!   NO VSCODE. Ele nao instala nada; o que ele responde e "isto e o que voce usa, e isto
+    //!   e o que o Terminus saberia carregar", que e a informacao que falta para decidir
+    //!   depois. O gesto do clique e o mesmo do painel antigo: abre a pasta no Explorer.
+    void desenharExtensoes();
   } else {
     void desenharConfiguracoes();
   }

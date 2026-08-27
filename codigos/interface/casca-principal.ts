@@ -5,7 +5,7 @@
 
 import {
   $, abrirArquivo, alternarPainel, api, avisar, definirPainel, estado,
-  ligarDivisor, shell, terminal,
+  ligarDivisor, shell, subirEditor, terminal,
 } from "./nucleo-da-casca.js";
 import { aparencia } from "./aparencia-da-casca.js";
 import { definirDoca, doca, ligarDivisorTerminal } from "./doca-do-terminal.js";
@@ -22,6 +22,11 @@ import {
 // Importado pelo efeito: o módulo do fluxo liga os próprios botões ao carregar
 // (ADR 0027). `detectarFluxo` é o que a partida chama depois de abrir a pasta.
 import { detectarFluxo } from "./fluxo-de-projeto.js";
+import { comandoGit, itensGitHub, type AtalhoGitHub } from "./atalhos-do-github.js";
+import { ligarAbas } from "./abas-do-editor.js";
+import { ligarComandosDoEditor } from "./comandos-do-editor.js";
+import { aoMudarAtividade } from "./sugestao-inline.js";
+import { ligarExtensoes } from "./painel-de-extensoes.js";
 
 
 $("act").addEventListener("click", (ev) => {
@@ -117,12 +122,76 @@ $("btSoltarTerminal").addEventListener("click", () => {
 $("btLimpar").addEventListener("click", () => terminal.limpar());
 $("btFecharPainel").addEventListener("click", () => definirPainel(false));
 $("btPainel").addEventListener("click", () => alternarPainel());
+
+function fecharMenuGitHub(): void {
+  $("menuGithub").classList.add("oculto");
+}
+
+function abrirMenuGitHub(): void {
+  const menu = $("menuGithub");
+  menu.innerHTML = itensGitHub
+    .map(({ acao, rotulo }) => `<button data-atalho-git="${acao}">${rotulo}</button>`)
+    .join("");
+  menu.classList.remove("oculto");
+
+  const botao = $("btGithub").getBoundingClientRect();
+  const menuRetangulo = menu.getBoundingClientRect();
+  menu.style.left = `${Math.min(botao.left, window.innerWidth - menuRetangulo.width - 8)}px`;
+  menu.style.top = `${Math.max(8, botao.top - menuRetangulo.height - 4)}px`;
+}
+
+async function executarAtalhoGitHub(atalho: AtalhoGitHub): Promise<void> {
+  let argumento: string | undefined;
+  if (atalho === "clone") {
+    const url = window.prompt("URL do repositório para clonar:");
+    if (url === null) return;
+    argumento = url;
+  }
+  if (atalho === "commit") {
+    const mensagem = window.prompt("Mensagem do commit:");
+    if (mensagem === null) return;
+    argumento = mensagem;
+  }
+
+  try {
+    const linha = comandoGit(atalho, argumento);
+    definirPainel(true);
+    const r = await api.shell.linha(linha);
+    if (!r.ok) terminal.nota(r.erro);
+    else if (!r.valor) terminal.nota("o terminal está ocupado — pare o que está rodando e tente de novo");
+    terminal.focar();
+  } catch (erro) {
+    if (erro instanceof Error) terminal.nota(erro.message);
+    else throw erro;
+  }
+}
+
+$("btGithub").addEventListener("click", (ev) => {
+  ev.stopPropagation();
+  if ($("menuGithub").classList.contains("oculto")) abrirMenuGitHub();
+  else fecharMenuGitHub();
+});
+
+$("menuGithub").addEventListener("click", (ev) => {
+  const botao = (ev.target as HTMLElement).closest<HTMLElement>("[data-atalho-git]");
+  if (!botao) return;
+  const atalho = itensGitHub.find(({ acao }) => acao === botao.dataset["atalhoGit"])?.acao;
+  if (!atalho) throw new Error("Atalho Git inválido.");
+  fecharMenuGitHub();
+  void executarAtalhoGitHub(atalho);
+});
+
 // A marca do dono, à direita da barra: abre no navegador do sistema, porque o
 // `setWindowOpenHandler` da janela recusa abrir link aqui dentro.
 $("linkGithub").addEventListener("click", (ev) => {
   ev.preventDefault();
   window.open(`https://github.com/${$("nomeGithub").textContent?.trim() ?? ""}`, "_blank");
 });
+
+window.addEventListener("click", (ev) => {
+  if (!(ev.target as HTMLElement).closest("#menuGithub, #btGithub")) fecharMenuGitHub();
+});
+window.addEventListener("blur", fecharMenuGitHub);
 
 
 // Atalhos globais, nos mesmos gestos do VSCodium — é o que a mão já sabe.
@@ -240,8 +309,20 @@ async function iniciar(): Promise<void> {
   }
   desenharArvore();
 
-  // O Neovim nasceu na home; aponta ele para a corrida aberta (ADR 0025).
-  if (estado.projeto) api.neovim.cd(estado.projeto.raiz);
+  //? ⚠️ AQUI APONTAVA O NEOVIM PARA A PASTA (`api.neovim.cd`). Saiu em 26/08/2026 sem
+  //?   substituto, e de propósito: o Monaco não tem diretório de trabalho — ele edita
+  //?   modelos identificados por caminho absoluto. Quem ainda TEM cwd é o shell do painel,
+  //?   e ele já nasce na pasta aberta algumas linhas abaixo.
+
+  // As abas e os comandos do editor. Depois da pasta, porque as abas nascem
+  // vazias e só aparecem quando existe arquivo aberto.
+  //! ESPERA os serviços do VSCode subirem antes de ligar o que depende do editor.
+  //! `ligarComandosDoEditor` pega o editor por `editorAtual()`, e antes disto ele é `null`.
+  await subirEditor();
+  ligarAbas();
+  ligarComandosDoEditor();
+  ligarExtensoes();
+  void mostrarEstadoDoCopilot();
 
   // O chip da barra responde "que linguagem é esta pasta" já na abertura, sem
   // esperar alguém clicar (ADR 0027).
@@ -253,8 +334,7 @@ async function iniciar(): Promise<void> {
   //!    colunas e linhas da tela, e antes da doca ser aplicada a tela ainda não
   //!    tem a medida final. Nascer torto significaria a primeira tela do bash
   //!    quebrada, que é a primeira coisa que a pessoa vê.
-  //! 2. Na pasta aberta, ou na home quando não há pasta — a mesma regra que o
-  //!    Neovim segue logo acima.
+  //! 2. Na pasta aberta, ou na home quando não há pasta.
   //! 3. O histórico não é lido de lugar nenhum: quem guarda é o bash, no
   //!    `.bash_history`, o MESMO que o Konsole usa. Antes havia uma lista nossa
   //!    no `config.json`, e duas listas de "o que eu já digitei" é pior que uma.
@@ -287,3 +367,35 @@ async function iniciar(): Promise<void> {
 
 void iniciar();
 
+
+//? O INDICADOR DO COPILOT — o consumidor de `copilot:estado`
+//!
+//! ⚠️ ESTE BLOCO NASCEU DE UM ACHADO DO `npm run orfaos`, em 26/08/2026: o canal
+//!   `copilot:estado` estava **exposto na porta e sem ninguém que o chamasse**. A
+//!   porta diz, no item 3 dela, que cada item é decisão de segurança e não
+//!   conveniência — e superfície sem dono é exatamente o que a A5 removeu um dia.
+//!   Ou o canal ganhava consumidor, ou tinha de sair.
+//! ELE GANHOU CONSUMIDOR, e o consumidor é a razão de o campo `detalhe` existir:
+//!   sem isto, o Copilot ausente seria uma sugestão que **nunca aparece**, sem uma
+//!   palavra sobre o porquê — que é o modo de falhar que este projeto mais evita.
+async function mostrarEstadoDoCopilot(): Promise<void> {
+  const marca = $("copiloto");
+
+  //! ⚠️ A BOLINHA PISCA ENQUANTO ELE PENSA (pedido da cabeça, 26/08). Sem isto, o silêncio
+  //!   de "ainda estou pensando" e o de "não tenho nada" são o MESMO silêncio — e a
+  //!   primeira sugestão da sessão leva segundos, porque o servidor está aquecendo.
+  //! A classe só entra quando ele está PRONTO: piscar com o Copilot desligado prometeria
+  //!   uma resposta que não vem.
+  aoMudarAtividade((pedindo) => {
+    marca.classList.toggle("pensando", pedindo && marca.classList.contains("pronto"));
+  });
+
+  const r = await api.copilot.estado();
+  //! Falha ao PERGUNTAR também é estado, e o indicador continua dizendo algo. Um
+  //!   `catch` mudo aqui deixaria a marca eternamente cinza sem motivo.
+  const estado = r.ok ? r.valor : { pronto: false, servidor: null, detalhe: r.erro };
+  marca.classList.toggle("pronto", estado.pronto);
+  marca.title = estado.pronto
+    ? `Copilot ativo — ${estado.servidor}`
+    : `Copilot indisponível: ${estado.detalhe}`;
+}

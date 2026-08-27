@@ -4,9 +4,12 @@
 //! painel não precisa ler isto; quem mexe aqui mexe em todo mundo.
 
 import type { NoArquivo, ProjetoAberto, Resultado } from "../compartilhado/tipos.js";
-import { VistaNeovim } from "./vista-do-neovim.js";
+import { montarEditor } from "./editor-monaco.js";
+import { desenharTelaInicial } from "./tela-inicial.js";
+import { abrirNoEditor, sincronizarTelaVazia } from "./estado-do-editor.js";
+import { ligarEdicaoSeguinte } from "./edicao-seguinte.js";
+import { ligarSugestaoInline } from "./sugestao-inline.js";
 import { TerminalSaida } from "./tela-do-terminal.js";
-import urlIcone from "../../media/icon.png";
 
 //! `$` e `api` mudaram de casa para `base-da-tela.ts`, que é o que a janela do
 //! terminal solto também usa (ADR 0031). Ficam reexportados aqui para nenhum
@@ -15,18 +18,12 @@ export { $, api } from "./base-da-tela.js";
 import { $, api } from "./base-da-tela.js";
 
 
-/** As aspas contam tanto quanto os sinais de maior e menor: o nome do arquivo
- *  entra dentro de `data-arquivo="..."`, e aspa dupla é nome POSIX legal que
- *  sobrevive a `unzip` e a `git checkout`. Sem escapá-la, um nome fecha o
- *  atributo cedo e acrescenta os que quiser — e o despachante de clique decide
- *  o que fazer olhando só para os `data-*` que encontra. */
-export const esc = (s: string): string =>
-  s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+//! `esc` MUDOU DE CASA em 26/08 e é reexportado daqui: ele era deste arquivo, e a tela
+//!   inicial (`tela-inicial.ts`) precisava dele — mas o núcleo IMPORTA a tela inicial, e
+//!   importá-lo de volta fechou um CICLO que o M2 do portão pegou na hora.
+//! Ele foi para `base-da-tela.ts`, que é onde `$` e `api` já moram: utilitário de base, sem
+//!   dependência de ninguém. A reexportação existe para nenhum import antigo precisar mudar.
+export { esc } from "./base-da-tela.js";
 
 
 //* O estado que mais de um painel lê e escreve.
@@ -42,12 +39,46 @@ export const estado: {
 //* As pastas abertas na árvore, por caminho absoluto, com o que há dentro.
 export const expandidas = new Map<string, NoArquivo[]>();
 
-//* O Neovim é o editor: nasce aqui, ocupando a área de escrita.
-document.body.classList.add("motor-neovim");
-const hostNeovim = document.createElement("div");
-hostNeovim.id = "neovimHost";
-$("stage").appendChild(hostNeovim);
-export const vistaNeovim = new VistaNeovim(hostNeovim, "");
+//* O MONACO é o editor: nasce aqui, ocupando a área de escrita.
+//! ⚠️ ATÉ 25/08 ESTA LINHA SUBIA O NEOVIM. Duas coisas mudaram de natureza:
+//!   1. O editor nasce SEM ARQUIVO. O Neovim desenhava o próprio painel de
+//!      abertura, e por isso a tela vazia da casca (`#vazio`) ficava escondida
+//!      para sempre. Agora ela volta a ter função: sem pasta aberta, é ela que
+//!      aparece — e o editor só ganha modelo quando alguém abre um arquivo.
+//!   2. O editor não é mais um processo. Não há socket, não há PTY, não há
+//!      segundo programa para morrer junto com a janela.
+document.body.classList.add("motor-monaco");
+const hostEditor = document.createElement("div");
+hostEditor.id = "editorHost";
+$("stage").appendChild(hostEditor);
+//! O host nasce AGORA, síncrono — quem procura `#editorHost` o encontra desde o
+//!   primeiro instante. O editor DENTRO dele chega depois, porque os serviços do
+//!   VSCode sobem de forma assíncrona (ver `editor-monaco.ts`).
+sincronizarTelaVazia();
+
+//* Sobe o editor. A partida espera por isto antes de ligar abas e comandos.
+//! ⚠️ POR QUE ISTO NÃO É UM `await` NO TOPO DO MÓDULO: `nucleo-da-casca` é
+//!   importado por quase toda a casca, e um `await` de topo aqui atrasaria a
+//!   avaliação de todos eles — a árvore, o terminal e a barra passariam a
+//!   esperar por um serviço que nada tem a ver com eles. Quem espera é só quem
+//!   precisa: a partida, antes de ligar o que depende do editor.
+export async function subirEditor(): Promise<void> {
+  await montarEditor(hostEditor);
+
+  //! ⚠️ A SUGESTÃO INLINE É LIGADA AQUI, E NÃO NA CARGA DO MÓDULO — e a ordem
+  //!   custou uma tela morta para eu achar. `registerInlineCompletionsProvider`
+  //!   pede o `ILanguageFeaturesService`, e no modo standalone **pedir um serviço
+  //!   INICIALIZA todos eles com os padrões**. Rodando na carga do módulo, ele
+  //!   inicializava antes do nosso `initialize()`, que então estourava com
+  //!   *"Services are already initialized"* — e o renderer morria sem uma linha
+  //!   no log do main.
+  //! A regra que fica: **depois do `initialize()`, nada antes.** Vale para todo
+  //!   `monaco.*` que registre ou consulte serviço.
+  ligarSugestaoInline();
+  //! E a edição seguinte, no mesmo instante e pela mesma razão: depois do `initialize`.
+  ligarEdicaoSeguinte();
+}
+
 
 //? O TERMINAL DA CASCA — um shell de verdade (19/08)
 //!
@@ -75,16 +106,18 @@ export const shell = {
   aoDigitar: (dados: string): void => api.shell.enviar(dados),
 };
 
-//* Abre um arquivo no Neovim e já entra em modo de escrita.
+//* Abre um arquivo no editor, com o cursor na linha se ela vier.
 //* É o caminho único: clique na árvore, Ctrl+P e traceback chegam todos aqui.
+//! CONTINUA SENDO UM SÓ, e é o que faz a troca de motor não espalhar: os três
+//!   gestos chamavam esta função antes e chamam depois. O que mudou foi o corpo.
+//! O erro continua indo para o TERMINAL, e não para uma caixa: é a conduta que
+//!   esta casca já tinha, e o §12·3 manda preservá-la mesmo trocando o motor.
 export async function abrirArquivo(caminho: string, linha?: number): Promise<void> {
-  const r = await api.neovim.abrir(caminho, linha);
-  if (!r.ok) {
-    terminal.erro(`${r.erro}\r\n`);
+  const erro = await abrirNoEditor(caminho, linha, estado.projeto?.raiz ?? "");
+  if (erro) {
+    terminal.erro(`${erro}\r\n`);
     abrirPainel();
-    return;
   }
-  vistaNeovim.focar();
 }
 
 //* Mostra ou esconde o painel do terminal, junto com o divisor dele.
@@ -128,10 +161,14 @@ export function avisar(texto: string): void {
 
 //* A marca da barra de título saiu: a barra é minimalista, e o sigilo já está
 //* no ícone da janela e no papel de parede. Só a tela vazia mantém a figura.
-//! Entra por import, e não por caminho no HTML: em desenvolvimento o servidor
-//!   do Vite devolve a página no lugar do arquivo (medido: content-type
-//!   text/html) e a imagem simplesmente não aparece.
-($("imgMarcaGrande") as HTMLImageElement).src = urlIcone;
+//? ⚠️ A MARCA SAIU DA TELA INICIAL em 26/08 — ver `tela-inicial.ts`.
+//! Ela anunciava uma AUSÊNCIA ("Nenhuma pasta aberta") na primeira coisa que se vê ao abrir
+//! o aplicativo. No lugar entrou o tema do próprio kit da cabeça, que é boa-vinda e prova de
+//! que o tema pegou. O ícone continua sendo o da JANELA (`janela-principal.ts`) — o que saiu
+//! foi só o uso dele como cartaz de tela vazia.
+//! `void`: a tela lê a ficha da máquina pela porta, e isso é assíncrono. A área nasce vazia
+//!   e ganha o desenho um instante depois — que é o que o próprio Neovim faz.
+void desenharTelaInicial();
 
 /**
  * Torna um painel arrastável (ADR 0006).

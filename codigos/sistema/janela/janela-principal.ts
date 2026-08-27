@@ -5,10 +5,9 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { paginaNoServidorDeDev, paginaNoDisco } from "../../dominio/endereco-da-pagina.js";
 import { pararShell } from "../motores/motor-do-shell-pty.js";
-import { pararNeovim } from "../motores/motor-neovim-pty.js";
-import { resetarControle } from "../motores/controle-neovim-rpc.js";
+import { pararCopilot } from "../motores/motor-copilot-lsp.js";
+import { pararServidoresDeLinguagem } from "../motores/motor-servidor-de-linguagem.js";
 import { definirJanela } from "./janela-viva.js";
-import { ligarAtalhosNeovim } from "./atalhos-da-casca.js";
 import { ligarZoom } from "./zoom-da-janela.js";
 
 const __dirname_ = path.dirname(fileURLToPath(import.meta.url));
@@ -49,7 +48,13 @@ export function criarJanela(): void {
   definirJanela(janela);
 
   ligarZoom(janela);
-  ligarAtalhosNeovim(janela);
+  //? ⚠️ AQUI CHAMAVA `ligarAtalhosNeovim(janela)`, e a chamada saiu em 26/08/2026 com o
+  //?   motor. Aquele arquivo interceptava Ctrl+S, Ctrl+Z e Ctrl+` ANTES de virarem tecla,
+  //?   por uma razão que era só do Neovim: o LazyVim mapeia `<C-s>` como `<Esc>:w`, que
+  //?   gravava e jogava a pessoa para fora do modo de escrita. **Sem modo, sem razão.**
+  //?   Ctrl+S e Ctrl+W passaram a ser comandos DO EDITOR (`interface/comandos-do-editor.ts`)
+  //?   e o resto é nativo do Monaco. O `main` não intercepta mais tecla nenhuma — e é isso
+  //?   que fecha a A19: o `Ctrl+\`` volta a abrir o painel que o tooltip sempre prometeu.
 
   //! A opção `icon:` do construtor não bastou nesta máquina (a propriedade
   //!   _NET_WM_ICON ficava vazia). Setar explicitamente resolve, e o aviso no
@@ -61,12 +66,13 @@ export function criarJanela(): void {
 
   janela.once("ready-to-show", () => janela.show());
 
-  //! O Neovim morre com a janela que o mostrava. Sem isto ele seguiria vivo até o
-  //!   `window-all-closed`, escrevendo para uma interface que já não existe.
+  //! O servidor do Copilot morre com a janela. Sem isto ele seguiria vivo até o
+  //!   `window-all-closed`, com uma sessão aberta contra a GitHub para uma tela
+  //!   que já não existe — e é o único processo nosso que fala com fora.
   janela.on("closed", () => {
     definirJanela(null);
-    pararNeovim();
-    resetarControle();
+    pararCopilot();
+    pararServidoresDeLinguagem();
     //! E o shell do terminal também (19/08). Ele é um painel desta janela, não
     //!   um programa separado: deixado vivo, ficaria um bash órfão escrevendo para
     //!   uma interface que já não existe. O Konsole aberto pelo botão ↗ é o

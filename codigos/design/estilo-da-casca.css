@@ -96,8 +96,13 @@ button:disabled{opacity:.35; cursor:default}
 /* 24px numa barra de 35: o sigilo precisa de área para ser reconhecido. O
    arquivo já vem enquadrado no rosto e na auréola — a figura inteira, reduzida a
    esse tamanho, virava mancha. */
+/* ⚠️ `margin-inline:auto` NÃO É ENFEITE: a imagem é `display:block`, e bloco não
+   obedece ao `text-align:center` do pai — ele centraliza texto, não caixa. O
+   resultado era o sigilo encostado à esquerda com as duas frases centradas
+   embaixo, e o desalinho só aparece quando a tela está vazia, que é justamente
+   a primeira coisa que se vê ao abrir o aplicativo. */
 .vazio .marcaGrande img{width:72px; height:72px; display:block; image-rendering:pixelated;
-  margin-bottom:10px; opacity:.72}
+  margin:0 auto 10px; opacity:.72}
 
 /* Flex, não grid: o terminal virou uma coluna de largura arrastável (ADR 0006)
    e uma coluna de grid teria de ser recalculada por fora a cada arraste. */
@@ -222,10 +227,41 @@ button:disabled{opacity:.35; cursor:default}
 
 /* Com papel de parede, o editor e a tela vazia ficam transparentes; o resto da
    casca, não. */
-.stage > *:not(.fundoTela){position:relative; z-index:2}.stage:has(.fundoTela:not(.oculto)) .vazio{background:transparent}/* Motor Neovim (ADR 0025): o Neovim ocupa a área de edição, e as peças da casca
-   que competem por ela — abas, trilha, tela vazia e o host do CodeMirror — somem.
-   A limpeza real desses módulos é a Fatia 3; por ora só se escondem. */
-.motor-neovim #abas, .motor-neovim #trilha, .motor-neovim #vazio{display:none !important}
+.stage > *:not(.fundoTela){position:relative; z-index:2}.stage:has(.fundoTela:not(.oculto)) .vazio{background:transparent}/* Motor Monaco (26/08/2026): o editor ocupa a área de edição. A `trilha`
+   (breadcrumb) continua escondida — ela nunca teve morador, e o §11 manda não
+   desenhar o que não existe. As ABAS, que estavam nesta lista, saíram dela:
+   agora são da casca e aparecem de verdade. */
+.motor-monaco #trilha{display:none !important}
+/* ⚠️ `#vazio` SAIU DESTA LISTA em 26/08/2026, e a mudança é de conduta, não de estilo.
+   Com o Neovim, ele desenhava o próprio painel de abertura e a tela vazia da casca ficava
+   escondida PARA SEMPRE. O Monaco nasce sem modelo — então a tela vazia volta a ter função:
+   sem pasta aberta, é ela que aparece. */
+
+/* AS ABAS. Existiam como id no CSS desde a ADR 0025 e nunca tiveram morador: o
+   Neovim desenhava as dele. Agora são da casca, porque o `monaco-editor` é o
+   `vs/editor` do VSCode e abas são do *workbench*, que não vem no pacote. */
+.abas{display:flex; flex:0 0 auto; overflow-x:auto; overflow-y:hidden;
+  background:#11131c99; border-bottom:1px solid #232739; scrollbar-width:thin}
+.abas::-webkit-scrollbar{height:3px}
+.abas::-webkit-scrollbar-thumb{background:#2f3448}
+.aba{display:flex; align-items:center; gap:6px; flex:0 0 auto; cursor:pointer;
+  padding:5px 8px 5px 12px; font-size:12px; color:#8b90a8; max-width:220px;
+  border-right:1px solid #232739; user-select:none}
+.aba:hover{background:#ffffff08; color:#c2c6da}
+/* A aba ativa se liga ao editor por baixo: a borda de cima marca, a de baixo
+   some. É o gesto do VSCode — a aba não é um botão, é a beirada do papel. */
+.aba.on{background:#ffffff0d; color:#e6e8f5; box-shadow:inset 0 2px 0 #4d7cff}
+.aba .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.aba .x{border:0; background:none; color:inherit; cursor:pointer; opacity:0;
+  font-size:11px; line-height:1; padding:2px 3px; border-radius:3px}
+.aba:hover .x, .aba.on .x{opacity:.65}
+.aba .x:hover{opacity:1; background:#ffffff1a}
+/* O ponto de sujo ocupa o MESMO lugar do ×, e um troca pelo outro no hover —
+   como no VSCode. Duas marcas lado a lado fariam a aba pular de largura toda
+   vez que o arquivo fosse gravado. */
+.aba.suja .x::before{content:"\25CF"; font-size:9px}
+.aba.suja .x{opacity:.8}
+.aba.suja:hover .x::before{content:""}
 /* O papel de parede Jared-Linux atrás do editor: o mesmo `fundo.png` do Konsole,
    já esmaecido e dissolvido para a esquerda no próprio arquivo. O xterm roda com
    fundo transparente (ver neovim.ts), então a figura aparece por trás do texto —
@@ -239,7 +275,10 @@ button:disabled{opacity:.35; cursor:default}
    está em tela cheia e a figura deforma. `cover` preenche em qualquer tamanho
    mantendo a proporção. O `background-color` é o tom escuro da imagem, para o
    corte não dar degrau. */
-#neovimHost{flex:1; min-height:0; overflow:hidden; position:relative;
+/* `.oculto` tem de GANHAR do `flex:1`, senão o host continua ocupando a área
+   quando não há arquivo aberto e empurra a marca da tela vazia para cima. */
+#editorHost.oculto{display:none !important}
+#editorHost{flex:1; min-height:0; overflow:hidden; position:relative;
   background-color:#14161f;
   background-image:url("../../media/fundo-jared-v2b.png");
   background-size:cover; background-position:right center; background-repeat:no-repeat;
@@ -258,7 +297,7 @@ button:disabled{opacity:.35; cursor:default}
    limpo, e a ilustração continua aparecendo — que é o ponto dela.
 
    `pointer-events:none` para o clique continuar chegando no terminal do Neovim. */
-#neovimHost::before{content:""; position:absolute; inset:0; z-index:0;
+#editorHost::before{content:""; position:absolute; inset:0; z-index:0;
   pointer-events:none;
   background:linear-gradient(to right,
     rgba(var(--bgbase),.94) 0%,
@@ -266,9 +305,21 @@ button:disabled{opacity:.35; cursor:default}
     rgba(var(--bgbase),.72) 62%,
     rgba(var(--bgbase),.28) 82%,
     rgba(var(--bgbase),.06) 100%)}
-#neovimHost .xterm, #neovimHost .xterm-viewport{background:transparent !important}
-#neovimHost .xterm{height:100%; padding:4px 0 4px 8px; position:relative; z-index:1}
-.vazio{flex:1; display:grid; place-content:center; gap:6px; background:var(--bg); text-align:center;
+/* O Monaco pinta o próprio fundo a partir do TEMA, não do CSS — por isso a
+   transparência dele mora em `interface/editor-monaco.ts`, e não aqui. O que o
+   CSS ainda manda é a moldura: o editor ocupa o host inteiro e não rola por
+   fora (quem rola é ele, por dentro).
+   ⚠️ MEDIDO em 26/08: só `editor.background` transparente NÃO basta — o minimap
+   fica um bloco opaco em cima da figura. São dezesseis tokens, e a lista está
+   no arquivo do editor, com o motivo de cada um. */
+#editorHost .monaco-editor, #editorHost .monaco-editor-background,
+#editorHost .monaco-editor .overflow-guard{background:transparent !important}
+#editorHost > .monaco-editor{height:100% !important}
+/* `justify-items:center` além do `place-content`: o primeiro centraliza cada
+   ITEM na sua coluna, o segundo centraliza o BLOCO todo na área. Sem os dois, um
+   item mais estreito que a coluna (a marca) fica preso à borda dela. */
+.vazio{flex:1; display:grid; place-content:center; justify-items:center; gap:6px;
+  background:var(--bg); text-align:center;
   font-size:13px; color:var(--fg60)}
 .vazio.oculto{display:none}
 .vazio p{margin:0}
@@ -389,3 +440,62 @@ button:disabled{opacity:.35; cursor:default}
    divisor, sem largura de 400px guardada da casca. Só o que muda é o tamanho —
    as cores, a fonte e a linha de comando continuam idênticas às de dentro, que
    é o ponto de soltar o terminal e não abrir outro programa. */
+
+/* O indicador do Copilot na barra de estado. Ele NÃO é botão: não há o que
+   clicar — a autenticação é do servidor, que adota sozinho a sessão do
+   `~/.config/github-copilot`. É estado, e estado se lê. */
+.copiloto{display:inline-flex; align-items:center; gap:5px; padding:0 8px;
+  font-size:11px; color:#6b7189; cursor:default; user-select:none}
+.copiloto::before{content:""; width:6px; height:6px; border-radius:50%;
+  background:#4a4f63}
+.copiloto.pronto{color:#9aa0bb}
+.copiloto.pronto::before{background:#48b884}
+/* PISCANDO = ligado E pensando. A animação é só no ponto, nunca no texto: rótulo que
+   pisca puxa o olho para fora do código, e a informação aqui é periférica de propósito.
+   `alternate` e não `infinite` seco: o pulso sobe e desce, em vez de piscar em degrau —
+   degrau numa barra de estado lê como erro. */
+.copiloto.pensando::before{animation:pulsoCopilot 900ms ease-in-out infinite alternate}
+@keyframes pulsoCopilot{
+  from{background:#48b884; box-shadow:0 0 0 0 #48b88400}
+  to{background:#7ff0bb; box-shadow:0 0 0 3px #48b88433}
+}
+/* Quem pediu para não animar, não anima. Não é enfeite opcional: pulso repetido é
+   gatilho conhecido para quem tem sensibilidade a movimento, e a informação continua
+   inteira na cor sólida. */
+@media (prefers-reduced-motion: reduce){
+  .copiloto.pensando::before{animation:none; background:#7ff0bb}
+}
+
+/* O painel de Extensões. Agrupado por TIPO, e o cabeçalho de cada grupo leva a frase que
+   explica o porquê — sem ela a lista prometeria carregar o que não carrega. */
+.grpExt{margin-bottom:10px}
+.hdExt{display:flex; align-items:center; gap:6px; padding:6px 12px 2px; font-size:11px;
+  text-transform:uppercase; letter-spacing:.4px; color:var(--fg36)}
+.hdExt .n{background:#ffffff14; border-radius:8px; padding:0 6px; font-size:10px}
+.frExt{padding:0 12px 6px; font-size:11px; color:#6b7189; line-height:1.35}
+.ext{display:flex; align-items:baseline; gap:8px; padding:4px 12px; cursor:pointer; font-size:12px}
+.ext:hover{background:#ffffff0d}
+.ext .nm{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#c2c6da}
+.ext .v{font-size:10px; color:var(--fg36); flex:none}
+/* O grupo "só no VSCode" fica esmaecido: ele é informação, não oferta. */
+.grpExt:last-child .ext .nm{color:#8b90a8}
+
+
+/* A TELA DE ABERTURA — o mesmo desenho do `~/.config/nvim/lua/plugins/dashboard.lua`.
+   Ela é do TERMINAL por origem: logotipo em blocos, régua e ficha em colunas. Por isso tudo
+   aqui é monoespaçado e alinhado à esquerda — centralizar o texto desmancharia a coluna que
+   a ficha forma, que é o que faz ela parecer um painel e não um parágrafo. */
+.vazio .abertura{font-family:"IBM Plex Mono","Adwaita Mono",ui-monospace,monospace;
+  text-align:left; line-height:1.5; user-select:none}
+.vazio .rotulo{font-size:11px; letter-spacing:2px; margin-bottom:16px}
+/* O logotipo é SVG, não texto — ver `tela-inicial.ts`. A altura manda; a largura sai da
+   proporção da grade, que é o que mantém o desenho fiel ao do terminal. */
+.vazio .marca{display:block; height:64px; width:auto; margin:0 0 18px}
+.vazio .regua{display:flex; align-items:center; gap:10px; margin-bottom:16px; font-size:11px}
+.vazio .regua > span:first-child{width:90px; height:1px; flex:none}
+.vazio .regua > span:last-child{flex:1; height:1px}
+.vazio .regua .lx{letter-spacing:1px; flex:none}
+.vazio .ficha{font-size:12px; margin-bottom:16px}
+.vazio .fl{display:flex; gap:10px}
+.vazio .fl .k{width:64px; flex:none; letter-spacing:.5px}
+.vazio .saudacao{font-size:12px}

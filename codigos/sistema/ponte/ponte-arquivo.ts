@@ -1,13 +1,15 @@
-//* Os seis canais de arquivo e pasta: abrir, listar, criar e renomear.
+//* Os oito canais de arquivo e pasta: abrir, listar, ler, gravar, criar e renomear.
 
 import { ipcMain } from "electron";
 import {
   criarArquivoNoProjeto,
   criarPastaNoProjeto,
+  gravarConfinado,
   renomearNoProjeto,
 } from "../servicos/escrita-confinada.js";
 import {
   abrirParaTela,
+  lerParaEditor,
   listarPasta,
   listarProjeto,
 } from "../servicos/leitura-de-arquivo.js";
@@ -33,15 +35,34 @@ export function registrarArquivo(): void {
   ipcMain.handle("projeto:listar", seguro((_e, dir: string) => listarPasta(dir)));
   ipcMain.handle("projeto:arquivos", seguro((_e, raiz: string) => listarProjeto(raiz)));
 
-  //? ⚠️ AQUI MORAVAM `arquivo:ler` E `arquivo:gravar` — saíram em 24/08/2026, por decisão da
-  //?   cabeça (árvore A5, opção (a)). Eram os dois únicos canais deste registrador sem chamador
-  //?   na tela, e o motivo escrito para eles — o traceback clicável — **não se sustentou quando
-  //?   foi medido**: o traceback está vivo e vai por `neovim:abrir`. Ver o bloco `//?` em
-  //?   `servicos/leitura-de-arquivo.ts`, que traz a cadeia inteira. `lerParaEditor`
-  //?   e `gravarConfinado` NÃO foram apagados junto: `gravarConfinado` é a peça-vitrine do
-  //?   confinamento, e apagá-la por arrasto seria jogar fora a melhor peça por causa da
-  //?   superfície da pior. As duas passaram a ser chamadas só por `tests/` — e o que fazer
-  //?   com elas é a árvore A15, devolvida à cabeça na mesma corrida.
+  //? ✅ `arquivo:ler` E `arquivo:gravar` VOLTARAM em 26/08/2026 — e a razão vem ANTES, como
+  //?   o próprio arquivo exigia de quem os ressuscitasse.
+  //!
+  //! 1. A RAZÃO, e ela é nova: **a tela virou o editor.** Até 25/08 quem abria arquivo era o
+  //!    Neovim, num processo à parte que lia o disco por conta própria — a casca só mandava
+  //!    `neovim:abrir` e nunca via um byte. Com o Monaco (planta de 26/08), o texto é um
+  //!    `ITextModel` DENTRO do renderer: para existir, ele precisa do conteúdo; para o Ctrl+S
+  //!    valer alguma coisa, ele precisa voltar. Não é conveniência — sem estes dois canais o
+  //!    editor não abre e não grava.
+  //! 2. POR QUE A LEITURA CONTINUA LARGA (fora da pasta aberta), que era a objeção escrita:
+  //!    porque é a CONDUTA DE HOJE, e o §12·3 manda preservá-la. `neovim:abrir` nunca confinou
+  //!    nada — o salto do traceback abre `site-packages/…` e a config do próprio Neovim, e é
+  //!    isso que faz o quadro de erro clicável valer. Confinar aqui não seria preservar a
+  //!    conduta: seria remover um recurso a pretexto de portar outro.
+  //! 3. O ALCANCE NÃO É O MESMO DA LEITURA CRUA, e a diferença mora no serviço, não aqui:
+  //!    `lerParaEditor` recusa o que não é texto, recusa o `config.json` do Terminus, e recusa
+  //!    caminho vazio ou com `\0`. A porta ganhou leitura de TEXTO, não leitura de disco.
+  //! 4. A ESCRITA NÃO GANHOU ALCANCE NENHUM. `gravarConfinado` é a peça-vitrine do
+  //!    confinamento e continua exatamente como estava: realpath + as raízes que o main
+  //!    conhece. Sem pasta aberta, `raizesDeEscrita()` é vazio e **nada** é gravável — de
+  //!    propósito, e isso não mudou.
+  //! 5. ISTO FECHA A A15 pela metade: as duas funções deixam de ser chamadas só por `tests/`.
+  ipcMain.handle("arquivo:ler", seguro((_e, arquivo: unknown) => lerParaEditor(arquivo)));
+  ipcMain.handle(
+    "arquivo:gravar",
+    seguro((_e, arquivo: unknown, conteudo: unknown) => gravarConfinado(arquivo, conteudo)),
+  );
+
   ipcMain.handle(
     "arquivo:criar",
     seguro((_e, _raiz: string, dir: unknown, nome: unknown) => criarArquivoNoProjeto(dir, nome)),

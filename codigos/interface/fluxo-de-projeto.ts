@@ -63,7 +63,7 @@ export async function detectarFluxo(): Promise<void> {
     //! C# quase todo `.cs` vive dentro de um projeto, e o projeto é a prova mais
     //! forte do que a pasta é — mais forte do que contar arquivo por arquivo.
     else if (ext === ".cs") conta.csharp++;
-    else if (ext === ".csproj" || ext === ".sln") conta.csharp += 100;
+    else if (ext === ".csproj" || ext === ".sln" || ext === ".slnx") conta.csharp += 100;
   }
 
   //! Empate entre C++ e Python vai para C++: quase todo projeto C++ tem um
@@ -88,7 +88,7 @@ function abrirMenuFluxo(): void {
   menu.innerHTML = `
     <button data-f="novo-cpp">Novo projeto C++<span class="atalho">console</span></button>
     <button data-f="novo-python">Novo projeto Python<span class="atalho">console</span></button>
-    <button data-f="novo-csharp">Novo projeto C#<span class="atalho">console</span></button>
+    <button data-f="novo-csharp">Novo projeto C#<span class="atalho">solução</span></button>
     <hr>
     <button data-f="marcar-cpp">Marcar esta pasta como C++</button>
     <button data-f="marcar-python">Marcar esta pasta como Python</button>
@@ -117,7 +117,8 @@ async function novoProjeto(escolhido: Fluxo): Promise<void> {
   //! dentro do projeto anterior — o engano mais fácil de cometer e o mais
   //! difícil de notar.
   await assumirProjeto(r.valor.projeto);
-  api.neovim.cd(r.valor.projeto.raiz);
+  //? ⚠️ `api.neovim.cd(...)` saiu daqui em 26/08/2026 com o motor. O Monaco não tem
+  //?   diretório de trabalho, e o arquivo novo é aberto por caminho absoluto logo abaixo.
 
   //! Depois do funil, e não antes: `assumirProjeto` dispara a troca de pasta, e
   //! a troca de pasta manda o chip se redetectar pelas extensões. Marcar antes

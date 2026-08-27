@@ -2271,3 +2271,628 @@ e eu não o vejo"*). **Rodei em vez de declarar**, tudo em leitura:
 > `node_modules` nem procurei patch aplicado à mão dentro dele. Se houver, some — e é o tipo de
 > coisa que não deveria existir de qualquer forma.
 
+## 21. Despacho 10 — 25/08/2026: o relato do Backspace (docs/Bugs.md) NÃO reproduziu
+
+> Relato de campo da cabeça, 21:09: *"Terminal dentro do Terminus nao apaga oq foi digitado"*.
+> A ordem era identificar e corrigir. **Não há o que corrigir sem reproduzir** — consertar o que
+> não se mede é fabricar conserto. O que existe é a matriz de medição abaixo, dois achados
+> vizinhos (A18, A19) e as perguntas devolvidas.
+
+### 21.1 · A matriz do que foi medido — e TUDO apagou certo
+
+Sonda modelada na `pernaConduta` (HOME redirecionado, grupo próprio, kill(-pid), zero órfãos ao
+fim — a linha que casou no `ps` era o meu próprio comando, gravado em arquivo e conferido).
+Leitura por DOM (`.xterm-rows`) **e por pixel** (`Page.captureScreenshot`, imagens abertas e
+olhadas — "carregar não é aparecer").
+
+| cenário | terminal | entrada | resultado |
+|---|---|---|---|
+| casa limpa, prompt cru | painel `#term` | porta (`shell:enviar`) e teclado CDP | **apaga** |
+| casa com Starship (o prompt real, glifos Nerd) | painel | porta e teclado | **apaga** |
+| prompt embrulhado (git repo: `main !? v22.23.1` passa das ~46 col da doca) | painel | porta | **apaga** |
+| linha embrulhada (comando maior que a largura) | headless xterm 45 col + app | porta | **apaga** |
+| type-ahead (digitar durante `sleep 4`) | painel | porta | **apaga** (erase canônico do kernel) |
+| REPL novo do Python 3.14 | painel | porta | **apaga** |
+| `:terminal` do Neovim, nvim pelado | vista `#stage` | teclado CDP | **apaga** |
+| `:terminal` do Neovim, **LazyVim real da cabeça copiado** | vista | teclado CDP | **apaga** |
+| pixel: `echo alinhamento teste` + 6 backspaces | painel | porta | **tela mostra o texto encolher** |
+
+- **[provado]** PTY responde `\x7f` com `\b\x1b[K`; keyd só remapeia brilho (Backspace intocado);
+  nada intercepta Backspace na casca nem no main; build `out/` de hoje 19:57 = código atual.
+- **[não medido] o teclado físico de ponta a ponta** (evdev→keyd→Wayland→Electron): o CDP injeta
+  depois do compositor. É o único elo da cadeia que a sonda não exercita.
+- **[não medido] a sessão exata do relato**: qual terminal (painel? `:terminal`? Konsole via ↗?),
+  o que foi digitado, e em qual máquina — o Deck roda a **v0.0.6 pré-PTY** (`entrega-deck/`,
+  18/08), que é o desenho antigo de canos comuns; lá a conduta é outra por construção.
+
+### 21.2 · A18 — o lançador aponta para a pasta que a corrida 9 apagou — APLICADA (a) em 25/08
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | `~/.local/bin/terminus` (16/08) tem `RAIZ="$HOME/projetos/terminus"` — minúsculo, a pasta cujo apagamento a §20.5 mediu e aprovou. Hoje: `out/` não existe → tenta compilar → `cd` falha → **exit 1**. O `.desktop` do menu (`Exec=terminus %f`) morre junto. **Abrir o Terminus pelo menu do sistema está quebrado desde 24/08** |
+| **a medição** | `command -v terminus` → `~/.local/bin/terminus`; corpo lido; `ls ~/projetos/terminus` → não existe. O app abriu às 19:59 de hoje (mtime de `~/.config/Terminus`), então a cabeça tem OUTRO caminho de abertura — qual, eu não sei |
+| **por que não corrigi** | o arquivo mora **fora do repositório**, na máquina da cabeça; a §20.5 aprovou apagar a pasta, não emendá-lo. Emendar coisa de fora sem pedido é fora da fronteira (§13.3a/c) |
+| **as opções** | **(a)** trocar `RAIZ` para `$HOME/projetos/Terminus` — uma linha; **(b)** versionar o lançador em `ferramentas/` e o `.desktop` já existente em `media/` passar a instalá-lo; **(c)** nada, e abrir sempre à mão |
+| **a minha recomendação** | **(a) agora e (b) na sequência** — a §20.5 provou que renomear é seguro; o que faltou foi varrer as referências de FORA do repo, e o lançador era uma delas |
+| **DESFECHO** | **(a) APLICADA em 25/08, decidida pela cabeça no mesmo dia.** `RAIZ` trocada para `$HOME/projetos/Terminus` em `~/.local/bin/terminus`. **Provado**: `out/` achado (não recompila), binário achado, e `terminus` abriu o aplicativo de verdade (janela na tela por ~15 s, encerrada pelo teto da sonda; zero processos órfãos depois). A **(b)** — versionar o lançador em `ferramentas/` — segue em aberto |
+
+### 21.3 · ⚠️ A19 — o tooltip promete `Ctrl+\`` e o main entrega OUTRO terminal — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito [declarado, por leitura]** | `pagina.html:116` anuncia `Terminal (Ctrl+\`)` no botão do **painel**; `atalhos-da-casca.ts:25` intercepta `Ctrl+Backquote` no main com `preventDefault` e chama `abrirTerminalNeovim()` — o `:terminal` DENTRO do editor. O tratador do renderer (`casca-principal.ts:150`, `alternarPainel`) fica inalcançável para a tecla que o tooltip anuncia. **Dois "terminais" com o mesmo nome na tela** — e um relato que diz "o terminal" sem sobrenome vira exatamente a ambiguidade desta corrida |
+| **o limite honesto** | não medi com teclado físico (CDP não acionou o `before-input-event` na sonda); a interceptação é leitura do código + docs do Electron, não medição |
+| **as opções** | **(a)** o main deixa de interceptar `Ctrl+\`` e a tecla volta a fazer o que o tooltip diz; o `:terminal` do Neovim ganha outra tecla anunciada; **(b)** o tooltip passa a dizer a verdade (`Ctrl+\`` = terminal do editor) e o painel ganha/anuncia outra; **(c)** nada |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça; é decisão de conduta e de tecla, não minha |
+
+## 22. Despacho 11 — 26/08/2026: trocar o Neovim por um editor com conduta de VSCode
+
+> Pedido da cabeça: varrer o VSCode[código aberto], identificar a conexão de API do
+> `inlineCompletion`, analisar o Terminus e devolver **plano de sugestão** para *manutenção da
+> casca visual + remoção do Neovim e substituição por um novo text editor*, com o objetivo de o
+> editor ter **o exato comportamento do VSCode**.
+> **Nada foi executado.** O que segue são as **árvores de decisão** (§12·3a) e a linha de base
+> medida.
+>
+> ✅ **AS CINCO FORAM DECIDIDAS pela cabeça em 26/08/2026** — desfecho em cada tabela:
+> **A1** `monaco-editor` 0.56.0 · **B2→B1** · **C1 já na fatia 1**, backend
+> `copilot-language-server` · **D1** nos 6 + **D3** no elo de config · **E** por dependência.
+> A planta que saiu delas está em **`docs/planta-editor-vscode.md`** — **proposta, ainda sem
+> aval**; aprovada, ela é fundida no `fluxo.md` e o arquivo morre. **Zero linha de código mudou.**
+
+### 22.1 · A linha de base, medida hoje
+
+| medida | valor | como |
+|---|---|---|
+| suíte | **154/154 verde** | `npm run teste` |
+| testes presos ao Neovim | **30** de 154 (19%) | os 4 arquivos, rodados à parte |
+| `codigos/` | 65 arquivos, **6.951 linhas** (.ts+.css+.html) | `wc -l` |
+| arquivos que citam nvim | **29** de 65 | `grep -ril` |
+| **chamadas da TELA à porta do Neovim** | **4** (`abrir`, `cd` ×2, `plugins`) + a classe `VistaNeovim` | `grep -rn "api\.neovim\."` |
+| ponto de montagem do editor | **1** — `<div id="neovimHost">` em `#stage` | `nucleo-da-casca.ts:46-50` |
+| código que morre inteiro | **788 linhas** (7 arquivos) | `wc -l` |
+| teste que morre inteiro | **623 linhas** (5 arquivos) | `wc -l` |
+| kits Lua que perdem hospedeiro | **902 linhas** (8 arquivos) | `wc -l kits/editor/*.lua` |
+
+**A leitura que importa:** a casca visual **não sabe que o Neovim existe**. Barra de título,
+árvore, doca do terminal, temas, papel de parede, Ctrl+P, menu de contexto — nada disso passa
+pela porta do editor. A troca é cirúrgica em 4 pontos, não uma reescrita da casca.
+
+### 22.2 · ⚠️ A decisão de 16/08 que este pedido reabre — e ela NÃO estava errada
+
+`96332d6`, 16/08/2026: *"a Bancada vira casca, o motor passa a ser o Neovim"*. Razão escrita,
+nas palavras do autor: *"hoje o Bancada não é amigável para ninguém, nem para quem escreve nem
+para quem não sabe"*. O motor anterior era **CodeMirror**, com autocomplete por **pyright**
+(`ef60571`, `5117864`). O CSS ainda cita *"o host do CodeMirror"* (`estilo-da-casca.css:227`).
+
+**O pedido de hoje não desfaz aquilo.** Aquela decisão dizia *"não vale reimplementar um editor"*
+— e continua verdadeira. A opção que **não estava na mesa em 16/08** é a terceira: **não escrever
+editor nenhum, e embutir o do VSCode.** É por aí que o plano abaixo anda.
+
+### 22.3 · Árvore A — qual motor de edição (a decisão que manda em todas as outras)
+
+| parte | conteúdo |
+|---|---|
+| **as opções** | **(A1) `monaco-editor` 0.56.0** — o núcleo de edição do VSCode, publicado no npm, 59 contribs (`find`, `folding`, `suggest`, `multicursor`, `snippet`, `stickyScroll`, `inlineCompletions`, `rename`, `hover`, `peekView`…). **(A2) `@codingame/monaco-vscode-api` 36.2.2** — Monaco **+ os serviços do VSCode de verdade** (host de extensão, settings, keybindings, temas TextMate). **(A3) CodeMirror 6** — leve, e **não** é conduta de VSCode. **(A4) manter o Neovim, mas headless** (`nvim --embed` + `ui_attach`) desenhando a tela nós mesmos |
+| **o que cada uma custa** | A1: +1 dependência (~24 MB `min/`), o Explorer/abas/LSP continuam sendo nossos. A2: conduta de VSCode quase inteira, **incluindo extensões**, ao preço de uma dependência enorme, de release próprio e de amarrar o projeto ao ciclo de um terceiro. A3: barato e **não atende o pedido** — é a estrada já andada e reprovada. A4: mantém 902 linhas de kit vivas e **não atende o pedido** — a conduta continua modal |
+| **a minha recomendação** | **(A1) agora, com a (A2) escrita como porta nomeada.** A1 entrega *"o exato comportamento do VSCode"* **na edição** — é literalmente o mesmo código: monaco expõe `editor.contrib.inlineCompletionsController`, o mesmo id de contribuição que o bundle do VSCode 1.134 desta máquina carrega. O que A1 **não** entrega é o que mora no *workbench*, não no editor: abas, Explorer, depuração, marketplace. Dessas, a casca do Terminus **já tem** Explorer, terminal, Ctrl+P e barra de status — é justamente a metade que o A2 traria de graça e que aqui seria duplicata |
+| **o que muda se ficar para depois** | **fica mais caro.** Cada semana de casca escrita contra `api.neovim.*` é mais superfície a migrar; e o `correcao-de-erros-com-copilot.lua` (novo, não versionado) é trabalho sendo investido no motor que sairia |
+| **DESFECHO** | **A1 APLICÁVEL — decidida pela cabeça em 26/08/2026.** `monaco-editor` 0.56.0. A (A2) fica escrita como porta nomeada, não aberta. Planta em `docs/planta-editor-vscode.md`, aguardando aval |
+
+### 22.4 · Árvore B — de onde vem a inteligência de linguagem (LSP)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito que isto evita** | sair do Neovim é **perder o LSP que o LazyVim dava de graça**. Sem decidir isto, a fatia 1 entrega um editor bonito e **mais burro** que o de hoje — e essa é a única forma real deste plano fracassar |
+| **as opções** | **(B1)** `monaco-languageclient` 10.7.0 + LSP de verdade por stdio a partir do `main` (pyright, Roslyn/OmniSharp, clangd) — casa com os três fluxos que o molde já cria. **(B2)** só os workers embutidos do Monaco (`typescript`, `json`, `css`, `html`): zero servidor, zero processo novo — e Python/C# ficam com **sintaxe só**. **(B3)** nada |
+| **a minha recomendação** | **(B2) na fatia 1, (B1) na fatia seguinte.** B2 é grátis e prova a casca; B1 é onde o trabalho real da cabeça (Python e C#) vive, e é um motor novo (`sistema/motores/`) com portão próprio — não cabe na mesma fatia que a troca do editor (§12·3) |
+| **DESFECHO** | **B2→B1 — decidida pela cabeça em 26/08/2026.** Workers embutidos na fatia 1; `monaco-languageclient` + pyright/Roslyn/clangd em fatia própria depois |
+
+### 22.5 · Árvore C — o `inlineCompletion` (o que a varredura do VSCode responde)
+
+| parte | conteúdo |
+|---|---|
+| **o achado que decide** | o VSCode **não define protocolo de rede** para inline completion. A "conexão de API" é o registro `languages.registerInlineCompletionItemProvider` (`vscode.d.ts:14862`), que atravessa o RPC do host de extensão (`$registerInlineCompletionsSupport` → `$provideInlineCompletions`) e **termina no registro do editor**. Quem fala com a rede é a **extensão** (o Copilot), não o VSCode. **Nesta máquina não há nenhuma**: 20 extensões, zero Copilot |
+| **o que isso compra ao Terminus** | montado sobre Monaco, o Terminus **pula o host de extensão inteiro**: `monaco.languages.registerInlineCompletionsProvider(seletor, provedor)` escreve no **mesmo registro** (`standaloneLanguages.js:507` → `languageFeaturesService.inlineCompletionsProvider.register`). O provedor é in-process, e o backend é escolha nossa |
+| **as opções** | **(C1)** provedor nativo do Terminus, com backend a definir. **(C2)** nenhum na fatia 1, tomada deixada pronta. **(C3)** usar o `copilot-language-server` como backend por trás do C1 |
+| **a minha recomendação** | **(C2) nasce, (C1) em fatia própria** — e o **backend é rumo, não meu**: é a única peça deste plano que sai da máquina (§13.3a) e a cabeça é quem decide para onde o código dela viaja |
+| **DESFECHO** | **C1 JÁ NA FATIA 1 — decidida pela cabeça em 26/08/2026**, contra a minha recomendação (C2), e o backend escolhido é o **copilot-language-server**. ⚠️ Consequência registrada (§13.2c): duas mudanças numa fatia só — **o portão desta fatia não terá atribuição**. [provado] o servidor já está na máquina (`~/.local/share/nvim/lazy/copilot.lua/copilot/js/language-server.js`, v1.527.5) e a auth existe (`~/.config/github-copilot/auth.db`, escrita hoje 15:02, banco não aberto) |
+
+### 22.6 · Árvore D — os 902 linhas de kit Lua e o painel "Plugins do Neovim"
+
+| parte | conteúdo |
+|---|---|
+| **o custo de deixar** | os kits são **argumento de venda** declarado (`fluxo.md`), e 6 dos 8 fazem o que o Monaco já faz nativo (erro na linha, linha longa, marcador de comentário, tema, caixa de comentário, rodar-e-setas). Os que **não** têm equivalente: `csharp-um-servidor-so.lua` (vira config do B1) e `correcao-de-erros-com-copilot.lua` (**novo, não versionado — trabalho em curso da cabeça**) |
+| **as opções** | **(D1)** os kits morrem e a conduta renasce como contribuição do Monaco. **(D2)** ficam no disco, desligados. **(D3)** `kits-embutidos.ts` continua ligando os symlinks em `~/.config/nvim` para o **Neovim de fora**, que o Terminus deixa de embutir mas não deixa de servir |
+| **a minha recomendação** | **(D1) para os 6, (D3) para o elo de config** — e é aqui que este plano perde mais. **Dizer isso é parte de entregá-lo:** o `painel-de-plugins.ts` (87 linhas) e o ícone "Plugins do Neovim" da barra de atividades **não têm substituto** sem o A2 |
+| **DESFECHO** | **D1 nos 6 + D3 no elo de config — decidida pela cabeça em 26/08/2026.** ⚠️ **Correção minha, posterior à escolha:** eu escrevera que `correcao-de-erros-com-copilot.lua` viraria contribuição do Monaco. Errado — ele chama `require("CopilotChat.select")` e depende do **CopilotChat.nvim**, não do LSP. O D3 escolhido já o cobre (fica vivo no nvim de fora); trazê-lo ao Terminus seria fatia própria, e **não está na planta** |
+
+### 22.7 · Árvore E — os atalhos, e a A19 que isto FECHA de graça
+
+| parte | conteúdo |
+|---|---|
+| **o achado** | `atalhos-da-casca.ts` (31 linhas) existe por **uma** razão escrita no próprio arquivo: *"O LazyVim mapeia `<C-s>` como `<Esc>:w`, que grava e joga a pessoa para fora do modo de escrita"*. Sem Neovim, **a razão evapora**: Ctrl+S/Ctrl+Z/Ctrl+Shift+Z são keybindings nativos do Monaco, com a conduta do VSCode |
+| **o brinde** | a **A19** (§21.3, EM ABERTO desde 25/08) é o `Ctrl+\`` que o tooltip promete ao painel e o `main` sequestra para o `:terminal` do Neovim. Sem Neovim **não há segundo terminal**, o sequestro sai junto com o arquivo, e o tooltip volta a dizer a verdade — **sem decidir nada** |
+| **DESFECHO** | **RESOLVIDA POR DEPENDÊNCIA do A1 em 26/08/2026.** Sem Neovim, `atalhos-da-casca.ts` perde a única razão escrita nele e sai; Ctrl+S/Ctrl+Z passam a ser nativos do Monaco. **A A19 (§21.3) fecha junto, sem decisão** — sem Neovim não há segundo terminal para o `Ctrl+\`` disputar |
+
+### 22.8 · O que a casca visual perde — a lista honesta
+
+Nada de estrutura. **Duas coisas de aparência**, e a primeira é séria:
+
+1. **[não medido] o papel de parede atrás do editor.** Hoje ele funciona porque o xterm roda com
+   `allowTransparency` e fundo `#00000000` (`vista-do-neovim.ts:44`), com a imagem no
+   `#neovimHost` (`estilo-da-casca.css:242`). O Monaco **parseia** `#RRGGBBAA` (`color.js:620`) —
+   isso está `[provado]` —, mas **eu não renderizei nada**: se `editor.background` transparente
+   deixa passar a figura de ponta a ponta (linhas, margem, minimap) é `[não medido]`, e é o
+   **primeiro** experimento da fatia 1. Se falhar, a identidade visual do produto cai junto.
+2. **a statusline do Neovim.** O commit de 16/08 tirou "Ln,Col" e a codificação da barra de
+   estado com a razão escrita: *"quem passa a dizer é a statusline do Neovim"*. Sem ela, ou a
+   barra do Terminus recupera aquilo, ou a informação some.
+
+### 22.9 · A CORRIDA 11 FOI EXECUTADA — 26/08/2026, portão VERDE 6/6
+
+> A cabeça aprovou a planta e mandou construir, **em repositório separado para preservar o
+> anterior**. Feito em `~/projetos/Terminus-Monaco`; `~/projetos/Terminus` **não foi tocado**.
+> A planta (`docs/planta-editor-vscode.md`) foi **fundida no `fluxo.md`** e o arquivo morreu,
+> como ela mesma mandava.
+
+| perna | antes | depois |
+|---|---|---|
+| P1 teste da peça | 154 | **141** (−25 do RPC do Neovim, +8 linguagem, +4 copilot; os 5 dos kits ficam pelo D3) |
+| P2 tipo · P3 build | verde | **verde** |
+| M1 acoplamento · M2 ciclos · M3 pureza · M4 nós | 2 · 0 · 0 · 13 | **2 · 0 · 0 · 13** — os quatro inalterados, como a catraca previu |
+| P5 conduta | ok | **ok, e mais forte** — passou a ABRIR ARQUIVO de verdade |
+| P6 dev | ok | **ok** |
+| canais de IPC | 36 | **33** (−7 neovim, +2 arquivo, +2 copilot) |
+
+**O repo separado:** `git clone`, **`origin` removido na hora** (o clone nasce apontando para o
+repositório preservado, e um `push` distraído escreveria dentro do que se pediu para preservar),
+`node_modules` copiado com `cp -a` para preservar o `pty.node` reconstruído, e o trabalho **não
+commitado** levado junto — `git status --porcelain` dos dois, ordenado, **idêntico**.
+O lançador `~/.local/bin/terminus` **continua apontando para o repo preservado**, de propósito:
+enquanto o Monaco não vencer, o menu do sistema abre a versão que já funciona.
+
+### 22.10 · As quatro coisas que a EXECUÇÃO desmentiu, e uma que ela consertou
+
+Todas medidas, nenhuma deduzida. São o que muda para a próxima pessoa:
+
+1. **⚠️ A receita do `MonacoEnvironment` que se acha em todo lugar QUEBRA o 0.56.**
+   `internal/common/workers.js:100-116` consulta `globalThis.MonacoEnvironment.getWorker`
+   **ANTES** de tudo, e o chama como `getWorker("workerMain.js", label)` — definir a função
+   **sobrescreve** a fiação correta que o próprio Monaco já traz (`createWorker: () => new
+   Worker(new URL('x.worker.js', import.meta.url))`). **Provado pelo pacote gerado:** com ZERO
+   import de worker, a construção emitiu `json`, `html`, `css` e `ts.worker`. A ausência de
+   código é a configuração.
+2. **⚠️ A transparência não é um token, são dezesseis.** Só `editor.background` deixa o
+   **minimap opaco** cobrindo a melhor parte do papel de parede. Duas capturas de tela olhadas.
+3. **⚠️ O status do Copilot chega PARCIAL.** O servidor manda só as categorias que mudaram;
+   guardando um valor único e sobrescrevendo, um aviso sobre `completion` **apagava** o
+   `cls: Normal` e o estado virava "sem status" com as sugestões funcionando. Virou mapa por
+   categoria. Sem isto a barra diria "Copilot desligado" o tempo todo.
+4. **⚠️ O Monaco renderiza espaço como ` `.** A asserção do portão `includes('def area')`
+   deu falso sobre um texto que a tela mostrava certo. Toda leitura de texto do editor precisa
+   normalizar — e isso só aparece na tela de verdade.
+5. **✅ E o `#vazio` foi consertado por causa de uma foto.** Eu escrevi no comentário que a tela
+   vazia "volta a ter função" e **não liguei nada** — ninguém nunca a ligou, porque o
+   `.motor-neovim` a escondia para sempre. A captura mostrou a marca "Nenhuma pasta aberta"
+   flutuando por cima do editor. Comentário que promete o que o código não faz é mentira com
+   aparência de documentação.
+
+### 22.11 · O que fica ABERTO desta corrida
+
+| # | o que | estado |
+|---|---|---|
+| **B1** | `monaco-languageclient` + pyright/Roslyn/clangd — a inteligência de Python e C# | **decidido, não construído.** Fatia própria, como o ramo B mandava |
+| **A19** | `Ctrl+\`` sequestrado pelo main | ✅ **FECHADA por dependência**: `atalhos-da-casca.ts` morreu, o main não intercepta mais tecla nenhuma |
+| **A15** | `lerParaEditor`/`gravarConfinado` chamadas só por `tests/` | ✅ **FECHADA**: as duas voltaram a ter chamador de produção, com a razão escrita antes (§12·3a) |
+| **painel de Plugins** | morreu sem substituto | **em aberto por decisão** (ramo D1). Só o A2 (`@codingame/monaco-vscode-api`) o devolve |
+| **[não medido]** | o Copilot **dentro do app montado** | o motor foi provado importado e rodando (3,1 s a 1ª, 472 ms a 2ª, `pronto: true`); a sonda do app roda com `HOME` temporário, onde o servidor não é achado — e é assim que ela **tem** de rodar |
+| **[não medido]** | a transparência com o painel do terminal aberto e no tema claro | a prova foi no tema escuro, com o painel fechado |
+
+### 22.12 · ⚠️ A20 — `varre-orfaos.py` reporta o nome errado e acusa canal vivo — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | `npm run orfaos` acusa `copilot:sugerir — exposto como copilot.coluna() e ninguem chama`. Duas coisas erradas: (1) o método é `sugerir`, não `coluna` — o varredor pegou um **parâmetro do literal de objeto** que atravessa várias linhas; (2) o canal **tem chamador**, em `codigos/interface/sugestao-inline.ts:44` (`api.copilot.sugerir({...})`) |
+| **a medição** | `grep -n "api.copilot.sugerir" codigos/interface/sugestao-inline.ts` → linha 44. O canal é o do provedor de sugestão inline, exercitado a cada pausa de digitação |
+| **o que custa deixar** | o varredor é o ato 3 do §12·6 — é o que pega superfície sem dono. Um falso positivo permanente **ensina a ignorar a saída dele**, e aí o próximo achado verdadeiro (como o `copilot:estado` desta mesma corrida, que era real e foi consertado) passa batido |
+| **por que NÃO corrigi** | **quem é medido não mexe na régua (§13.2b).** O `varre-orfaos.py` é parte do arnês que julga esta corrida, e eu sou quem está sendo julgado. Mexer nele para melhorar o meu número — mesmo com razão — é exatamente a fronteira que a §13.2b existe para marcar |
+| **as opções** | **(a)** a cabeça (ou outro agente) conserta o varredor para casar literais multilinha; **(b)** o `ponte-para-a-interface.ts` põe `sugerir:` numa linha só, contornando o parser sem tocá-lo; **(c)** nada, e o falso positivo fica documentado aqui |
+| **a minha recomendação** | **(a)**, e por quem não seja eu. A **(b)** é pior do que parece: mudaria o código do produto para agradar o medidor, que é a mesma doença por outro caminho |
+| **DESFECHO** | **EM ABERTO** — devolvida à cabeça |
+
+## 23. Corrida 12 — o B1: LSP de verdade, e a reversão do A1 que ele traz junto
+
+> **PRÉ-REGISTRO (§12·4a) — escrito ANTES de a fatia começar, em 26/08/2026.**
+
+### 23.1 · A medida que reabriu a decisão
+
+O ramo B1, como foi decidido, dizia *"`monaco-languageclient` + pyright/Roslyn/clangd"*. Medido
+antes de instalar no projeto:
+
+| medida | valor | consequência |
+|---|---|---|
+| `monaco-languageclient@10.7.0`, instalado sozinho | **78 MB**, 59 pacotes | — |
+| dentro disso, `@codingame/*` | **71 MB** (inclui **14 pacotes de tradução**) | é a árvore do **A2** |
+| ele instala `monaco-editor`? | **NÃO** | usa `@codingame/monaco-vscode-editor-api` como **substituto** |
+
+**A leitura honesta: B1 por esse caminho não SOMA ao A1, ele o SUBSTITUI.** O ramo A1 foi
+escolhido em 26/08 e o A2 recusado por peso; adotar o `monaco-languageclient` executa o A2 de
+fato, ainda que não no nome. Devolvi a árvore com essa medida na frente.
+
+**DESFECHO: a cabeça escolheu `monaco-languageclient` — CONTRA a minha recomendação**, que era
+ponte LSP própria (zero dependência, reusando o framing já provado no `motor-copilot-lsp`).
+Registrado aqui porque **o A1 passa a estar revertido de fato**, e uma reversão que não está
+escrita é uma reversão que ninguém decidiu.
+
+**Linguagens desta fatia (decisão da cabeça):** **Python** (`pyright-langserver`) e **C#**
+(`roslyn-language-server`). C++ e Lua ficam de fora — não foram escolhidos.
+
+### 23.2 · As pernas do portão desta fatia — declaradas antes da fatia 1 (§12·4a–e)
+
+| perna | o que mede | o que a mata (sabotagem, §12·4d) |
+|---|---|---|
+| **P1** teste | ≥ 141 (nenhum morre; nascem os do localizador de servidores) | apagar um `test()` e ver a contagem cair |
+| **P2** tipo | `tsc --noEmit` exit 0 **com o pacote do editor trocado** | trocar o alias e não trocar o import |
+| **P3** build | `electron-vite build` com o novo pacote **e o CSP intacto** | remover o `worker-src` e ver o build passar mesmo assim |
+| **P4** M1–M4 | acoplamento ≤2, ciclos 0, pureza 0, nós 13 | pôr um `import "monaco-editor"` dentro de `dominio/` — o M3 tem de pegar |
+| **P5** conduta | abrir o `.py` **e ver diagnóstico do pyright na tela** | quebrar de propósito o `didOpen` e exigir que a perna reprove |
+| **P6** dev | inalterada | — |
+
+**A CLÁUSULA (e) — vermelho que separa defeito do alvo de defeito do ambiente:** o servidor de
+linguagem **mora fora do repositório** (Mason do LazyVim). A perna P5 tem de distinguir *"o
+pyright não estava instalado"* de *"a ponte não funciona"*, e **dizer qual dos dois** — senão uma
+máquina sem Mason reprova o código certo.
+
+### 23.3 · A previsão dos quatro números, com a razão de cada um
+
+- **M1 = 2** (inalterado): o registrador do LSP importa **um** módulo de `sistema/` (o motor).
+- **M2 = 0**: o motor novo é folha; a tela importa dele, ele não importa da tela.
+- **M3 = 0**: `dominio/` não é tocado — o mapa de linguagem→servidor é **dado do motor**, não regra.
+- **M4 = 13**: nenhuma pasta da árvore §1.3 nasce ou morre.
+- **CANAIS: 33 → 35** (`lsp:iniciar` e `lsp:estado`), declarado aqui antes de existir.
+
+### 23.4 · A CORRIDA 12 FOI EXECUTADA — 26/08/2026, portão VERDE 6/6
+
+| perna | antes | depois |
+|---|---|---|
+| P1 teste | 141 | **146** (+5 do localizador de servidores) |
+| P2 tipo · P3 build | verde | **verde** (com o pacote do editor trocado) |
+| M1 · M2 · M3 · M4 | 2 · 0 · 0 · 13 | **2 · 0 · 0 · 13** — os quatro como previstos em §23.3 |
+| P5 conduta · P6 dev | ok | **ok** |
+| canais de IPC | 33 | **36** |
+
+⚠️ **DESVIO DO PRÉ-REGISTRO, declarado:** previ **35** canais e o certo é **36**. São três e não
+dois — `lsp:iniciar`, `lsp:estado` e `lsp:enviar` —, porque o envio tem de ser **aviso** e não
+pergunta: a tela manda `didChange` a cada tecla, e esperar ida e volta a cada letra atrasaria a
+digitação. Errei a previsão por não ter pensado no ritmo do canal, só no seu propósito.
+
+**O que está PROVADO na tela:** três sublinhados vermelhos do pyright nas linhas 16, 17 e 18 de
+um `.py` com três erros plantados, com as marcas no minimap e na régua lateral. Foto guardada.
+
+### 23.5 · Os sete elos que faltavam — todos medidos, nenhum deduzido
+
+| # | o que quebrava | o que consertou |
+|---|---|---|
+| 1 | Rollup não resolve o curinga multi-segmento do `exports` do `@codingame` (775 imports) | alias de prefixo no `electron.vite.config.ts` |
+| 2 | `initialize()` → *"Services are already initialized"* | `ligarSugestaoInline()` saiu da carga do módulo — **pedir um serviço inicializa todos** |
+| 3 | workers não subiam | `MonacoEnvironment.getWorker` **voltou** — e é o AVESSO do §22.10·1: a resposta é do PACOTE, não do Monaco |
+| 4 | construção morria com *"IIFE … code-splitting"* | não importar `monaco-languageclient/workerFactory` — o custo é do import, não da chamada |
+| 5 | `didOpen` nunca saía | abrir por `vscode.workspace.openTextDocument`, não por `createModel` |
+| 6 | `Unknown language id: python` | as extensões padrão de linguagem (**240 KB**, e sem elas nada acontece) |
+| 7 | **`didOpen` saindo e ainda sem sublinhado** | não anunciar a capacidade de **pull** — o pull é dirigido por editor visível do *workbench*, e o nosso é Monaco |
+
+### 23.6 · ⚠️ A21 — o framing do LSP existe em dois lugares — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o defeito** | `codigos/sistema/motores/canal-lsp.ts` e `codigos/sistema/motores/motor-copilot-lsp.ts` têm cada um a sua cópia do mesmo framing (cabeçalho `Content-Length`, acumulador em `Buffer`, `byteLength` e não `length`). ~60 linhas duplicadas |
+| **o que custa deixar** | as duas cópias já divergem: só a do `canal-lsp` tem o `TERMINUS_LSP_LOG`. A próxima correção de protocolo será feita numa e esquecida na outra — é o modo de falha clássico de regra escrita duas vezes |
+| **por que NÃO unifiquei** | o `motor-copilot-lsp` está **provado e rodando**, e a corrida 12 já carrega mudança demais (troca do pacote do editor + cliente LSP). Mexer nele aqui misturaria uma terceira coisa, e o §12·3 existe para impedir isso |
+| **as opções** | **(a)** fatia própria que migra o Copilot para o `canal-lsp` e prova com a suíte + execução direta; **(b)** deixar as duas e aceitar a divergência; **(c)** unificar agora |
+| **a minha recomendação** | **(a)**, e curta: o `canal-lsp` já é o desenho certo, e o Copilot ganharia o registro de tráfego de graça |
+| **DESFECHO** | **EM ABERTO** |
+
+### 23.7 · O que fica ABERTO da corrida 12
+
+| # | o que | estado |
+|---|---|---|
+| **C#/Roslyn** | ligado (receita, argumentos, testes) e **nunca exercitado numa solução de verdade** | **[não medido]** — a prova de tela existe só para Python |
+| **completar · hover · ir-para-definição** | vêm do mesmo cliente e devem funcionar | **[declarado]**, não provado — o que provei foi diagnóstico |
+| **diagnóstico por PUSH** | perde-se pedir de novo sem editar | escolha registrada, não medida |
+| **A2 na prática** | o pacote do editor agora é `@codingame`; o **painel de Plugins** (§22.6) voltou a ser possível | não construído — mas a porta que o D1 fechou está aberta de novo |
+| **peso** | `node_modules` passou de **413 MB → ~600 MB** | consequência aceita da escolha do B1 |
+
+## 24. A sugestão inline do Terminus × a documentação do VSCode (26/08/2026)
+
+> Comparação pedida pela cabeça contra
+> `https://code.visualstudio.com/docs/editing/ai-powered-suggestions`.
+> **Nada foi executado nesta comparação** — é leitura do documento contra medição do nosso
+> código e do pacote construído.
+
+### 24.1 · A leitura de uma linha
+
+**O lado do EDITOR já tem quase tudo; o que falta é o que NÓS alimentamos.** Medido no pacote
+construído: **15 comandos** `editor.action.inlineSuggest.*` estão lá dentro — `acceptNextWord`,
+`acceptNextLine`, `showNext`, `showPrevious`, `trigger`, `hide`, `jump`, `snooze`,
+`cancelSnooze`, `toggleAlwaysShowToolbar`, `toggleShowCollapsed`, `commit`,
+`commitAlternativeAction`, `renameSymbol`, `dev`. Nenhum deles foi escrito por nós: vieram com o
+`vs/editor`. O nosso provedor implementa **4 dos ~8 ganchos** que eles consomem.
+
+### 24.2 · O que JÁ funciona
+
+| recurso do documento | estado |
+|---|---|
+| Texto fantasma no cursor | ✅ **[provado]** — foto de 26/08, `return (4 / 3) * math.pi * raio ** 3` |
+| `Tab` aceita a sugestão | ✅ nativo do editor |
+| `Esc` dispensa | ✅ nativo (`inlineSuggest.hide`) |
+| O Copilot aprende o que foi aceito | ✅ `handleEndOfLifetime` devolve `didAcceptCompletionItem` |
+| Indicador na barra de estado | ⚠️ **parcial** — mostra ligado/desligado e o que falta; **não tem menu** |
+
+### 24.3 · O que FALTA, e o que cada um custa
+
+| # | recurso do documento | o que falta do nosso lado | custo |
+|---|---|---|:-:|
+| **1** | **Aceitar palavra/linha** (`Ctrl+→`) | o comando existe no editor, mas o provedor **não implementa `handlePartialAccept`** — a tecla funciona e **o Copilot nunca fica sabendo**, então ele repete o que você já recusou pela metade | baixo |
+| **2** | **Alternativas** (passar o mouse, `showNext`/`showPrevious`) | mandamos **sempre `triggerKind: 2` (Automatic)** ao servidor, nunca `1` (Invoke) — e o protocolo diz que só o Invoke devolve **várias**. Não há o que ciclar | baixo |
+| **3** | **Disparo manual** (`Configure Inline Suggestions`) | nenhum atalho da casca chama `inlineSuggest.trigger`, e ele precisaria do Invoke do item 2 | baixo |
+| **4** | **Barra de ferramentas da sugestão** (`editor.inlineSuggest.showToolbar`) | **não ligamos a opção** — o editor a tem, nós não a configuramos | trivial |
+| **5** | `syntaxHighlightingEnabled`, `fontFamily`, `minShowDelay` | **nenhuma das três é definida** por nós | trivial |
+| **6** | **Snooze / Cancel Snooze** | os comandos existem no pacote; **não há botão nem menu** que os chame | baixo |
+| **7** | **Ligar/desligar por linguagem** (`github.copilot.enable`) | não existe: o provedor é registrado em `"*"` e não consulta preferência nenhuma | médio |
+| **8** | **Escolher o modelo** (`Change Completions Model...`) | o provedor do editor aceita `modelInfo`/`setModelId`; **não implementamos nenhum dos dois**, e o LSP do Copilot os expõe | médio |
+| **9** | **⚠️ Next Edit Suggestions (NES)** — prevê o **próximo lugar** a editar, com seta na calha, `Tab` para pular e visão lado-a-lado | **não implementado, nem um pedaço.** É a metade mais nova do recurso: exige itens `isInlineEdit`, o pedido próprio do Copilot LSP, e os ajustes `editor.inlineSuggest.edits.*` | **alto** |
+| **10** | **Contexto de arquivos abertos relacionados** | mandamos **só o texto do arquivo atual**. O documento diz que ter arquivos relacionados abertos melhora a sugestão — o LSP aceita documentos vizinhos e nós não os enviamos | médio |
+
+### 24.4 · A minha recomendação de ordem
+
+1. **Os itens 1, 2, 4 e 5 juntos** — são uma fatia pequena e é o que mais aparece no uso diário:
+   aceitar por palavra passa a ensinar o Copilot, e a barra de ferramentas dá a alternativa e o
+   descartar sem decorar tecla.
+2. **O item 10 depois** — é o que mais muda a QUALIDADE da sugestão, e não muda a interface.
+3. **O item 9 (NES) por último e em fatia própria** — é recurso, não ajuste: muda o desenho do
+   provedor e traz interface nova (calha, salto, lado-a-lado).
+
+### 24.5 · O limite honesto desta comparação
+
+- **[não medido]** se cada comando tem **tecla padrão** neste empacotamento. Os comandos estão no
+  pacote; se `Ctrl+→` já está ligado a `acceptNextWord` aqui, eu **não medi**.
+- **[não medido]** o que o `copilot-language-server` desta máquina oferece de NES — a resposta do
+  `initialize` que eu li anunciava `inlineCompletionProvider`, e eu **não procurei** capacidade de
+  edição seguinte.
+- **[declarado]** os itens 4 e 5 como "trivial": são opções do editor, e o custo real só aparece
+  ao ligá-las e ver como ficam sobre o papel de parede.
+
+### 24.6 · A CORRIDA 14 — os itens implementados, e o que sobrou (26/08/2026)
+
+> A cabeça mandou seguir **do mais difícil ao mais fácil**. Portão **verde 6/6**, 156 testes.
+
+| # | recurso | estado |
+|---|---|---|
+| **9** | **NES (Next Edit Suggestions)** | ⛔ **BLOQUEADO, com medição** — ver §24.7 |
+| **10** | Contexto de arquivos relacionados | ✅ **[provado]** — `didOpen` de cada aba; a sugestão usou uma função que **só existe no arquivo vizinho** |
+| **8** | Escolher o modelo | ⛔ **não feito** — ver §24.7 |
+| **7** | Ligar/desligar por linguagem | ✅ `Ctrl+Alt+C` alterna na linguagem do arquivo aberto; lista **negativa** (o padrão é ligado) em `localStorage` |
+| **6** | Snooze / Cancel Snooze | ✅ `Ctrl+Alt+Z` adia 5 min; `Ctrl+Alt+Shift+Z` cancela |
+| **5** | `syntaxHighlighting`, `fontFamily`, `minShowDelay` | ✅ os três ligados, com o motivo de cada valor |
+| **4** | Barra de ferramentas da sugestão | ✅ `showToolbar: "onHover"` — fixa poluiria a tela vazia |
+| **3** | Disparo manual | ✅ `Ctrl+Alt+Espaço` (`Ctrl+Espaço` é do autocomplete de linguagem — não podem disputar) |
+| **2** | Alternativas para ciclar | ✅ o `triggerKind` **atravessa** agora: digitando é `Automatic` (uma, barata), pedido é `Invoke` (várias) |
+| **1** | Aceitar palavra/linha ensina o Copilot | ✅ `handlePartialAccept` implementado. ⚠️ **limite medido:** o servidor expõe `didAcceptCompletionItem` e **não** um comando de aceite PARCIAL, então o parcial é contado como aceite — melhor que silêncio, e é o que o protocolo permite |
+
+**Também nesta corrida:** a **logo da tela vazia centralizada**. Ela era `display:block` e bloco
+não obedece ao `text-align:center` do pai — ficava encostada à esquerda com as frases centradas
+embaixo. **[provado]** desvio do centro: **0 px**.
+
+### 24.7 · ⚠️ A22 — o NES não produz edições, e eu não sei por quê — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o que EXISTE [provado]** | o servidor desta máquina **anuncia NES**: `executeCommandProvider.commands` traz `github.copilot.didAcceptNextEditSuggestionItem`, `didRejectNextEditSuggestionItem` e `didIgnoreNextEditSuggestionItem`. E o método **existe**: `textDocument/copilotInlineEdit` responde |
+| **o que NÃO acontece [provado]** | ele devolve **`{ "edits": [] }`** — bem-formado e vazio — em **três** cenários que construí: (a) documento recém-aberto; (b) depois de um `didChange` que renomeia uma função com três chamadas pendentes, que é o exemplo canônico de NES; (c) com `nextEditSuggestions.enabled`, `editorConfiguration` e `capabilities.textDocument.inlineEdit` declarados |
+| **o que eu NÃO sei** | o que falta para ele devolver algo. Pode ser forma de contexto não documentada, uma declaração de capacidade que não achei, ou **direito de conta** — o NES é recurso mais novo e pode não estar no plano desta sessão |
+| **por que NÃO implementei assim mesmo** | escrever o encanamento do NES sem nunca ter visto uma edição voltar seria entregar `[não medido]` embrulhado como recurso — e o §13.5 existe exatamente para isso não acontecer. O código pareceria pronto e ninguém saberia que nunca funcionou |
+| **as opções** | **(a)** medir por fora primeiro: rodar o Copilot no VSCode desta máquina com o log do LSP ligado e **ler a chamada que ele faz** — é a fonte da verdade e custa uma sessão; **(b)** implementar às cegas contra a forma que eu deduzi, e marcar tudo como não medido; **(c)** deixar para quando o servidor atualizar |
+| **a minha recomendação** | **(a)**. O VSCode desta máquina fala com o mesmo servidor; copiar a chamada dele é a diferença entre saber e supor. E é barato perto de implementar duas vezes |
+| **DESFECHO** | **EM ABERTO** |
+
+### 24.8 · O item 8 (escolher o modelo) — por que não entrou
+
+O provedor do editor aceita `modelInfo` e `setModelId`, e a documentação do VSCode mostra
+**"Change Completions Model..."**. **Não implementei, e a razão é a mesma do NES pela metade:**
+eu não medi **como se pergunta a lista de modelos** a este servidor. Ele não expõe isso em
+`executeCommandProvider`, e chutar um método seria o mesmo erro. Fica junto com a A22 — a mesma
+sessão de medição no VSCode responde os dois.
+
+## 25. Corrida 17 — o NES construído (com o veredito dentro dele) e a aba de Extensões
+
+> Portão **verde 6/6**, **175** testes. Duas frentes independentes, por pedido explícito.
+
+### 25.1 · O NES está construído, ligado, e não produz nada — as três coisas são verdade
+
+| peça | estado |
+|---|---|
+| `motor-copilot-lsp.pedirEdicaoSeguinte` | ✅ formato **lido do validador do servidor**, não deduzido: `textDocument{uri,version}` + `position` + `diagnostics[{severity:"error"\|"warning",…}]` |
+| `interface/edicao-seguinte.ts` | ✅ provedor próprio, com **`isInlineEdit: true`** — é essa linha que acende a **seta na calha**, o salto por `Tab` e a visão lado-a-lado |
+| a disputa com a sugestão inline | ✅ `groupId` + `yieldsToGroupIds`: quando as duas têm algo a dizer, **a sugestão inline ganha** — ela é sobre o que a mão está escrevendo |
+| os diagnósticos alimentam a correção | ✅ os marcadores do editor viram a lista `diagnostics` — é o `nextEditSuggestions.fixes` da documentação |
+| **produz alguma coisa?** | ⛔ **NÃO, nesta conta** — e está escrito no cabeçalho do próprio arquivo |
+
+⚠️ **A prova de que o nosso lado está certo é por BISSEÇÃO, e ela é o que autoriza ter
+construído isto:** o gancho `testing/setNextEditDocument` injeta uma edição pronta, e ela
+**volta inteira por este mesmo caminho**, com `range` e `command`. A flag `copilotnesxtab` foi
+forçada (`"OK"`) e não mudou nada. Então: esquema, transporte e desenho corretos; o modelo é
+que não gera.
+
+⚠️ **ESTE PARÁGRAFO ESTAVA ERRADO — corrigido em 26/08 à noite. Ver §25.6.** Ele dizia que o
+recurso *"acende sozinho no dia em que a conta começar a produzir"*. **Não acende:** o VSCode não
+usa esse método, e o que eu chamei de "modelo da conta que não produz" era eu batendo numa porta
+que o próprio VSCode não abre.
+
+### 25.2 · A aba de Extensões — o sucessor do "Plugins do Neovim"
+
+**[provado]** na tela: **19 extensões, em 3 grupos** — 2 *sem código*, 7 *carregáveis*, 10 *só
+no VSCode*, cada grupo com a frase que explica o porquê.
+
+⚠️ **A divisão por tipo É o recurso, não a lista.** Ela é lida do `package.json`: quem declara
+`browser` roda no mesmo lugar que o editor; quem só declara `main` precisa do host de extensão
+do VSCode, que este produto não tem; quem não tem código nenhum (tema, idioma, gramática) é a
+que carregaria mais fácil. **Sem essa marca, a lista prometeria o que não pode cumprir** — e a
+pergunta *"por que essa não funciona?"* chegaria tarde.
+
+**Ele não instala nada:** lê uma pasta conhecida, sem rede e sem escrita. O clique abre a pasta
+da extensão no Explorer — o mesmo gesto do painel antigo.
+
+### 25.3 · ⚠️ O portão me pegou, e o meu raciocínio estava INVERTIDO
+
+Pus `extensoes:listar` dentro do `ponte-arquivo` com o argumento de que *"ler extensão é leitura
+de arquivo, mesma família"*. **O M1 foi de 2 para 3 e o portão reprovou.** Aquele registrador já
+importava dois módulos; o terceiro estourou o teto. Um registrador **próprio** importa **um**.
+
+**O E2 mede ACOPLAMENTO, não parentesco temático** — e eu escrevi a justificativa errada na
+catraca antes de rodar. Corrigi as duas coisas: o código e o texto que o defendia.
+
+### 25.4 · Uma duplicação que morreu no caminho
+
+A conversão **base-zero ↔ base-um** (o LSP conta de 0, o editor de 1) estava escrita **três
+vezes à mão** — sugestão inline, edição seguinte e puxador de diagnóstico. Virou
+`dominio/faixa-do-editor.ts`, pura e com 6 testes. É a conta mais boba do projeto e a que mais
+custa quando erra: o sublinhado aparece uma linha acima do erro, e **não parece defeito nosso**.
+
+### 25.5 · "Por que o NES funciona no VSCode e não no Monaco, se é o mesmo sistema?"
+
+Pergunta da cabeça. A resposta tem duas metades, e a primeira desfaz a premissa.
+
+**1. [provado] No VSCode DESTA MÁQUINA ele também não funciona.** `ls ~/.vscode/extensions | grep
+copilot` → **zero**. O `product.json` diz que o agente esperado é `GitHub.copilot` +
+`GitHub.copilot-chat`, e **nenhum dos dois está instalado**. A comparação é com a documentação,
+não com o VSCode do lado.
+
+**2. "É o mesmo sistema" é verdade para o EDITOR e falso para o CLIENTE.** E a divisão é
+exatamente ao meio:
+
+| metade do NES | onde mora | temos? |
+|---|---|:-:|
+| **desenhar** — seta na calha, salto por `Tab`, lado-a-lado, `edits.renderSideBySide`, `edits.showCollapsed`, `edits.allowCodeShifting` | `vs/editor` — o **Monaco** | ✅ **[provado]** os 6 ajustes e o comando `jump` estão no nosso pacote construído |
+| **produzir** — decidir ONDE vai a próxima edição e qual é | a **extensão `GitHub.copilot`**, que roda no host de extensão | ⛔ não existe aqui, e não está no VSCode da cabeça |
+
+**A analogia:** é o mesmo bloco de motor com outra injeção. O que desenha é idêntico — provei
+que uma edição injetada percorre o caminho inteiro e chegaria à tela. O que **decide o que
+sugerir** é um programa à parte que o VSCode chama de extensão.
+
+**3. E o que nós usamos NÃO é o caminho do VSCode.** O Terminus fala com o
+`copilot-language-server` — o mesmo binário que o Neovim usa —, e por ele a **sugestão inline
+funciona** (provado, com foto). O `textDocument/copilotInlineEdit` existe nesse servidor,
+valida, e devolve `{edits: []}`. Ou seja, o servidor **tem a porta do NES e não a atravessa**
+para este cliente. A extensão do VSCode alimenta o servidor com mais do que `didOpen` + pedido —
+ele emite `copilot/hook/didChange` e `copilot/customAgent/didChange`, canais de que a extensão
+participa e nós não.
+
+**4. Onde isso deixa a decisão.** Três caminhos, e nenhum é "consertar o Monaco":
+
+| caminho | o que custa |
+|---|---|
+| **(a)** rodar a própria extensão `GitHub.copilot` num host de extensão | é o A2 levado às últimas consequências — e o painel de Extensões (§25.2) já mostra que extensão de `main` **não carrega** aqui |
+| **(b)** achar o protocolo que falta no servidor | eu li o esquema, o tratador e as saídas antecipadas; o que falta está além do que o bundle revela sem depurar o processo vivo |
+| **(c)** deixar como está | o recurso está construído e **acende sozinho** se o servidor passar a responder. Custo já pago |
+
+**A minha recomendação: (c).** O (a) é caro e provavelmente impossível para esta extensão; o (b)
+é caça sem mapa. E o (c) já está feito.
+
+## 26. ⛔ A CORREÇÃO — o NES do VSCode não passa pelo servidor que usamos (26/08, noite)
+
+> **Isto corrige uma conclusão minha que estava errada e que eu tinha escrito com confiança
+> em três lugares: no `tracker.md §25.1`, no cabeçalho do `edicao-seguinte.ts` e na resposta à
+> cabeça.** Os três foram corrigidos, e nenhum foi apagado.
+
+### 26.1 · O que eu disse, o que era, e por que errei
+
+| eu disse | o que é |
+|---|---|
+| *"o modelo de NES da conta não produz"* | **eu estava chamando um método que o VSCode não usa** |
+| *"acende sozinho quando a conta produzir"* | **não acende** — o caminho vivo é outro |
+| *"não há Copilot no seu VSCode"* | **há** — ele vem **embutido** em `/usr/share/code/resources/app/extensions/copilot`, não é extensão de marketplace |
+
+**A causa do erro, nomeada:** procurei o Copilot em `~/.vscode/extensions` — o único lugar onde
+uma extensão **embutida** não pode estar — e tratei "não achei" como "não existe". E o dado que
+me contradizia estava no **primeiro arquivo que li nesta sessão**: o `package.json` do VSCode traz
+`"compile-copilot": "npm --prefix extensions/copilot run compile"`. Eu colei esse trecho no
+terminal e não o li.
+
+⚠️ **E a instrução do primeiro despacho era literalmente "faça uma varredura nas configurações do
+VSCode".** Varri o `.d.ts` e o bundle do workbench; **nunca abri `extensions/`** — que é onde a
+resposta morava desde o começo.
+
+### 26.2 · Como o VSCode faz o NES, de verdade [provado]
+
+| medida | valor |
+|---|---|
+| `grep copilotInlineEdit` na extensão | **0 ocorrências** — ela **não usa** o método do LSP |
+| o que ela tem no lugar | `NextEditProvider` (32×) e **`DiagnosticsNextEditProvider`** (o "corrigir pelos erros") |
+| como busca | **`fetchNextEdit`** próprio — endpoint e carga dela |
+| o modelo | **`copilot-nes-xtab`** · `vendor: "xtab"` · `family: "xtab-proxy"` · `max_prompt_tokens: 12285` · `prediction: true` |
+| por onde | **chat completions** pelo proxy do Copilot (`ProxyChatCompletions`), com o endpoint vindo do token |
+| a extensão | **177 MB**, `extension.js` de **19 MB**, `main`-only (desktop), **~70 APIs propostas** — inclusive `inlineCompletionsAdditions` e `textDocumentChangeReason` |
+
+**Em uma frase: o NES não é um protocolo — é um MODELO DE CHAT com um formato de prompt próprio**,
+montado a partir do histórico de edição de vários documentos. O protocolo é chat completions,
+que é banal; o valor está no formato do prompt, que é minificado e sem especificação pública.
+
+### 26.3 · ⚠️ A23 — o que fazer com o NES que construí — árvore (§12·3a)
+
+| parte | conteúdo |
+|---|---|
+| **o estado** | `interface/edicao-seguinte.ts` + `motor-copilot-lsp.pedirEdicaoSeguinte` + o canal `copilot:edicao-seguinte`. **Desenho provado certo** (a edição injetada percorre tudo), e **nunca vai receber nada** pelo caminho atual |
+| **o que custa deixar** | um provedor registrado que consulta o servidor a cada 600 ms de pausa e sempre recebe vazio: **uma viagem de IPC e uma pergunta ao servidor por pausa, para nada** |
+| **as opções** | **(a)** remover o arquivo, o canal e a porta — recurso morto some inteiro; **(b)** deixar como está, com o comentário corrigido; **(c)** reimplementar contra o `copilot-nes-xtab` — falar com o proxy do Copilot com prompt nosso; **(d)** trocar o backend: fazer "próxima edição" com um modelo que a casa já pode chamar |
+| **a minha recomendação** | **(a) agora, e (d) como fatia própria se a cabeça quiser o recurso.** A **(c) eu recomendo NÃO fazer**: exigiria decifrar um formato de prompt de dentro de um bundle minificado, que a Microsoft muda a cada versão, para falar com o modelo deles pelo proxy deles fora do cliente deles. É frágil por construção e duvidoso por fora |
+| **o que muda se ficar para depois** | **fica mais caro**: cada corrida futura relê este provedor e pergunta por que ele não faz nada |
+| **DESFECHO** | **EM ABERTO** |
+
+## 27. ✅ O NES FUNCIONA — e eu tinha declarado impossível DUAS vezes (27/08/2026)
+
+> Portão **verde 6/6**. Isto corrige a §25.1 e a §26, que davam o recurso por morto.
+
+### 27.1 · As duas conclusões erradas, e o que cada uma tinha de verdade
+
+| eu disse | o que era |
+|---|---|
+| *"o modelo de NES da conta não produz"* | **falso** — o servidor lista `copilot-nes-pandia-4` e `copilot-nes-oct` entre 8 modelos de proxy. A conta sempre teve |
+| *"o VSCode não usa este método, então o caminho está morto"* | a extensão de fato **não usa** — e o método **funciona assim mesmo**, pelo servidor que já estava aqui |
+
+**Nenhuma das duas era o problema.** O problema eram três coisas de protocolo, todas do lado do
+cliente — e o servidor **dizia qual era, em texto claro**, desde sempre.
+
+### 27.2 · O que faltava — e como se descobre isso
+
+⚠️ **A chave foi ligar o log do servidor**: `COPILOT_AGENT_VERBOSE=1` (ou `--debug`), lido do
+próprio bundle (`determineVerboseLoggingEnabled`). A resposta veio numa linha:
+
+```
+[NES][NextEditProvider][_getNextEdit][fetchNextEdit][streamEnd] no edit, reason: activeDocumentHasNoEdits
+```
+
+E a linha que decide, no código dele:
+`if (e.xtabEditHistory.length === 0) return new NoNextEditReason.ActiveDocumentHasNoEdits`.
+
+| # | o que faltava | por quê |
+|---|---|---|
+| **1** | **sincronia incremental** — `didChange` com `range`, não o texto inteiro | o servidor declara `textDocumentSync.change = 2`, e **texto inteiro não é edição**. A decisão de mandar tudo estava escrita no motor com uma boa razão (não dessincronizar) — e o Monaco **já entrega os deltas prontos**, então não há diário a manter à mão |
+| **2** | **o aquecimento** — a primeira chamada de cada sessão é sacrificada | o provedor de NES do servidor é preguiçoso (`??=`): ele nasce no primeiro pedido e **só então escuta**. O que se digitou antes disso não existiu para ele |
+| **3** | **`didFocus`** | o NES é sobre o documento em que a pessoa está |
+
+### 27.3 · A prova
+
+**[provado]** pelo motor do produto, importado: aquecimento → `0 edições`; edição incremental
+renomeando a definição → **1 edição em 423 ms**, propondo `def area_do_retangulo(largura, altura):`
+com o comando de aceite. Sem o aquecimento, a mesma sequência dá `{edits: []}` para sempre.
+
+### 27.4 · ⚠️ O que isto custou, e a lição
+
+**Duas conclusões de impossibilidade, cada uma com medição por trás.** A primeira mediu o
+resultado (`{edits: []}`) e inventou a causa. A segunda mediu a extensão do VSCode e concluiu
+certo sobre ela — e errado sobre nós.
+
+**O que eu não fiz nas duas: perguntar ao servidor por que ele estava desistindo.** Ele tinha a
+resposta, em uma variável de ambiente, o tempo todo. Medir o que acontece é fácil; **medir o que
+o outro lado diz que aconteceu** é o que fecha a pergunta.

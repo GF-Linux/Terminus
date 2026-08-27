@@ -2,6 +2,12 @@
 
 # Schema de fluxo — Terminus v0500
 
+> ✅ **26/08/2026 — O MOTOR DE EDIÇÃO MUDOU, e esta planta foi emendada para dizê-lo.**
+> O Neovim embutido saiu; o editor passa a ser o **`monaco-editor` 0.56.0** — o `vs/editor` do
+> VSCode publicado no npm. Decisões em `tracker.md §22` (A1 · B2→B1 · C1 · D1+D3 · E), planta
+> aprovada e **construída** na corrida 11, portão **verde 6/6**.
+> **A casca visual não mudou:** a tela tocava a porta do editor em 4 lugares e montava em 1.
+
 > **O que este arquivo é:** a planta do prédio. Mostra o **alvo pronto**, não o estado parcial.
 > Nada aqui é semáforo de "feito/a fazer" — o progresso mora em `docs/tracker.md` (§12·5).
 > **Fonte da verdade** desta planta é este `.md`; o `fluxo.png` é derivado dele.
@@ -108,6 +114,7 @@ Terminus/
 │   │   └── tipos.ts                    a forma dos dados que atravessam a porta (3 reinos leem)
 │   │
 │   ├── dominio/                        REGRA PURA — só node:path; sem fs, sem electron, sem pty
+│   │   ├── linguagem-do-arquivo.ts     decide qual linguagem o editor usa para um caminho
 │   │   ├── guarda-de-caminho.ts        decide: caminho JÁ RESOLVIDO cai dentro das raízes?
 │   │   ├── entrada-recusada.ts         recusa string vazia, com \0, ou que comece com "-"
 │   │   ├── protecao-da-pasta-aberta.ts decide: o alvo é a pasta aberta, ou está acima dela?
@@ -123,14 +130,12 @@ Terminus/
 │   │   │   ├── janela-principal.ts     cria a BrowserWindow sem moldura e carrega a página
 │   │   │   ├── janela-viva.ts          guarda QUAL janela existe agora; quem precisa, pergunta
 │   │   │   ├── zoom-da-janela.ts       Ctrl+= / Ctrl+- / Ctrl+0 e o zoom lembrado da sessão
-│   │   │   ├── atalhos-da-casca.ts     Ctrl+S, Ctrl+Z, Ctrl+Shift+Z e Ctrl+` antes do Neovim
 │   │   │   ├── dialogos-do-sistema.ts  abre/salva/pergunta pelo diálogo nativo do sistema
 │   │   │   └── partida.ts              app.whenReady: registra as pontes, liga kits, abre janela
 │   │   │
 │   │   ├── motores/                    CONDUZEM ALGO VIVO — processo, sessão, estado lembrado
 │   │   │   ├── motor-do-shell-pty.ts   sobe o bash em pseudo-terminal e transporta bytes
-│   │   │   ├── motor-neovim-pty.ts     sobe o Neovim em pseudo-terminal e transporta bytes
-│   │   │   ├── controle-neovim-rpc.ts  fala com o Neovim vivo por socket (abrir, cd, salvar)
+│   │   │   ├── motor-copilot-lsp.ts    sobe o copilot-language-server e fala LSP por stdio
 │   │   │   └── configuracao-salva.ts   o estado que a casca lembra entre sessões, no disco
 │   │   │
 │   │   ├── infra/                      TOCA O DISCO E VOLTA — I/O concreto que não é motor
@@ -143,7 +148,7 @@ Terminus/
 │   │   │   └── argumentos-da-partida.ts lê process.argv e devolve a pasta pedida na linha
 │   │   │
 │   │   ├── servicos/                   CASO DE USO — chama infra+motor+persistência na ordem
-│   │   │   ├── abertura-de-projeto.ts  entrar na pasta: abre, aponta o Neovim, registra recente
+│   │   │   ├── abertura-de-projeto.ts  entrar na pasta: abre e registra nos recentes, nessa ordem
 │   │   │   ├── criacao-de-projeto.ts   projeto novo: molda a pasta e entra nela
 │   │   │   ├── leitura-de-arquivo.ts   abre e lista; o `lerParaEditor` ficou sem canal (A5)
 │   │   │   ├── escrita-confinada.ts    resolve + guarda do domínio nos 4: gravar/criar/renomear
@@ -154,12 +159,12 @@ Terminus/
 │   │       ├── registra-tudo.ts        o único ponto de entrada: chama os 8 registradores
 │   │       ├── resposta-segura.ts      embrulha o handler: exceção vira {ok:false, erro}
 │   │       ├── ponte-projeto.ts        6 canais: escolher, entrar, inicial, novo, recentes...
-│   │       ├── ponte-arquivo.ts        6 canais: abrir, listar, arquivos, criar, renomear
+│   │       ├── ponte-arquivo.ts        8 canais: abrir, listar, ler, gravar, criar, renomear
 │   │       ├── ponte-exclusao.ts       1 canal: caminho:excluir
 │   │       ├── ponte-como-rodar.ts     1 canal: projeto:como-rodar
 │   │       ├── ponte-aparencia.ts      4 canais: estado, definir, escolher, tirar
 │   │       ├── ponte-shell.ts          7 canais: iniciar, enviar, redimensionar, linha, konsole
-│   │       ├── ponte-neovim.ts         7 canais: iniciar, abrir, cd, plugins, enviar, parar
+│   │       ├── ponte-copilot.ts        2 canais + 2 avisos: sugerir, estado, aceitou, fechou
 │   │       └── ponte-janela.ts         3 canais: minimizar, alternar-máximo, fechar
 │   │
 │   ├── interface/      (renderer)      A CASCA — árvore, terminal, painéis, telas
@@ -170,13 +175,16 @@ Terminus/
 │   │   ├── barra-lateral.ts            os ícones da lateral e qual painel está aberto
 │   │   ├── painel-lateral.ts           NOVO: sabe qual painel desenhar, sem que os painéis
 │   │   │                               precisem se conhecer — é o que desfaz os 2 ciclos
-│   │   ├── painel-de-plugins.ts        a lista de plugins do lazy.nvim
 │   │   ├── tela-de-configuracoes.ts    a tela de ajustes de aparência
 │   │   ├── aparencia-da-casca.ts       aplica tema, papel de parede e véu na casca
 │   │   ├── busca-rapida-de-arquivo.ts  a paleta de busca por nome
 │   │   ├── doca-do-terminal.ts         a doca inferior e o divisor do terminal
 │   │   ├── tela-do-terminal.ts         o xterm.js: desenha bytes e devolve teclado
-│   │   ├── vista-do-neovim.ts          a área onde o Neovim aparece
+│   │   ├── editor-monaco.ts            monta o Monaco: tema transparente, opções e workers
+│   │   ├── estado-do-editor.ts         quais arquivos estão abertos, qual sujo, a tela vazia
+│   │   ├── abas-do-editor.ts           a fila de abas — o Monaco não tem, e o VSCode exige
+│   │   ├── comandos-do-editor.ts       Ctrl+S e Ctrl+W; o resto dos atalhos é nativo do Monaco
+│   │   ├── sugestao-inline.ts          o provedor do Copilot, registrado no próprio Monaco
 │   │   ├── fluxo-de-projeto.ts         o botão de linguagem e o botão Rodar
 │   │   ├── tipos-da-janela.d.ts        declara window.terminus para o TypeScript
 │   │   └── pagina.html                 o esqueleto estático da casca
@@ -188,7 +196,6 @@ Terminus/
 │   │   ├── gancho-de-modulos.ts            electron -> duble, ./x.js -> ./x.ts, HOME+TMPDIR temp
 │   │   ├── electron-duble.ts               as 6 portas do main + o registro de ORDEM
 │   │   ├── casa-de-teste.ts                fixtures em disco dentro da casa temporaria
-│   │   ├── neovim-falso.ts                 servidor msgpack-RPC de verdade, p/ o canal de controle
 │   │   └── rejeicoes-nao-tratadas.ts       captura toda rejeicao nao tratada; a suite exige ZERO
 │   ├── dominio/                        unidade: a regra pura, sem subir Electron   30
 │   │   ├── guarda-de-caminho.test.ts       6 testes
@@ -196,7 +203,8 @@ Terminus/
 │   │   ├── protecao-da-pasta-aberta.test.ts 6
 │   │   ├── escolha-da-pasta-inicial.test.ts 4
 │   │   ├── fluxo-conhecido.test.ts          4
-│   │   └── endereco-da-pagina.test.ts       4  os 2 regimes de carga da página
+│   │   ├── endereco-da-pagina.test.ts       4  os 2 regimes de carga da página
+│   │   └── linguagem-do-arquivo.test.ts     8  extensão, nome inteiro, e o que vira texto puro
 │   ├── servicos/                       caso de uso: a ORDEM e a DECISAO             76
 │   │   ├── escrita-confinada.test.ts       25  as 3 etapas do confinado + A3(a) + A10
 │   │   ├── leitura-de-arquivo.test.ts      10  as 2 recusas e a NAO-recusa proposital
@@ -206,10 +214,8 @@ Terminus/
 │   │   ├── escrita-em-pasta-por-atalho.test.ts 8  A9 CONSERTADA: o atalho e a pasta real
 │   │   └── fechamento-de-pasta.test.ts      8  A7 CONSERTADA: fechar chega ao main
 │   ├── motores/                        o que conduz processo vivo                   32
-│   │   ├── controle-neovim-rpc-com-neovim.test.ts 15  o que a casca MANDA no fio
 │   │   ├── motor-do-shell-pty.test.ts       7  a conduta da A2: sem konsole, RECUSA
-│   │   ├── controle-neovim-rpc.test.ts      6  A8: sem Neovim, DESISTE e diz a frase
-│   │   └── controle-neovim-rpc-mudo.test.ts 4  A8: socket que aceita e nao fala
+│   │   ├── motor-copilot-lsp.test.ts        4  onde o servidor e procurado, e o que se diz
 │   ├── infra/                          I/O concreto que nao e motor                  5
 │   │   └── kits-embutidos.test.ts           5  os 4 casos de ligacao da A4(b)
 │   └── funcionais/                     a perna P6: sobe servidor de dev, sem tela      2
@@ -286,10 +292,10 @@ interface ─▶ porta ─▶ ponte-projeto ─▶ servicos/abertura-de-projeto
                               infra/resolucao-de-caminho  ◀── a raiz é resolvida AQUI, na ENTRADA
                               atalho → lugar real (A9, 24/08)
                                             │
-                    ┌───────────────────────┼──────────────────────────┐
-                    ▼                       ▼                          ▼
-    infra/arquivos-do-projeto   motores/controle-neovim-rpc   motores/configuracao-salva
-    abre e lista (PRIMEIRO)     aponta o Neovim (cd)          registra nos recentes (POR FIM)
+                    ┌───────────────────────┴──────────────────────────┐
+                    ▼                                                  ▼
+    infra/arquivos-do-projeto                          motores/configuracao-salva
+    abre e lista (PRIMEIRO)                            registra nos recentes (POR FIM)
 ```
 
 **A ordem é a regra, e ela é conduta a preservar:** a leitura vem primeiro de propósito — se a
@@ -302,8 +308,12 @@ a tela mostra o nome **real**, não o do atalho. `resolverParaLeitura` e não `r
 porque a pasta que sumiu tem de estourar em `abrirProjeto`, **depois** da leitura — é a ordem
 acima, e o outro resolvedor a quebraria em silêncio.
 
-**Onde quebra:** socket do Neovim morto (o `cd` falha em silêncio, de propósito — abrir a pasta
-não pode depender do editor estar de pé).
+**Onde quebra:** ⚠️ **o ramo do meio deste desenho SUMIU em 26/08/2026** — havia um
+`motores/controle-neovim-rpc` apontando o `cd` do Neovim para a pasta, e ele falhava em silêncio
+de propósito (abrir pasta não podia depender do editor estar de pé). O Monaco **não tem diretório
+de trabalho**: ele edita modelos identificados por caminho absoluto. O efeito do meio deixou de
+existir, e por isso a remoção não mexeu na regra — **a ordem continua sendo a conduta travada**:
+a leitura vem primeiro, e a pasta só é registrada nos recentes se ainda existir.
 
 ### F3 — Excluir: a lixeira que mente
 
@@ -331,8 +341,10 @@ teclado ─▶ interface/tela-do-terminal ─▶ porta ─▶ ponte-shell ─▶
 
 **Onde quebra:** fechar a janela destrói a `WebContents`, mas o PTY segue vivo alguns
 milissegundos e ainda emite bytes — `send` para objeto destruído lança e vira caixa de erro em
-cima de quem já mandou fechar. A guarda `if (!alvo.isDestroyed())` é conduta a preservar, e vale
-igual no caminho do Neovim.
+cima de quem já mandou fechar. A guarda `if (!alvo.isDestroyed())` é conduta a preservar.
+⚠️ Ela valia **igual no caminho do Neovim**, que saiu em 26/08. O caminho do Copilot **não precisa
+dela**, e a razão é de desenho: ele responde a `invoke` (pergunta com resposta), não a
+`webContents.send` — não existe empurrar bytes para uma tela que já morreu.
 
 ### F5 — Partida: o que sobe, em que ordem, e o que pode falhar sem derrubar
 
@@ -341,6 +353,9 @@ app.whenReady
    ├─▶ ponte/registra-tudo        os 8 registradores, ANTES da janela existir
    ├─▶ motores/configuracao-salva limpa o histórico antigo de comando (dado sensível)
    ├─▶ infra/kits-embutidos       symlinks no config do Neovim — FALHA NÃO DERRUBA
+   │                              (⚠️ CONTINUA, ramo D3: o Terminus deixou de EMBUTIR o
+   │                               Neovim em 26/08, mas não deixou de SERVI-LO — os kits
+   │                               seguem instalados para o `nvim` de terminal da cabeça)
    └─▶ janela/janela-principal    cria a janela e carrega a página
 ```
 
@@ -367,14 +382,14 @@ importa — teto 2*. A contagem de canais fica como guarda secundária (~10).
 | registrador | canais | módulos de `sistema/` que importa | teto |
 |---|---:|---|:---:|
 | `ponte-projeto.ts` | 7 | `servicos/abertura-de-projeto` · `servicos/criacao-de-projeto` | 2 ✔ |
-| `ponte-arquivo.ts` | 6 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
+| `ponte-arquivo.ts` | 8 | `servicos/leitura-de-arquivo` · `servicos/escrita-confinada` | 2 ✔ |
 | `ponte-exclusao.ts` | 1 | `servicos/exclusao-de-caminho` | 1 ✔ |
 | `ponte-como-rodar.ts` | 1 | `infra/como-rodar-o-projeto` | 1 ✔ |
 | `ponte-aparencia.ts` | 4 | `janela/dialogos-do-sistema` · `motores/configuracao-salva` | 2 ✔ |
 | `ponte-shell.ts` | 7 | `motores/motor-do-shell-pty` | 1 ✔ |
-| `ponte-neovim.ts` | 7 | `motores/motor-neovim-pty` · `motores/controle-neovim-rpc` | 2 ✔ |
+| `ponte-copilot.ts` | 4 | `motores/motor-copilot-lsp` | 1 ✔ |
 | `ponte-janela.ts` | 3 | — (recebe a janela, não importa módulo) | 0 ✔ |
-| **soma** | **36** | **máximo = 2** (hoje: 7) | |
+| **soma** | **33** | **máximo = 2** (hoje: 7) | |
 
 Os 37 canais de hoje continuam 37 depois: **a lógica muda de lugar, a conduta é preservada**
 (§12·3). Nenhum canal nasce, nenhum morre, nenhum troca de nome.

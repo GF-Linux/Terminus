@@ -1,13 +1,18 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
+  AberturaDoNvim,
   ComoRodar,
   EstadoAparencia,
+  EdicaoSeguinte,
+  EstadoCopilot,
+  EstadoServidor,
+  ExtensaoDoVscode,
   Fluxo,
   NoArquivo,
-  PluginNvim,
   ProjetoAberto,
   ProjetoNovo,
   Resultado,
+  SugestaoInline,
 } from "../compartilhado/tipos.js";
 
 //? A PORTA PARA A INTERFACE — Decisão sobre a única passagem renderer/main 29/07/2026
@@ -103,51 +108,132 @@ const api = {
     tirar: (): Promise<Resultado<EstadoAparencia>> => ipcRenderer.invoke("aparencia:tirar"),
   },
 
+  /** As extensões que a pessoa já usa no VSCode. Leitura de UMA pasta conhecida
+   *  (`~/.vscode/extensions`), sem rede e sem escrita — o painel não instala nada. */
+  extensoes: {
+    listar: (): Promise<Resultado<ExtensaoDoVscode[]>> => ipcRenderer.invoke("extensoes:listar"),
+  },
+
+  /** A tela de abertura do Neovim da pessoa, lida do `dashboard.lua` dela: o logotipo,
+   *  as cores daquela tela e a ficha da máquina. Leitura, sem rede e sem escrita. */
+  telaDeAbertura: (): Promise<Resultado<AberturaDoNvim>> => ipcRenderer.invoke("abertura:tela"),
+
+  /** Ler para o editor e gravar do editor — os dois canais que o Monaco exige.
+   *
+   *  `ler` devolve TEXTO, não bytes: o serviço recusa binário, recusa o
+   *  `config.json` do Terminus e recusa caminho vazio ou com `\0`. `gravar`
+   *  passa pelo mesmo `confinado()` dos outros modos de escrita — sem pasta
+   *  aberta, nada é gravável, e isso é de propósito. */
+  lerArquivo: (arquivo: string): Promise<Resultado<string>> =>
+    ipcRenderer.invoke("arquivo:ler", arquivo),
+  gravarArquivo: (arquivo: string, conteudo: string): Promise<Resultado<void>> =>
+    ipcRenderer.invoke("arquivo:gravar", arquivo, conteudo),
+
   /**
-   * O motor de edição (ADR 0025): o `nvim` de verdade, rodando por PTY no
-   * processo principal. Esta porta só transporta bytes — teclado sobe, ANSI
-   * desce — e não interpreta nada. O canal de controle (`:edit`, `:w`) é o
-   * socket msgpack-RPC, não esta superfície.
+   * Os servidores de linguagem (ramo B1 da planta de 26/08).
+   *
+   * É o que dá a Python e a C# o que TypeScript e JSON já tinham de graça:
+   * diagnóstico na linha, completar que conhece o projeto, ir-para-definição.
+   *
+   * ⚠️ Esta superfície transporta **mensagem crua do protocolo**, e é o item mais
+   * largo desta porta. A razão de ele existir assim: a tradução LSP↔editor é do
+   * `monaco-languageclient`, que roda na TELA; quem não pode rodar na tela é o
+   * `child_process`, que abre o servidor. Estreitar aqui significaria reimplementar
+   * o protocolo dos dois lados — e aí a porta ficaria estreita e o produto, errado.
+   * O que a mensagem alcança continua limitado ao que o servidor faz: ele lê a
+   * pasta do projeto, e nada mais.
    */
-  neovim: {
-    iniciar: (cwd: string, cols: number, rows: number): void =>
-      ipcRenderer.send("neovim:iniciar", cwd, cols, rows),
-    enviar: (dados: string): void => ipcRenderer.send("neovim:enviar", dados),
-    /** Abre um arquivo no Neovim e entra em modo de escrita (por RPC). Com
-     *  `linha`, o cursor já para no lugar — é o traceback clicável. */
-    abrir: (caminho: string, linha?: number): Promise<Resultado<void>> =>
-      ipcRenderer.invoke("neovim:abrir", caminho, linha),
-    /** Aponta o diretório de trabalho do Neovim para a pasta dada. */
-    cd: (pasta: string): void => ipcRenderer.send("neovim:cd", pasta),
-    /** Os plugins instalados, perguntados ao lazy.nvim — alimenta o painel lateral. */
-    plugins: (): Promise<Resultado<PluginNvim[]>> => ipcRenderer.invoke("neovim:plugins"),
-    redimensionar: (cols: number, rows: number): void =>
-      ipcRenderer.send("neovim:redimensionar", cols, rows),
-    //? CANAL DORMENTE (A6, 24/08/2026): **nenhum código do renderer chama isto** —
-    //?   busca larga em `interface/` e em `design/`, nome a nome. O que dorme é o
-    //?   CANAL, não a peça: `pararNeovim` está vivo e é usado pelo próprio main, ao
-    //?   fechar a janela (`janela-principal.ts`) e na partida (`partida.ts`).
-    //?   FICA por decisão da cabeça em 24/08, e fica REGISTRADO — que é o mesmo
-    //?   tratamento da A5. Enquanto fica, é superfície: dá ao renderer o poder de
-    //?   **matar o editor**. Árvore no tracker §8, A6.
-    parar: (): void => ipcRenderer.send("neovim:parar"),
-    /** Saída crua do Neovim rumo ao xterm. Devolve como cancelar a assinatura. */
-    aoSaida: (ouvinte: (dados: string) => void): (() => void) => {
-      const wrap = (_: unknown, dados: string): void => ouvinte(dados);
-      ipcRenderer.on("neovim:saida", wrap);
-      return () => ipcRenderer.off("neovim:saida", wrap);
+  lsp: {
+    iniciar: (linguagem: string, raiz: string): Promise<Resultado<EstadoServidor>> =>
+      ipcRenderer.invoke("lsp:iniciar", linguagem, raiz),
+    estado: (linguagem: string): Promise<Resultado<EstadoServidor>> =>
+      ipcRenderer.invoke("lsp:estado", linguagem),
+    /** Diz ao servidor qual é o projeto. Só o Roslyn precisa — os outros descobrem
+     *  pela raiz que já vai no `initialize`. Devolve a frase do que foi feito, ou
+     *  `null` quando aquela linguagem não pede nada. */
+    abrirProjeto: (linguagem: string, raiz: string): Promise<Resultado<string | null>> =>
+      ipcRenderer.invoke("lsp:abrir-projeto", linguagem, raiz),
+    enviar: (linguagem: string, mensagem: unknown): void =>
+      ipcRenderer.send("lsp:enviar", linguagem, mensagem),
+    /** As mensagens que o servidor manda por conta própria. Devolve como cancelar. */
+    aoReceber: (ouvinte: (linguagem: string, mensagem: unknown) => void): (() => void) => {
+      const wrap = (_: unknown, linguagem: string, mensagem: unknown): void =>
+        ouvinte(linguagem, mensagem);
+      ipcRenderer.on("lsp:mensagem", wrap);
+      return () => ipcRenderer.off("lsp:mensagem", wrap);
     },
-    aoEncerrar: (ouvinte: (codigo: number) => void): (() => void) => {
-      const wrap = (_: unknown, codigo: number): void => ouvinte(codigo);
-      ipcRenderer.on("neovim:encerrou", wrap);
-      return () => ipcRenderer.off("neovim:encerrou", wrap);
-    },
+  },
+
+  /**
+   * A sugestão inline (planta de 26/08): o Copilot por LSP, no processo principal.
+   *
+   * ⚠️ **É o único item desta porta que sai da máquina.** O trecho aberto viaja
+   * para a GitHub a cada pausa de digitação, e é por isso que ele tem entrada
+   * própria em vez de se esconder dentro de outra: quem lê esta lista tem de
+   * ver, numa olhada, o que atravessa a fronteira.
+   *
+   * A tela não fala com a rede — o CSP da página é `default-src 'self'`, e não
+   * é para deixar de ser. Quem sai daqui é o `main`.
+   */
+  copilot: {
+    sugerir: (pedido: {
+      caminho: string;
+      linguagem: string;
+      texto: string;
+      linha: number;
+      coluna: number;
+      /** `true` quando a pessoa PEDIU a sugestão, em vez de ela vir digitando.
+       *  Só o pedido explícito devolve alternativas para ciclar. */
+      invocado?: boolean;
+    }): Promise<Resultado<SugestaoInline[]>> => ipcRenderer.invoke("copilot:sugerir", pedido),
+    /** As MESMAS edições que o editor acabou de aplicar, em delta. É delas que o NES vive:
+     *  sem histórico de edição o servidor recusa com `activeDocumentHasNoEdits`. */
+    editou: (pedido: {
+      caminho: string;
+      mudancas: {
+        range: {
+          start: { line: number; character: number };
+          end: { line: number; character: number };
+        };
+        rangeLength: number;
+        text: string;
+      }[];
+    }): void => ipcRenderer.send("copilot:editou", pedido),
+    /** A **edição seguinte** (NES): onde vai a próxima mudança. Os `problemas` são os erros
+     *  que o servidor de linguagem apontou — é por eles que vem a CORREÇÃO. */
+    edicaoSeguinte: (pedido: {
+      caminho: string;
+      linguagem: string;
+      texto: string;
+      linha: number;
+      coluna: number;
+      problemas: {
+        severidade: "error" | "warning";
+        mensagem: string;
+        inicio: { linha: number; coluna: number };
+        fim: { linha: number; coluna: number };
+      }[];
+    }): Promise<Resultado<EdicaoSeguinte[]>> =>
+      ipcRenderer.invoke("copilot:edicao-seguinte", pedido),
+    /** Como o Copilot está. `pronto: false` é estado comum, não erro. */
+    estado: (): Promise<Resultado<EstadoCopilot>> => ipcRenderer.invoke("copilot:estado"),
+    /** Devolve ao Copilot o que ele pediu no `command` da sugestão aceita. */
+    aceitou: (comando: { command: string; arguments?: unknown[] }): void =>
+      ipcRenderer.send("copilot:aceitou", comando),
+    /** Uma aba abriu: o Copilot passa a conhecer este arquivo como CONTEXTO dos
+     *  outros, sem que ninguém peça sugestão nele. É o que a documentação do
+     *  VSCode chama de "related files open" — e sem isto, ter arquivos abertos
+     *  não ajudava nada aqui, porque o servidor não sabia que existiam. */
+    acompanhar: (pedido: { caminho: string; linguagem: string; texto: string }): void =>
+      ipcRenderer.send("copilot:acompanhar", pedido),
+    /** A aba fechou: o servidor não precisa mais deste documento. */
+    fechou: (caminho: string): void => ipcRenderer.send("copilot:fechou", caminho),
   },
 
   /**
    * O terminal da casca (19/08): um shell de verdade, num pseudo-terminal.
    *
-   * Simétrico ao `neovim` acima de propósito — são as duas telas do mesmo
+   * Era simétrico ao `neovim` que morava acima — as duas telas do mesmo
    * desenho: teclado sobe, ANSI desce, e esta porta não interpreta nada do que
    * passa. Quem interpreta é o bash, do outro lado.
    */

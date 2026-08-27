@@ -71,15 +71,88 @@ export interface EstadoAparencia {
 }
 
 /**
- * Um plugin do Neovim, como o lazy.nvim o descreve (ADR 0025).
+ * O que a sugestão inline traz do Copilot, já pronta para virar item do Monaco.
  *
- * Alimenta o painel lateral que substituiu o "Extensions": o Neovim tem plugin
- * demais para quem está começando descobrir sozinho, e `:Lazy` é uma tela dentro
- * do editor. Na lateral a lista fica clicável, como numa IDE.
+ * É a forma que o `textDocument/inlineCompletion` do LSP devolve, e ela casa
+ * quase um-a-um com a `InlineCompletion` do editor — por isso atravessa a porta
+ * sem tradução no meio. O `range` sempre começa e termina na MESMA linha: é
+ * exigência do Monaco, e o servidor já a respeita.
  */
-export interface PluginNvim {
-  nome: string;
-  url: string;
-  dir: string;
-  carregado: boolean;
+export interface SugestaoInline {
+  insertText: string;
+  range?: { start: { line: number; character: number }; end: { line: number; character: number } };
+  /** O que devolver ao Copilot quando a pessoa aceitar. É como ele aprende. */
+  command?: { title?: string; command: string; arguments?: unknown[] };
+}
+
+/**
+ * O que a barra de estado sabe dizer sobre o Copilot.
+ *
+ * `pronto: false` NÃO é erro — é estado, e é o mais comum de todos (servidor
+ * ainda subindo, sessão expirada, binário ausente). O `detalhe` existe para a
+ * barra dizer O QUE falta em vez de a sugestão simplesmente nunca aparecer.
+ */
+export interface EstadoCopilot {
+  pronto: boolean;
+  /** Onde o servidor foi achado, ou `null` quando não foi. */
+  servidor: string | null;
+  detalhe: string;
+}
+
+/**
+ * O que a casca sabe dizer sobre um servidor de linguagem (ramo B1).
+ *
+ * `pronto: false` NÃO é erro — é o estado mais comum numa máquina que não tem
+ * aquele servidor instalado. O `detalhe` existe para a barra dizer O QUE falta
+ * em vez de o editor simplesmente ficar burro sem explicação.
+ */
+export interface EstadoServidor {
+  linguagem: string;
+  pronto: boolean;
+  /** O binário que subiu, ou `null` quando não subiu nenhum. */
+  comando: string | null;
+  detalhe: string;
+}
+
+/**
+ * Uma extensão instalada no VSCode desta máquina.
+ *
+ * O `tipo` é a informação que decide tudo, e ele é lido do `package.json`, não chutado:
+ * `web` declara `browser` e roda no mesmo lugar que o editor; `desktop` só declara `main` e
+ * precisa de um host de extensão em Node que este produto não tem; `declarativa` não tem
+ * código nenhum — tema, pacote de idioma, gramática — e é a que carregaria mais fácil.
+ */
+export interface ExtensaoDoVscode {
+  id: string;
+  rotulo: string;
+  versao: string;
+  descricao: string;
+  pasta: string;
+  tipo: "web" | "desktop" | "declarativa";
+}
+
+/**
+ * A tela de abertura do Neovim da cabeça, lida do `dashboard.lua` dela.
+ *
+ * `logotipo` são as linhas do `wordmark`; `cores` é a paleta própria dessa tela
+ * (`ink`/`deep`/`tide`/`glow`/`mist`/`foam` — **não** a do `tema.lua`, que é outra);
+ * `ficha` são os pares que o painel mostra, lidos das mesmas fontes que ele usa.
+ */
+export interface AberturaDoNvim {
+  logotipo: string[];
+  cores: Record<string, string>;
+  ficha: [string, string][];
+}
+
+/**
+ * Uma **edição seguinte** (NES): o Copilot dizendo ONDE vai a próxima mudança.
+ *
+ * Diferente da `SugestaoInline`, que completa onde o cursor está, esta aponta para outro
+ * lugar do arquivo — e é isso que o editor mostra como seta na calha e salto por `Tab`.
+ */
+export interface EdicaoSeguinte {
+  text: string;
+  textDocument: { uri: string; version?: number };
+  range: { start: { line: number; character: number }; end: { line: number; character: number } };
+  command?: { title?: string; command: string; arguments?: unknown[] };
 }

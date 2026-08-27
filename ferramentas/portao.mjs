@@ -19,7 +19,7 @@
 //!    escreve em ~/.config/terminus/ e cria symlink em ~/.config/nvim/ — medido.
 //!    Portão que suja a máquina de quem roda não é portão.
 
-import { readFileSync, existsSync, readdirSync, statSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
@@ -192,7 +192,38 @@ const SINAL = `(async () => ({
   porta: typeof window.terminus,
   xterm: !!document.querySelector('.xterm'),
   aparencia: typeof (await window.terminus.aparencia.estado()),
-  lateral: !!document.getElementById('btAbrirPasta'),
+  //! ⚠️ ERA \`!!document.getElementById('btAbrirPasta')\`, e passou a MENTIR em 26/08: aquele
+  //! botão só existe quando NÃO há pasta aberta, e a perna agora sobe o app COM a pasta de
+  //! prova. Ele dava falso numa lateral perfeitamente viva. O que se quer medir é "o
+  //! Explorer desenhou", e isso é verdade nos dois estados.
+  lateral: document.getElementById('sideT')?.textContent === 'Explorer'
+    && (document.getElementById('lateral')?.children.length ?? 0) > 0,
+  //! ⚠️ O EDITOR É PROVADO ABRINDO ARQUIVO, e não procurando um nó no DOM — medido em
+  //! 26/08/2026: com nenhum arquivo aberto o \`#editorHost\` fica VAZIO (0 filhos), porque o
+  //! Monaco não desenha sem modelo. Um \`querySelector('.monaco-editor')\` daria falso numa
+  //! tela perfeitamente sã, e o portão reprovaria o produto certo.
+  //! O que este ramo exercita é o CAMINHO INTEIRO, que é o que a perna de conduta existe
+  //! para cobrir: clique na árvore -> \`arquivo:ler\` no main -> modelo do Monaco -> aba
+  //! desenhada -> texto na tela. Cinco camadas numa asserção.
+  editor: await (async () => {
+    const alvo = [...document.querySelectorAll('[data-arquivo]')]
+      .find((e) => e.getAttribute('data-arquivo').endsWith('.py'));
+    if (!alvo) return 'sem o arquivo de prova na árvore';
+    alvo.click();
+    await new Promise((ok) => setTimeout(ok, 2500));
+    const montou = !!document.querySelector('#editorHost .monaco-editor');
+    const aba = (document.getElementById('abas')?.innerText || '').includes('prova.py');
+    //! ⚠️ O Monaco RENDERIZA ESPAÇO COMO \\u00a0 (espaço inseparável) — medido: a asserção
+    //! \`includes('def area')\` deu falso sobre um texto que a tela mostrava certo, porque o
+    //! espaço do meio não era o mesmo caractere. Normalizar é obrigatório em toda leitura
+    //! de texto do editor, e é o tipo de armadilha que só aparece na tela de verdade.
+    const texto = (document.querySelector('#editorHost .view-lines')?.innerText || '')
+      .replace(/\\u00a0/g, ' ');
+    return montou && aba && texto.includes('def area') ? true
+      : \`montou=\${montou} aba=\${aba} texto=\${texto.slice(0, 40)}\`;
+  })(),
+  //! O painel de configurações vem POR ÚLTIMO: ele troca o painel lateral e tira o Explorer
+  //! da tela, e o ramo do editor acima precisa da árvore visível para clicar.
   painel: await (async () => {
     document.querySelector('button[data-p="config"]').click();
     await new Promise((ok) => setTimeout(ok, 1500));
@@ -205,14 +236,25 @@ const SINAL = `(async () => ({
 async function pernaConduta({ silencioso = false } = {}) {
   const dizer = (s) => { if (!silencioso) console.log(s); };
   //! HOME próprio: a partida escreve em ~/.config/terminus e liga symlink em
-  //! ~/.config/nvim. Medido. Sem esta linha o portão suja a máquina de quem roda.
+  //! ~/.config/nvim (os kits continuam ligados — ramo D3 da planta de 26/08, mesmo sem
+  //! Neovim EMBUTIDO). Medido. Sem esta linha o portão suja a máquina de quem roda.
+  //! ⚠️ `editor` ENTROU NO SINAL em 26/08: sem ele, o portão aprovaria uma tela em que o
+  //!   Monaco não montou — e a perna de conduta existe justamente para isso não passar.
   const casa = mkdtempSync(path.join(tmpdir(), "terminus-portao-"));
+  //! A PASTA DE PROVA nasce dentro da casa temporária e é passada como argumento da linha
+  //! de comando — o mesmo caminho que uma pessoa usa ao abrir o Terminus numa pasta. Sem
+  //! ela o app sobe sem projeto, a árvore fica vazia e o ramo do editor não teria o que
+  //! clicar. Ela morre com a casa, no `encerrar()`.
+  const pastaDeProva = path.join(casa, "projeto-de-prova");
+  mkdirSync(pastaDeProva, { recursive: true });
+  writeFileSync(path.join(pastaDeProva, "prova.py"),
+    "import math\n\n\ndef area(raio: float) -> float:\n    return math.pi * raio ** 2\n");
   const porta = 9200 + Math.floor(Math.random() * 500);
   //! detached: o Electron abre zygote, gpu, network e renderer. Matar só o PID
   //! do pai deixa SEIS processos vivos — medido com ps na v0.5.0. Com grupo
   //! próprio, `kill(-pid)` derruba a árvore inteira.
   const filho = spawn(path.join(RAIZ, "node_modules/.bin/electron"),
-    [path.join(RAIZ, "out/main/index.js"), `--remote-debugging-port=${porta}`, "--no-sandbox"],
+    [path.join(RAIZ, "out/main/index.js"), pastaDeProva, `--remote-debugging-port=${porta}`, "--no-sandbox"],
     { cwd: RAIZ, env: { ...process.env, HOME: casa }, stdio: ["ignore", "pipe", "pipe"], detached: true });
   let log = "";
   filho.stdout.on("data", (d) => (log += d));
@@ -251,9 +293,11 @@ async function pernaConduta({ silencioso = false } = {}) {
     ws.close(); encerrar();
 
     const v = r?.result?.result?.value;
+    //! `editor` devolve `true` OU A FRASE do que falhou — assim o vermelho diz a causa
+    //! (§12·4e) em vez de só negar. Por isso a comparação é com `true`, estrita.
     const vivo = v?.porta === "object" && v?.xterm === true && v?.aparencia === "object"
-      && v?.lateral === true && v?.painel === true;
-    dizer(`    porta=${v?.porta}  xterm=${v?.xterm}  aparencia=${v?.aparencia}  lateral=${v?.lateral}  painel=${v?.painel}`);
+      && v?.lateral === true && v?.painel === true && v?.editor === true;
+    dizer(`    porta=${v?.porta}  xterm=${v?.xterm}  editor=${v?.editor}  aparencia=${v?.aparencia}  lateral=${v?.lateral}  painel=${v?.painel}`);
     return { ok: vivo, valor: v };
   } catch (e) { dizer(`${VERM}${e?.message}${FIM_COR}`); encerrar(); return { ok: false }; }
 }

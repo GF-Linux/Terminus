@@ -9,7 +9,6 @@ import { abrirProjeto } from "../infra/arquivos-do-projeto.js";
 import { resolverParaLeitura } from "../infra/resolucao-de-caminho.js";
 import { escolherPasta } from "../janela/dialogos-do-sistema.js";
 import { RAIZ_APP } from "../janela/janela-principal.js";
-import { cdNeovim } from "../motores/controle-neovim-rpc.js";
 import { esquecerPasta, pastasRecentes, registrarPasta, ultimaPasta } from "../motores/configuracao-salva.js";
 
 //! A pasta de trabalho aberta agora. Ela tem UM dono — este módulo — e quem
@@ -76,7 +75,13 @@ export async function entrarNaPasta(pedida: string): Promise<ProjetoAberto> {
   const raiz = resolverParaLeitura(pedida);
   const projeto = await abrirProjeto(raiz);
   raizAberta = raiz;
-  void cdNeovim(raiz).catch(() => {});
+  //? ⚠️ AQUI HAVIA `void cdNeovim(raiz).catch(() => {})` — apontar o diretório de trabalho do
+  //?   Neovim para a pasta aberta. Saiu em 26/08/2026 com o motor, e **não ganhou substituto**,
+  //?   de propósito: o Monaco não tem diretório de trabalho. Ele edita modelos identificados
+  //?   por caminho absoluto, e "onde ele está" não é uma pergunta que exista.
+  //? A ORDEM DESTA FUNÇÃO NÃO MUDOU, e ela é a conduta travada pelos testes: a LEITURA vem
+  //?   primeiro, e a pasta só é registrada nos recentes se ela ainda existir. O que saiu foi
+  //?   um efeito no meio que nunca podia falhar — e por isso a remoção não mexe na regra.
   registrarPasta(raiz);
   return projeto;
 }

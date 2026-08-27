@@ -4,7 +4,7 @@ import { app, BrowserWindow } from "electron";
 import { ligarKits } from "../infra/kits-embutidos.js";
 import { limparHistoricoAntigo } from "../motores/configuracao-salva.js";
 import { pararShell } from "../motores/motor-do-shell-pty.js";
-import { pararNeovim } from "../motores/motor-neovim-pty.js";
+import { pararCopilot } from "../motores/motor-copilot-lsp.js";
 import { registrarPonte } from "../ponte/registra-tudo.js";
 import { criarJanela, RAIZ_APP } from "./janela-principal.js";
 import { janelaViva } from "./janela-viva.js";
@@ -40,6 +40,6 @@ void app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   pararShell();
-  pararNeovim();
+  pararCopilot();
   if (process.platform !== "darwin") app.quit();
 });
